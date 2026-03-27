@@ -1,0 +1,16 @@
+# API keys and secrets
+.env
+*.key
+secrets/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.bak
