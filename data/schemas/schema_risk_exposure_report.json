@@ -1,0 +1,230 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Risk Exposure Report",
+  "description": "Output schema for the Atlas agent. Quantifies supply chain exposure from a detected threat.",
+  "type": "object",
+  "required": [
+    "report_id",
+    "trigger_alert_id",
+    "timestamp",
+    "total_suppliers_affected",
+    "total_products_at_risk",
+    "estimated_revenue_exposure",
+    "affected_suppliers",
+    "route_disruptions"
+  ],
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "pattern": "^ATL-\\d{4}-\\d{4}-\\d{3}$",
+      "description": "Unique report identifier. Format: ATL-YYYY-MMDD-NNN"
+    },
+    "trigger_alert_id": {
+      "type": "string",
+      "description": "The Sentinel alert ID that triggered this assessment"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "total_suppliers_affected": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "critical_suppliers_affected": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_products_at_risk": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "estimated_revenue_exposure": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Total annual revenue at risk in USD. Calculated by n8n, not estimated by LLM."
+    },
+    "average_inventory_buffer_days": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Average days of inventory remaining across affected products"
+    },
+    "single_source_dependencies": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of affected suppliers with no backup (backup_supplier_id = NONE)"
+    },
+    "affected_suppliers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "supplier_id",
+          "supplier_name",
+          "country",
+          "sector",
+          "dependency_level",
+          "products_affected",
+          "revenue_at_risk"
+        ],
+        "properties": {
+          "supplier_id": {
+            "type": "string",
+            "pattern": "^SUP-\\d{4}$"
+          },
+          "supplier_name": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "sector": {
+            "type": "string"
+          },
+          "dependency_level": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "backup_available": {
+            "type": "boolean"
+          },
+          "backup_supplier_id": {
+            "type": "string"
+          },
+          "products_affected": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "revenue_at_risk": {
+            "type": "number",
+            "minimum": 0
+          },
+          "inventory_buffer_days": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "risk_score": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "contract_expiry": {
+            "type": "string",
+            "format": "date"
+          },
+          "lead_time_days": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Standard lead time in days for this supplier. Sourced from supplier database."
+          },
+          "estimated_impact_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Estimated date when this supplier disruption will affect production. Calculated: today + inventory_buffer_days remaining."
+          }
+        }
+      }
+    },
+    "route_disruptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "route_id",
+          "route_name",
+          "current_status",
+          "additional_transit_days",
+          "cost_increase_pct"
+        ],
+        "properties": {
+          "route_id": {
+            "type": "string",
+            "pattern": "^RTE-\\d{4}$"
+          },
+          "route_name": {
+            "type": "string"
+          },
+          "current_status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "DISRUPTED",
+              "BLOCKED",
+              "HIGH_RISK",
+              "RESTRICTED"
+            ]
+          },
+          "normal_transit_days": {
+            "type": "integer"
+          },
+          "additional_transit_days": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cost_increase_pct": {
+            "type": "number",
+            "minimum": 0
+          },
+          "alternate_route": {
+            "type": "string"
+          },
+          "affected_products_count": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of products in the catalog that use this shipping route"
+          },
+          "affected_revenue": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Total annual revenue of products shipped via this route"
+          }
+        }
+      }
+    },
+    "no_exposure_detected": {
+      "type": "boolean",
+      "description": "True if no suppliers or products are affected. Atlas must not fabricate exposure."
+    },
+    "estimated_time_to_impact_days": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Estimated days until disruption affects operations. Calculated as minimum (inventory_buffer_days - lead_time_days) across all CRITICAL affected suppliers. Zero means impact is immediate."
+    },
+    "concentration_risk_summary": {
+      "type": "object",
+      "properties": {
+        "single_country_exposure_pct": {
+          "type": "number",
+          "description": "Percentage of affected revenue concentrated in the single most-affected country"
+        },
+        "single_supplier_exposure_pct": {
+          "type": "number",
+          "description": "Percentage of affected revenue from the single highest-spend affected supplier"
+        },
+        "top_country": {
+          "type": "string"
+        },
+        "top_supplier_id": {
+          "type": "string"
+        },
+        "risk_level": {
+          "type": "string",
+          "enum": [
+            "CRITICAL",
+            "HIGH",
+            "MODERATE",
+            "LOW"
+          ],
+          "description": "CRITICAL if single-country >60%, HIGH if >40%, MODERATE if >20%, LOW otherwise"
+        }
+      },
+      "description": "Summary of geographic and supplier concentration risk within the affected exposure"
+    }
+  },
+  "additionalProperties": false
+}

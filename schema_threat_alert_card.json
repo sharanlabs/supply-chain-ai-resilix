@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Threat Alert Card",
+  "description": "Output schema for the Sentinel agent. Defines the structure of a classified threat event.",
+  "type": "object",
+  "required": [
+    "alert_id",
+    "timestamp",
+    "event_type",
+    "event_summary",
+    "severity",
+    "affected_regions",
+    "affected_routes",
+    "confidence",
+    "affected_countries"
+  ],
+  "properties": {
+    "alert_id": {
+      "type": "string",
+      "pattern": "^SEN-\\d{4}-\\d{4}-\\d{3}$",
+      "description": "Unique alert identifier. Format: SEN-YYYY-MMDD-NNN"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the alert was generated"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "MILITARY_CONFLICT",
+        "GEOPOLITICAL",
+        "TRADE_POLICY",
+        "PORT_DISRUPTION",
+        "NATURAL_DISASTER",
+        "CYBER_ATTACK",
+        "MARITIME_SECURITY"
+      ],
+      "description": "Classification of the crisis type"
+    },
+    "event_summary": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 500,
+      "description": "Brief factual description of the event and its supply chain relevance"
+    },
+    "severity": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Severity scale: 1=minimal, 2=low, 3=moderate, 4=high, 5=critical"
+    },
+    "affected_regions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "description": "Geographic regions affected by the event"
+    },
+    "affected_routes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Shipping route IDs (RTE-XXXX) that may be disrupted"
+    },
+    "affected_commodities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Types of goods or commodities affected"
+    },
+    "source_articles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "source_domain": {
+            "type": "string"
+          },
+          "published_date": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "News articles that support this alert"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ],
+      "description": "HIGH: 5+ corroborating sources. MEDIUM: 3-4 sources. LOW: 1-2 sources."
+    },
+    "data_freshness": {
+      "type": "string",
+      "description": "How recent the source data is (e.g., '15 minutes', '1 hour', '24 hours')"
+    },
+    "event_subcategory": {
+      "type": "string",
+      "description": "Specific subcategory within the event type (e.g., MILITARY_CONFLICT > Shipping Route Closure, NATURAL_DISASTER > Earthquake). Used to match the correct playbook template."
+    },
+    "source_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of distinct news sources corroborating this event. Used for confidence calibration: 5+ = HIGH, 3-4 = MEDIUM, 1-2 = LOW."
+    },
+    "affected_countries": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "description": "Specific country names affected by the event. Atlas uses this to match against supplier.country field directly."
+    },
+    "estimated_duration": {
+      "type": "string",
+      "description": "Estimated duration of the disruption (e.g., '7-14 days', '30-90 days', 'Indefinite'). Based on historical patterns for this crisis type. Critical for inventory planning."
+    },
+    "affected_sectors": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Electronics",
+          "Apparel",
+          "Automotive",
+          "Energy",
+          "Food & Beverage",
+          "Consumer Goods",
+          "ALL"
+        ]
+      },
+      "description": "Industry sectors impacted by this event. Helps Atlas filter suppliers by sector before geographic filtering."
+    }
+  },
+  "additionalProperties": false
+}

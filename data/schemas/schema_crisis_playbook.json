@@ -1,0 +1,228 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Crisis Response Playbook",
+  "description": "Output schema for the Strategist agent. Structured crisis response with three time horizons.",
+  "type": "object",
+  "required": [
+    "playbook_id",
+    "trigger_report_id",
+    "timestamp",
+    "crisis_type",
+    "severity",
+    "immediate_actions",
+    "short_term_actions",
+    "strategic_actions",
+    "executive_briefing",
+    "limitations"
+  ],
+  "properties": {
+    "playbook_id": {
+      "type": "string",
+      "pattern": "^STR-\\d{4}-\\d{4}-\\d{3}$",
+      "description": "Unique playbook identifier. Format: STR-YYYY-MMDD-NNN"
+    },
+    "trigger_report_id": {
+      "type": "string",
+      "description": "The Atlas report ID that triggered this playbook"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "crisis_type": {
+      "type": "string",
+      "enum": [
+        "MILITARY_CONFLICT",
+        "GEOPOLITICAL",
+        "TRADE_POLICY",
+        "PORT_DISRUPTION",
+        "NATURAL_DISASTER",
+        "CYBER_ATTACK",
+        "MARITIME_SECURITY"
+      ]
+    },
+    "severity": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "immediate_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "action",
+          "confidence",
+          "basis",
+          "owner"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "Specific, actionable recommendation"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Suggested responsible team or role"
+          },
+          "deadline": {
+            "type": "string",
+            "description": "Timeframe (e.g., '24 hours', '48 hours')"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "basis": {
+            "type": "string",
+            "description": "Why this recommendation is made, referencing specific data"
+          }
+        }
+      },
+      "minItems": 3,
+      "description": "Actions for 0 to 48 hours"
+    },
+    "short_term_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "action",
+          "confidence",
+          "basis",
+          "owner"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "deadline": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "basis": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 3,
+      "description": "Actions for 1 to 4 weeks"
+    },
+    "strategic_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "action",
+          "confidence",
+          "basis",
+          "owner"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "deadline": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "basis": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 2,
+      "description": "Actions for 1 to 6 months"
+    },
+    "executive_briefing": {
+      "type": "object",
+      "required": [
+        "situation_summary",
+        "financial_impact",
+        "recommended_decisions"
+      ],
+      "properties": {
+        "situation_summary": {
+          "type": "string",
+          "description": "2 to 3 sentence overview for executive audience"
+        },
+        "financial_impact": {
+          "type": "object",
+          "properties": {
+            "best_case": {
+              "type": "string"
+            },
+            "worst_case": {
+              "type": "string"
+            },
+            "most_likely": {
+              "type": "string"
+            }
+          }
+        },
+        "recommended_decisions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Top 3 decisions requiring executive approval"
+        },
+        "timeline": {
+          "type": "string",
+          "description": "Expected duration of impact"
+        },
+        "estimated_recovery_time": {
+          "type": "string",
+          "description": "Estimated days/weeks to return to normal operations (e.g., '14-30 days', '60-90 days')"
+        }
+      }
+    },
+    "stakeholder_communications": {
+      "type": "object",
+      "properties": {
+        "internal_message": {
+          "type": "string"
+        },
+        "supplier_message": {
+          "type": "string"
+        },
+        "customer_message": {
+          "type": "string"
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "description": "Explicit statements of what this playbook cannot assess or guarantee"
+    }
+  },
+  "additionalProperties": false
+}
