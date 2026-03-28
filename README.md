@@ -69,7 +69,7 @@ Full details: [data/README.md](data/README.md)
 | Component | Tool |
 |-----------|------|
 | AI Model | Google Gemini 3.1 Pro |
-| Orchestration | n8n Cloud (Pro) |
+| Orchestration | n8n Cloud |
 | Data Layer | Google Sheets |
 | News Intelligence | GDELT DOC 2.0 API |
 | Supplier Data | Open Supply Hub |
