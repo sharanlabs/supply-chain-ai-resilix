@@ -1,8 +1,8 @@
 # HANDOFF — resume pointer (updated 2026-06-13)
 
 ## Relay status (two-account back-and-forth — read/update this FIRST)
-**BATON: free** · **NEXT increment: P2.2 (mode-taxonomy split, R4-8)** · last released: — (initial)
-**WIP: none** (P2.1 fully committed; clean boundary — start P2.2 fresh)
+**BATON: claimed by the autopilot session (account A) since 2026-06-13 08:40 EDT** · **NEXT increment: P2.2 (mode-taxonomy split, R4-8)** · last released: P2.1 (28d2409)
+**WIP: P2.2 in progress** — split agent_mode → LIVE_AI/DETERMINISTIC_RULES/REPLAY/FAILED_TO_FALLBACK + packet requested-vs-effective; NEXT micro-step: backend-specialist builds per spec, then gate (verify + Codex)
 > **Mutex:** one account works the folder at a time. Claim before any work (set `BATON: claimed by <account> since <local time>`, commit that line); on handoff set `BATON: free`, commit.
 > **Lossless mid-increment resume (the WIP line):** while working, after each meaningful sub-step, (a) `git commit` it as `wip(P2.x): <what>` so partial code is durable, and (b) rewrite this WIP line as `WIP: P2.x — done: <…>; NEXT micro-step: <exact next action>`. Read it on pickup:
 >   - `BATON: free` + `WIP: none` → start the NEXT increment fresh.
