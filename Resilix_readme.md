@@ -1,3 +1,5 @@
+> **Superseded — 2026-06-12.** This documents the predecessor system (RESILIX v1 / LaunchOps). The current product is **RESILIX ActionOps**; see README.md and docs/Success_Criteria.md at the repo root. Retained for history — not current.
+
 # Supply Chain AI: RESILIX
 
 A multi-agent AI system for supply chain crisis intelligence. RESILIX monitors global events in real time, maps their impact on a supplier network, and generates structured response playbooks.

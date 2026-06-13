@@ -1,3 +1,5 @@
+> **Stale — predecessor content; scheduled for rewrite in Phase 2 Data model.** This still describes the LaunchOps / RESILIX-v1 system. The ActionOps target is defined in PLAN.md (repo root). Do not treat as current until rewritten.
+
 # Data Sources
 
 ## Overview
