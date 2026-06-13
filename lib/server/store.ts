@@ -6,7 +6,12 @@ import {
   processedApprovalEvents,
   runIdempotencyKeys
 } from "@/db/schema";
-import type { ApprovalStatus, DecisionPacket } from "@/lib/schemas";
+import { computeEffectiveMode } from "@/lib/agents/run";
+import type {
+  ApprovalStatus,
+  DecisionPacket,
+  RequestedMode
+} from "@/lib/schemas";
 import { DecisionPacketSchema } from "@/lib/schemas";
 import { getDatabaseUrl, getDb } from "@/lib/server/db";
 import { stableHash } from "@/lib/utils";
@@ -603,6 +608,77 @@ async function persistAgentRunProjectionTx(
     .onConflictDoNothing();
 }
 
-function parseStoredPacket(value: unknown) {
-  return DecisionPacketSchema.parse(value);
+export function parseStoredPacket(value: unknown) {
+  return DecisionPacketSchema.parse(normalizeStoredPacketShape(value));
+}
+
+// Interim read-side compatibility shim (P2.2). Packets persisted before the
+// agent-mode taxonomy split (P2.2) are missing requestedMode/effectiveMode and
+// can carry the retired run value 'DETERMINISTIC_FALLBACK'. This maps such
+// old-shape payloads to the current schema on read; P2.3 replaces it with a
+// formal packetVersion. Pure + shallow: only touches the mode-related fields,
+// and falls through untouched for anything that isn't an old-shape object so
+// Zod owns the real error path.
+function normalizeStoredPacketShape(value: unknown): unknown {
+  if (typeof value !== "object" || value === null) {
+    return value;
+  }
+  const raw = value as Record<string, unknown>;
+  const agentRuns = Array.isArray(raw.agentRuns) ? raw.agentRuns : undefined;
+
+  const hasRetiredRunMode =
+    agentRuns?.some(
+      (run) =>
+        typeof run === "object" &&
+        run !== null &&
+        (run as Record<string, unknown>).mode === "DETERMINISTIC_FALLBACK"
+    ) ?? false;
+  const missingModes =
+    raw.requestedMode === undefined || raw.effectiveMode === undefined;
+
+  if (!hasRetiredRunMode && !missingModes) {
+    return value;
+  }
+
+  // Map every retired run mode 'DETERMINISTIC_FALLBACK' -> 'FAILED_TO_FALLBACK'
+  // (conservative: the old "fallback" was the degraded case).
+  const normalizedAgentRuns = agentRuns?.map((run) => {
+    if (
+      typeof run === "object" &&
+      run !== null &&
+      (run as Record<string, unknown>).mode === "DETERMINISTIC_FALLBACK"
+    ) {
+      return { ...(run as Record<string, unknown>), mode: "FAILED_TO_FALLBACK" };
+    }
+    return run;
+  });
+
+  // requestedMode can never be a failure: if any normalized run was a live
+  // success the run intended LIVE_AI, otherwise deterministic rules.
+  const requestedMode: RequestedMode =
+    raw.requestedMode !== undefined
+      ? (raw.requestedMode as RequestedMode)
+      : normalizedAgentRuns?.some(
+            (run) =>
+              typeof run === "object" &&
+              run !== null &&
+              (run as Record<string, unknown>).mode === "LIVE_AI"
+          )
+        ? "LIVE_AI"
+        : "DETERMINISTIC_RULES";
+
+  const effectiveMode =
+    raw.effectiveMode !== undefined
+      ? raw.effectiveMode
+      : computeEffectiveMode(
+          (normalizedAgentRuns ?? []) as DecisionPacket["agentRuns"],
+          requestedMode
+        );
+
+  return {
+    ...raw,
+    ...(normalizedAgentRuns ? { agentRuns: normalizedAgentRuns } : {}),
+    requestedMode,
+    effectiveMode
+  };
 }

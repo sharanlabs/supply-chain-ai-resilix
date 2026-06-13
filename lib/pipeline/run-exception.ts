@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { runLaunchOpsAgents } from "@/lib/agents/run";
+import {
+  computeEffectiveMode,
+  liveAiEnabled,
+  runLaunchOpsAgents
+} from "@/lib/agents/run";
 import { validateDecisionInputs, validateDecisionPacket } from "@/lib/agents/gatekeeper";
 import { buildExceptionEvent, calculateImpact } from "@/lib/engine/impact";
 import { getScenario } from "@/lib/data/operations";
@@ -78,6 +82,11 @@ async function executeExceptionPipeline({
     recommendedOptionId
   });
 
+  // requested = what this run intended; effective = what actually happened across
+  // the agent runs (R4-8). REPLAY is reserved for Phase 3 and not requested here.
+  const requestedMode = liveAiEnabled() ? "LIVE_AI" : "DETERMINISTIC_RULES";
+  const effectiveMode = computeEffectiveMode(agentRuns, requestedMode);
+
   const packet: DecisionPacket = {
     id: `DP-${randomUUID()}`,
     exception,
@@ -88,6 +97,8 @@ async function executeExceptionPipeline({
     gatekeeper,
     executionDraft,
     agentRuns,
+    requestedMode,
+    effectiveMode,
     approvalStatus: "PENDING",
     auditTrail: [
       {
