@@ -2,7 +2,13 @@
 
 ## Relay status (two-account back-and-forth — read/update this FIRST)
 **BATON: free** · **NEXT increment: P2.2 (mode-taxonomy split, R4-8)** · last released: — (initial)
-> Rule: only one account works the folder at a time. Before doing any work, claim the baton (set `BATON: claimed by <account-label> since <local time>` and commit that one line). When you finish an increment and hand off, set it back to `BATON: free` + update NEXT, and commit. If you open a session and the baton is `claimed by` the other account, STOP and tell the owner — don't touch files.
+**WIP: none** (P2.1 fully committed; clean boundary — start P2.2 fresh)
+> **Mutex:** one account works the folder at a time. Claim before any work (set `BATON: claimed by <account> since <local time>`, commit that line); on handoff set `BATON: free`, commit.
+> **Lossless mid-increment resume (the WIP line):** while working, after each meaningful sub-step, (a) `git commit` it as `wip(P2.x): <what>` so partial code is durable, and (b) rewrite this WIP line as `WIP: P2.x — done: <…>; NEXT micro-step: <exact next action>`. Read it on pickup:
+>   - `BATON: free` + `WIP: none` → start the NEXT increment fresh.
+>   - `BATON: free` + `WIP: P2.x …` → RESUME P2.x from "NEXT micro-step" (also check `git status` for uncommitted WIP + `git log` for `wip(` commits); do NOT restart the increment.
+>   - `BATON: claimed by <other>` → an account may be live; STOP and ask the owner. If the owner confirms it stopped, take over: resume from the WIP line + `git status`/`git log`, re-claim the baton noting the takeover.
+> On a forced stop (cap/interrupt): commit the last sub-step as `wip(...)`, set the WIP line's exact NEXT micro-step, set `BATON: free`, commit — so the other account resumes losslessly.
 
 **Idea:** RESILIX ActionOps — crisis-to-action war room: live disruption signal + supplier CSV → evidence-cited, human-approved action packet in under 5 minutes
 
