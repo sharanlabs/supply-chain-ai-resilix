@@ -1,5 +1,9 @@
 # HANDOFF — resume pointer (updated 2026-06-13)
 
+## Relay status (two-account back-and-forth — read/update this FIRST)
+**BATON: free** · **NEXT increment: P2.2 (mode-taxonomy split, R4-8)** · last released: — (initial)
+> Rule: only one account works the folder at a time. Before doing any work, claim the baton (set `BATON: claimed by <account-label> since <local time>` and commit that one line). When you finish an increment and hand off, set it back to `BATON: free` + update NEXT, and commit. If you open a session and the baton is `claimed by` the other account, STOP and tell the owner — don't touch files.
+
 **Idea:** RESILIX ActionOps — crisis-to-action war room: live disruption signal + supplier CSV → evidence-cited, human-approved action packet in under 5 minutes
 
 **Goal status:** REASSESSED & VALIDATED 2026-06-11 — direction owner-fixed (complete reorientation, not incremental absorption of LaunchOps). Owner's "autonomous supply-chain optimisation" use-case note checked for alignment: same problem space, but its prediction + unsupervised-execution mechanics stay rejected (crowded/risky/unprovable); absorbed instead — (1) supplier financial distress as a Sentinel event type (news-derived), (2) "packet ready at 2am, human approves at 6am" positioning, (3) graduated autonomy (pre-authorized low-stakes rules) as roadmap-only. Full direction: project memory `resilix-actionops-direction.md`.
