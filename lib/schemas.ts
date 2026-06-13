@@ -163,7 +163,140 @@ export const AgentRunSchema = z.object({
   createdAt: z.string().datetime()
 });
 
-export const DecisionPacketSchema = z.object({
+// Shared by both packet versions. Extracted so V1 and V2 share one audit shape.
+export const AuditTrailEntrySchema = z.object({
+  at: z.string().datetime(),
+  actor: z.string(),
+  action: z.string(),
+  detail: z.string()
+});
+
+// ---------------------------------------------------------------------------
+// Packet contract versioning (R4-7).
+//
+// The decision packet is persisted as a self-contained jsonb document. The
+// LaunchOps salvage shape (V1, below) hard-codes a 3-recovery-option +
+// executionDraft contract that does NOT fit RESILIX ActionOps. Rather than
+// silently reuse it, packets carry an explicit `packetVersion` discriminant and
+// the schema is a discriminated union, so the contract can evolve without
+// ambiguous reads and `tsc` flags every version-specific field access.
+//
+//   V1 = the LaunchOps salvage packet (exception / 3 options / executionDraft).
+//   V2 = the ActionOps packet (threat card / exposure / playbooks / drafts).
+//
+// P2.3 installs the seam, the V2 schema, and version-aware consumers
+// (store/UI/tests). The ActionOps AGENTS that populate V2 land in later phases,
+// so every agent-produced V2 leaf is intentionally MINIMAL and PERMISSIVE and
+// the owning phase tightens it (see per-field notes). The pipeline still emits
+// V1 until those agents exist, so no V2 packet persists in P2.3 — the
+// "migrate API/UI/tests before any V2 packet persists" rule holds trivially.
+// ---------------------------------------------------------------------------
+
+// --- V2 (ActionOps) section schemas ---------------------------------------
+
+// Sentinel output (Phase 4). Phase 4 replaces the open eventType string with the
+// closed ISO/chokepoint/sector/event vocabulary + an `OTHER_UNMAPPED` escape
+// hatch — an enum here now would actively fight that, so it stays a string.
+export const ThreatCardSchema = z.object({
+  id: z.string(),
+  eventType: z.string(),
+  severity: SeveritySchema,
+  location: z.object({
+    region: z.string().optional(),
+    country: z.string().optional(),
+    chokepoint: z.string().optional()
+  }),
+  summary: z.string(),
+  // URL shape only; the per-run fetched-evidence allowlist check is the
+  // Sentinel/gatekeeper path's job (Phase 4).
+  evidenceUrls: z.array(z.string().url()),
+  confidence: z.number().min(0).max(1),
+  createdAt: z.string().datetime()
+});
+
+// Atlas output (Phase 5). supplierId is the canonical internal ID — uploaded
+// names are quarantined to IDs at ingest (Phase 2 P2.5), never crossing raw.
+// Phase 5 owns the scoring model, so exposureScore is left an open number.
+export const ExposureResultSchema = z.object({
+  id: z.string(),
+  supplierId: z.string(),
+  supplierName: z.string(),
+  country: z.string(),
+  sector: z.string(),
+  exposureScore: z.number(),
+  rationale: z.string(),
+  evidenceIds: z.array(z.string())
+});
+
+// Simulator output (Phase 6). Present ONLY on Tier-2 / seeded inventory data;
+// a Tier-1-only packet omits this and records why in dataGaps. Phase 6 owns the
+// horizon model; this is the minimal stable shape.
+export const SimulationSchema = z.object({
+  horizons: z.array(
+    z.object({
+      days: z.number().int().positive(),
+      revenueAtRiskUsd: z.number().nonnegative()
+    })
+  ),
+  productRunouts: z.array(
+    z.object({
+      productId: z.string(),
+      runoutDate: z.string()
+    })
+  ),
+  generatedAt: z.string().datetime()
+});
+
+// Strategist output (Phase 7). Every number in a playbook traces to an
+// Atlas/Simulator claim id — Phase 7 enforces the grounding.
+export const PlaybookSchema = z.object({
+  id: z.string(),
+  role: z.string(),
+  summary: z.string(),
+  steps: z.array(z.string()),
+  groundedClaimIds: z.array(z.string())
+});
+
+// R4-9 (spec-locked): the Dispatcher emits prose PLUS a claims[] array; the
+// gatekeeper cross-checks BOTH directions (every numeral in prose maps to a
+// claim, and every claim's sourcePath resolves into the structured inputs).
+// The three fields are the locked contract; `value` stays union-typed because a
+// claim may carry a canonical number or a formatted numeral — Phase 7 interprets.
+export const ClaimSchema = z.object({
+  value: z.union([z.number(), z.string()]),
+  unit: z.string(),
+  sourcePath: z.string()
+});
+
+// Dispatcher output (Phase 7). Drafts only; nothing sends without human
+// approval. channel taxonomy is owned by Phase 7.
+export const SupplierMessageDraftSchema = z.object({
+  id: z.string(),
+  supplierId: z.string(),
+  channel: z.string(),
+  subject: z.string().optional(),
+  body: z.string(),
+  claims: z.array(ClaimSchema),
+  approvalRequired: z.boolean()
+});
+
+// Action Packet tab (Phase 8) owns the status taxonomy.
+export const ActionItemSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  owner: z.string(),
+  status: z.string(),
+  dueDate: z.string().optional()
+});
+
+// Tiered CSV schema (Phase 2): Tier-1 unlocks exposure mapping only; Tier-2
+// unlocks runway. SEEDED = the demo dataset path.
+export const DataTierSchema = z.enum(["TIER_1", "TIER_2", "SEEDED"]);
+
+// --- V1 (LaunchOps salvage) packet ----------------------------------------
+
+export const DecisionPacketV1Schema = z.object({
+  packetVersion: z.literal(1),
   id: z.string(),
   exception: ExceptionEventSchema,
   publicSignals: z.array(PublicSignalSchema),
@@ -182,17 +315,45 @@ export const DecisionPacketSchema = z.object({
   effectiveMode: AgentModeSchema,
   approvalStatus: ApprovalStatusSchema,
   approvalReason: z.string().optional(),
-  auditTrail: z.array(
-    z.object({
-      at: z.string().datetime(),
-      actor: z.string(),
-      action: z.string(),
-      detail: z.string()
-    })
-  ),
+  auditTrail: z.array(AuditTrailEntrySchema),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
+
+// --- V2 (ActionOps) packet -------------------------------------------------
+
+export const DecisionPacketV2Schema = z.object({
+  packetVersion: z.literal(2),
+  id: z.string(),
+  threatCard: ThreatCardSchema,
+  publicSignals: z.array(PublicSignalSchema),
+  exposureResults: z.array(ExposureResultSchema),
+  // Absent on Tier-1-only uploads (no inventory data) — see dataGaps.
+  simulation: SimulationSchema.optional(),
+  dataTier: DataTierSchema,
+  // Human-readable reasons a section is missing (e.g. "no runway: Tier-1 upload
+  // has no inventory columns"). Makes a thin packet self-explaining.
+  dataGaps: z.array(z.string()),
+  playbooks: z.array(PlaybookSchema),
+  supplierMessages: z.array(SupplierMessageDraftSchema),
+  actionItems: z.array(ActionItemSchema),
+  gatekeeper: GatekeeperReportSchema,
+  agentRuns: z.array(AgentRunSchema),
+  requestedMode: RequestedModeSchema,
+  effectiveMode: AgentModeSchema,
+  approvalStatus: ApprovalStatusSchema,
+  approvalReason: z.string().optional(),
+  auditTrail: z.array(AuditTrailEntrySchema),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime()
+});
+
+// The canonical packet contract. Discriminated on `packetVersion` so reads are
+// unambiguous and the compiler forces every consumer to handle both versions.
+export const DecisionPacketSchema = z.discriminatedUnion("packetVersion", [
+  DecisionPacketV1Schema,
+  DecisionPacketV2Schema
+]);
 
 export const ScenarioSchema = z.object({
   id: z.string(),
@@ -212,5 +373,19 @@ export type RecoveryOption = z.infer<typeof RecoveryOptionSchema>;
 export type GatekeeperReport = z.infer<typeof GatekeeperReportSchema>;
 export type ExecutionDraft = z.infer<typeof ExecutionDraftSchema>;
 export type AgentRun = z.infer<typeof AgentRunSchema>;
+export type AuditTrailEntry = z.infer<typeof AuditTrailEntrySchema>;
+// V2 (ActionOps) section types.
+export type ThreatCard = z.infer<typeof ThreatCardSchema>;
+export type ExposureResult = z.infer<typeof ExposureResultSchema>;
+export type Simulation = z.infer<typeof SimulationSchema>;
+export type Playbook = z.infer<typeof PlaybookSchema>;
+export type Claim = z.infer<typeof ClaimSchema>;
+export type SupplierMessageDraft = z.infer<typeof SupplierMessageDraftSchema>;
+export type ActionItem = z.infer<typeof ActionItemSchema>;
+export type DataTier = z.infer<typeof DataTierSchema>;
+// Packet types: the union is canonical; the per-version aliases are for code
+// that has already narrowed on packetVersion.
+export type DecisionPacketV1 = z.infer<typeof DecisionPacketV1Schema>;
+export type DecisionPacketV2 = z.infer<typeof DecisionPacketV2Schema>;
 export type DecisionPacket = z.infer<typeof DecisionPacketSchema>;
 export type Scenario = z.infer<typeof ScenarioSchema>;

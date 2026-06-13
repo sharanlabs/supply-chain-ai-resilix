@@ -25,7 +25,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import type { DecisionPacket, Scenario } from "@/lib/schemas";
+import type {
+  DecisionPacket,
+  DecisionPacketV1,
+  DecisionPacketV2,
+  Scenario
+} from "@/lib/schemas";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 
 type Tab = "queue" | "impact" | "trace" | "packet" | "approval";
@@ -103,18 +108,24 @@ export function LaunchOpsDashboard() {
     }
   }
 
-  const recommended = packet?.options.find(
-    (option) => option.id === packet.recommendedOptionId
+  // The live pipeline still emits the LaunchOps V1 packet; a V2 (ActionOps)
+  // packet renders through ActionOpsPacketView instead. Narrow on the
+  // discriminant so the V1 chrome below (options chart, recovery tabs) stays
+  // type-safe and is simply skipped for a V2 packet.
+  const v1Packet = packet?.packetVersion === 1 ? packet : null;
+
+  const recommended = v1Packet?.options.find(
+    (option) => option.id === v1Packet.recommendedOptionId
   );
 
   const chartData = useMemo(() => {
-    if (!packet) return [];
-    return packet.options.map((option) => ({
+    if (!v1Packet) return [];
+    return v1Packet.options.map((option) => ({
       name: option.id.replace("OPT-", ""),
       score: option.score,
       risk: option.riskReductionPct
     }));
-  }, [packet]);
+  }, [v1Packet]);
 
   return (
     <main className="min-h-screen px-4 py-4 sm:px-6 lg:px-8">
@@ -162,58 +173,64 @@ export function LaunchOpsDashboard() {
           </div>
         ) : null}
 
-        <section className="grid gap-3 md:grid-cols-4">
-          <Metric label="Launch Risk" value={packet ? `${packet.impactReport.launchRiskScore}/100` : "--"} />
-          <Metric
-            label="Inventory Cover"
-            value={packet ? `${packet.impactReport.inventoryDaysRemaining} days` : "--"}
-          />
-          <Metric
-            label="Revenue At Risk"
-            value={packet ? formatCurrency(packet.impactReport.revenueAtRisk) : "--"}
-          />
-          <Metric
-            label="Signal State"
-            value={
-              packet
-                ? `${packet.publicSignals.filter((signal) => signal.status === "LIVE").length}/${packet.publicSignals.length} live`
-                : "--"
-            }
-          />
-        </section>
+        {packet?.packetVersion === 2 ? (
+          <ActionOpsPacketView packet={packet} />
+        ) : (
+          <>
+            <section className="grid gap-3 md:grid-cols-4">
+              <Metric label="Launch Risk" value={v1Packet ? `${v1Packet.impactReport.launchRiskScore}/100` : "--"} />
+              <Metric
+                label="Inventory Cover"
+                value={v1Packet ? `${v1Packet.impactReport.inventoryDaysRemaining} days` : "--"}
+              />
+              <Metric
+                label="Revenue At Risk"
+                value={v1Packet ? formatCurrency(v1Packet.impactReport.revenueAtRisk) : "--"}
+              />
+              <Metric
+                label="Signal State"
+                value={
+                  v1Packet
+                    ? `${v1Packet.publicSignals.filter((signal) => signal.status === "LIVE").length}/${v1Packet.publicSignals.length} live`
+                    : "--"
+                }
+              />
+            </section>
 
-        <nav className="flex gap-2 overflow-x-auto border-b border-zinc-300 pb-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`h-9 shrink-0 rounded-md px-3 text-sm font-semibold ${
-                activeTab === tab.id
-                  ? "bg-zinc-950 text-white"
-                  : "bg-white text-zinc-700 hover:bg-zinc-100"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
+            <nav className="flex gap-2 overflow-x-auto border-b border-zinc-300 pb-2">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`h-9 shrink-0 rounded-md px-3 text-sm font-semibold ${
+                    activeTab === tab.id
+                      ? "bg-zinc-950 text-white"
+                      : "bg-white text-zinc-700 hover:bg-zinc-100"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
 
-        {activeTab === "queue" ? (
-          <ExceptionQueue packet={packet} scenario={scenario} onRun={runScenario} loading={loading} />
-        ) : null}
-        {activeTab === "impact" ? <ImpactView packet={packet} /> : null}
-        {activeTab === "trace" ? <AgentTrace packet={packet} /> : null}
-        {activeTab === "packet" ? (
-          <DecisionPacketView packet={packet} chartData={chartData} recommendedTitle={recommended?.title} />
-        ) : null}
-        {activeTab === "approval" ? (
-          <ApprovalConsole
-            packet={packet}
-            approving={approving}
-            onApprove={() => submitApproval("APPROVED")}
-            onReject={() => submitApproval("REJECTED")}
-          />
-        ) : null}
+            {activeTab === "queue" ? (
+              <ExceptionQueue packet={v1Packet} scenario={scenario} onRun={runScenario} loading={loading} />
+            ) : null}
+            {activeTab === "impact" ? <ImpactView packet={v1Packet} /> : null}
+            {activeTab === "trace" ? <AgentTrace packet={v1Packet} /> : null}
+            {activeTab === "packet" ? (
+              <DecisionPacketView packet={v1Packet} chartData={chartData} recommendedTitle={recommended?.title} />
+            ) : null}
+            {activeTab === "approval" ? (
+              <ApprovalConsole
+                packet={v1Packet}
+                approving={approving}
+                onApprove={() => submitApproval("APPROVED")}
+                onReject={() => submitApproval("REJECTED")}
+              />
+            ) : null}
+          </>
+        )}
       </div>
     </main>
   );
@@ -262,7 +279,7 @@ function ExceptionQueue({
   onRun,
   loading
 }: {
-  packet: DecisionPacket | null;
+  packet: DecisionPacketV1 | null;
   scenario: Scenario | null;
   onRun: () => void;
   loading: boolean;
@@ -307,7 +324,7 @@ function ExceptionQueue({
   );
 }
 
-function ImpactView({ packet }: { packet: DecisionPacket | null }) {
+function ImpactView({ packet }: { packet: DecisionPacketV1 | null }) {
   if (!packet) return <EmptyState />;
   return (
     <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
@@ -371,7 +388,7 @@ function ImpactView({ packet }: { packet: DecisionPacket | null }) {
   );
 }
 
-function AgentTrace({ packet }: { packet: DecisionPacket | null }) {
+function AgentTrace({ packet }: { packet: DecisionPacketV1 | null }) {
   if (!packet) return <EmptyState />;
   return (
     <Card>
@@ -410,7 +427,7 @@ function DecisionPacketView({
   chartData,
   recommendedTitle
 }: {
-  packet: DecisionPacket | null;
+  packet: DecisionPacketV1 | null;
   chartData: Array<{ name: string; score: number; risk: number }>;
   recommendedTitle?: string;
 }) {
@@ -487,7 +504,7 @@ function ApprovalConsole({
   onApprove,
   onReject
 }: {
-  packet: DecisionPacket | null;
+  packet: DecisionPacketV1 | null;
   approving: boolean;
   onApprove: () => void;
   onReject: () => void;
@@ -562,7 +579,231 @@ function ApprovalConsole({
   );
 }
 
-function TrustPanel({ packet }: { packet: DecisionPacket }) {
+// V2 (ActionOps) packet view. P2.3 ships a minimal, real render of the
+// plan-locked fields so the versioned seam is live (not a stub) and renderable;
+// the full 4-tab ActionOps UI (Live Events / Exposure / Simulation / Action
+// Packet) is Phase 8. The live pipeline does not emit V2 yet, so this path is
+// reached only once the ActionOps agents land (and by the fixture test).
+export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
+  const degraded = packet.effectiveMode === "FAILED_TO_FALLBACK";
+  const { threatCard, simulation } = packet;
+  return (
+    <div className="flex flex-col gap-4" data-testid="actionops-packet">
+      <Card>
+        <CardHeader
+          title="Threat Card"
+          action={<AlertTriangle className="h-5 w-5 text-amber-700" />}
+        />
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone="info">{threatCard.eventType}</Badge>
+            <Badge tone={statusTone(packet.gatekeeper.status)}>{packet.gatekeeper.status}</Badge>
+            <Badge tone="neutral">{packet.dataTier}</Badge>
+            {degraded ? <Badge tone="critical">Degraded - no live AI</Badge> : null}
+          </div>
+          <p className="text-sm leading-6 text-zinc-700">{threatCard.summary}</p>
+          <div className="metric-grid">
+            <Metric label="Severity" value={threatCard.severity} />
+            <Metric
+              label="Location"
+              value={
+                threatCard.location.chokepoint ??
+                threatCard.location.region ??
+                threatCard.location.country ??
+                "--"
+              }
+            />
+            <Metric label="Confidence" value={`${Math.round(threatCard.confidence * 100)}%`} />
+          </div>
+          {threatCard.evidenceUrls.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {threatCard.evidenceUrls.map((url) => (
+                <Badge key={url}>{url}</Badge>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader title="Exposure" action={<Truck className="h-5 w-5 text-teal-700" />} />
+        {packet.exposureResults.length === 0 ? (
+          <p className="text-sm leading-6 text-zinc-600">No direct exposure for this event.</p>
+        ) : (
+          <table className="stable-table">
+            <thead>
+              <tr>
+                <th>Supplier</th>
+                <th>Country / Sector</th>
+                <th>Exposure</th>
+              </tr>
+            </thead>
+            <tbody>
+              {packet.exposureResults.map((result) => (
+                <tr key={result.id}>
+                  <td>{result.supplierName}</td>
+                  <td>{result.country} / {result.sector}</td>
+                  <td>{result.exposureScore}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+
+      <Card>
+        <CardHeader title="Runway Simulation" action={<Database className="h-5 w-5 text-teal-700" />} />
+        {simulation ? (
+          <div className="space-y-3">
+            <div className="metric-grid">
+              {simulation.horizons.map((horizon) => (
+                <Metric
+                  key={horizon.days}
+                  label={`${horizon.days}-day`}
+                  value={formatCurrency(horizon.revenueAtRiskUsd)}
+                />
+              ))}
+            </div>
+            <div className="space-y-1 text-sm text-zinc-600">
+              {simulation.productRunouts.map((runout) => (
+                <div key={runout.productId}>
+                  {runout.productId}: runout {runout.runoutDate}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1 text-sm leading-6 text-zinc-600">
+            {packet.dataGaps.length > 0 ? (
+              packet.dataGaps.map((gap) => <p key={gap}>{gap}</p>)
+            ) : (
+              <p>No runway simulation for this packet.</p>
+            )}
+          </div>
+        )}
+      </Card>
+
+      {packet.playbooks.length > 0 ? (
+        <Card>
+          <CardHeader title="Playbooks" action={<ShieldCheck className="h-5 w-5 text-teal-700" />} />
+          <div className="space-y-3">
+            {packet.playbooks.map((playbook) => (
+              <div key={playbook.id} className="rounded-md border border-zinc-200 p-3">
+                <div className="text-sm font-bold text-zinc-950">{playbook.role}</div>
+                <p className="mt-1 text-sm leading-5 text-zinc-600">{playbook.summary}</p>
+                {playbook.steps.length > 0 ? (
+                  <ul className="mt-2 list-disc pl-5 text-sm text-zinc-700">
+                    {playbook.steps.map((step, index) => (
+                      <li key={`${playbook.id}-step-${index}`}>{step}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : null}
+
+      <Card>
+        <CardHeader title="Supplier Message Drafts" action={<RadioTower className="h-5 w-5 text-teal-700" />} />
+        <p className="mb-3 text-xs font-semibold uppercase text-zinc-500">
+          Drafts only - nothing sends without human approval.
+        </p>
+        {packet.supplierMessages.length === 0 ? (
+          <p className="text-sm leading-6 text-zinc-600">No supplier drafts generated.</p>
+        ) : (
+          <div className="space-y-3">
+            {packet.supplierMessages.map((message) => (
+              <div key={message.id} className="rounded-md border border-zinc-200 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-sm font-bold text-zinc-900">
+                    {message.supplierId} · {message.channel}
+                  </div>
+                  {message.approvalRequired ? <Badge tone="warning">Approval required</Badge> : null}
+                </div>
+                {message.subject ? (
+                  <div className="mt-1 text-sm font-semibold text-zinc-700">{message.subject}</div>
+                ) : null}
+                <p className="mt-1 whitespace-pre-line text-sm leading-5 text-zinc-700">{message.body}</p>
+                {message.claims.length > 0 ? (
+                  <div className="mt-2 space-y-1 text-xs text-zinc-500">
+                    {message.claims.map((claim, index) => (
+                      <div key={`${message.id}-claim-${index}`}>
+                        {String(claim.value)} {claim.unit} ← {claim.sourcePath}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {packet.actionItems.length > 0 ? (
+        <Card>
+          <CardHeader title="Action Items" action={<CheckCircle2 className="h-5 w-5 text-teal-700" />} />
+          <table className="stable-table">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Owner</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {packet.actionItems.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.title}</td>
+                  <td>{item.owner}</td>
+                  <td>{item.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      ) : null}
+
+      {/* P2.3 renders approval STATUS + audit (read-only). The approve/reject
+          ACTION controls for V2 land with the Phase 8 "Action Packet" tab
+          (plan §8 merges playbook + drafts + approvals); the approval store/API
+          are already version-neutral, so Phase 8 only wires the buttons. No V2
+          packet is producible until the ActionOps agents exist, so the controls
+          would be unreachable here. (Codex P2.3 [Low].) */}
+      <Card>
+        <CardHeader title="Approval & Audit" action={<Clock3 className="h-5 w-5 text-teal-700" />} />
+        <div className="space-y-3">
+          <Badge tone={approvalTone(packet.approvalStatus)}>{packet.approvalStatus}</Badge>
+          <p className="text-sm leading-6 text-zinc-600">
+            {packet.approvalReason ?? "Awaiting human approval."}
+          </p>
+          <table className="stable-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Actor</th>
+                <th>Action</th>
+                <th>Detail</th>
+              </tr>
+            </thead>
+            <tbody>
+              {packet.auditTrail.map((entry) => (
+                <tr key={`${entry.at}-${entry.actor}-${entry.action}`}>
+                  <td>{new Date(entry.at).toLocaleString()}</td>
+                  <td>{entry.actor}</td>
+                  <td>{entry.action}</td>
+                  <td>{entry.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function TrustPanel({ packet }: { packet: DecisionPacketV1 }) {
   const liveSignals = packet.publicSignals.filter((signal) => signal.status === "LIVE").length;
   const fallbackSignals = packet.publicSignals.length - liveSignals;
   const liveAiRuns = packet.agentRuns.filter((run) => run.mode === "LIVE_AI").length;

@@ -8,6 +8,7 @@ import {
 } from "@/db/schema";
 import { computeEffectiveMode } from "@/lib/agents/run";
 import type {
+  AgentRun,
   ApprovalStatus,
   DecisionPacket,
   RequestedMode
@@ -62,24 +63,39 @@ function applyApprovalToPacket(
   input: TransitionApprovalInput
 ): DecisionPacket {
   const now = new Date().toISOString();
+  const auditTrail = [
+    ...packet.auditTrail,
+    {
+      at: now,
+      actor: input.actor,
+      action: input.auditAction,
+      detail: `${input.approvalStatus}: ${input.reason}`
+    }
+  ];
+
+  if (packet.packetVersion === 1) {
+    // V1 mirrors approval state onto the embedded launch exception.
+    return {
+      ...packet,
+      approvalStatus: input.approvalStatus,
+      approvalReason: input.reason,
+      updatedAt: now,
+      exception: {
+        ...packet.exception,
+        status: input.approvalStatus
+      },
+      auditTrail
+    };
+  }
+
+  // V2 (ActionOps) has no embedded exception; approvalStatus is the single
+  // source of truth for the transition.
   return {
     ...packet,
     approvalStatus: input.approvalStatus,
     approvalReason: input.reason,
     updatedAt: now,
-    exception: {
-      ...packet.exception,
-      status: input.approvalStatus
-    },
-    auditTrail: [
-      ...packet.auditTrail,
-      {
-        at: now,
-        actor: input.actor,
-        action: input.auditAction,
-        detail: `${input.approvalStatus}: ${input.reason}`
-      }
-    ]
+    auditTrail
   };
 }
 
@@ -571,10 +587,17 @@ async function getDecisionPacketRow(id: string) {
   return row;
 }
 
-function toDecisionPacketRow(packet: DecisionPacket) {
+// Exported for unit testing: the V2 exceptionId derivation guards a NOT NULL
+// column and is otherwise only exercised on the gated Postgres path.
+export function toDecisionPacketRow(packet: DecisionPacket) {
   return {
     id: packet.id,
-    exceptionId: packet.exception.id,
+    // exception_id is a NOT NULL column. V1 keys it off the launch exception;
+    // V2 (ActionOps) has no exception, so it keys off the threat card — the
+    // disruption event the packet is about. Without this branch a V2 insert
+    // would write null into a NOT NULL column and fail.
+    exceptionId:
+      packet.packetVersion === 1 ? packet.exception.id : packet.threatCard.id,
     payload: packet,
     approvalStatus: packet.approvalStatus,
     createdAt: new Date(packet.createdAt),
@@ -609,36 +632,36 @@ async function persistAgentRunProjectionTx(
 }
 
 export function parseStoredPacket(value: unknown) {
-  return DecisionPacketSchema.parse(normalizeStoredPacketShape(value));
+  return DecisionPacketSchema.parse(normalizeStoredPacketForVersion(value));
 }
 
-// Interim read-side compatibility shim (P2.2). Packets persisted before the
-// agent-mode taxonomy split (P2.2) are missing requestedMode/effectiveMode and
-// can carry the retired run value 'DETERMINISTIC_FALLBACK'. This maps such
-// old-shape payloads to the current schema on read; P2.3 replaces it with a
-// formal packetVersion. Pure + shallow: only touches the mode-related fields,
-// and falls through untouched for anything that isn't an old-shape object so
-// Zod owns the real error path.
-function normalizeStoredPacketShape(value: unknown): unknown {
+// Read-side compatibility normalizer (P2.3 — supersedes the P2.2 mode shim).
+//
+// Only LEGACY (pre-P2.3) payloads are upgraded, and the legacy signal is the
+// ABSENCE of `packetVersion`. Every version-less payload is a LaunchOps V1
+// packet (V2 never existed before P2.3), and it may also predate the P2.2
+// taxonomy split, so the legacy branch folds in the old mode shim: remap the
+// retired 'DETERMINISTIC_FALLBACK' run value and derive requested/effectiveMode
+// when missing, then stamp the V1 discriminant.
+//
+// An ALREADY-versioned payload (V1 or V2) is passed straight through to Zod with
+// no rewrite. This is deliberate: the normalizer's job is legacy upgrade, not
+// general repair — a malformed versioned packet (e.g. a V2 missing its mode
+// fields or carrying a retired run value) must FAIL the schema loudly rather
+// than be silently patched into validity. Pure + shallow.
+function normalizeStoredPacketForVersion(value: unknown): unknown {
   if (typeof value !== "object" || value === null) {
     return value;
   }
   const raw = value as Record<string, unknown>;
-  const agentRuns = Array.isArray(raw.agentRuns) ? raw.agentRuns : undefined;
 
-  const hasRetiredRunMode =
-    agentRuns?.some(
-      (run) =>
-        typeof run === "object" &&
-        run !== null &&
-        (run as Record<string, unknown>).mode === "DETERMINISTIC_FALLBACK"
-    ) ?? false;
-  const missingModes =
-    raw.requestedMode === undefined || raw.effectiveMode === undefined;
-
-  if (!hasRetiredRunMode && !missingModes) {
+  // Already-versioned packet -> let Zod validate it as-is (fail loudly if bad).
+  if (raw.packetVersion !== undefined) {
     return value;
   }
+
+  // Version-less legacy payload: a V1 packet that may also predate P2.2.
+  const agentRuns = Array.isArray(raw.agentRuns) ? raw.agentRuns : undefined;
 
   // Map every retired run mode 'DETERMINISTIC_FALLBACK' -> 'FAILED_TO_FALLBACK'
   // (conservative: the old "fallback" was the degraded case).
@@ -671,7 +694,7 @@ function normalizeStoredPacketShape(value: unknown): unknown {
     raw.effectiveMode !== undefined
       ? raw.effectiveMode
       : computeEffectiveMode(
-          (normalizedAgentRuns ?? []) as DecisionPacket["agentRuns"],
+          (normalizedAgentRuns ?? []) as AgentRun[],
           requestedMode
         );
 
@@ -679,6 +702,7 @@ function normalizeStoredPacketShape(value: unknown): unknown {
     ...raw,
     ...(normalizedAgentRuns ? { agentRuns: normalizedAgentRuns } : {}),
     requestedMode,
-    effectiveMode
+    effectiveMode,
+    packetVersion: 1
   };
 }

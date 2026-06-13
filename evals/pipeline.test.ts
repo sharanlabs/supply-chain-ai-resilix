@@ -1,5 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { runExceptionPipeline } from "@/lib/pipeline/run-exception";
+import type { DecisionPacket, DecisionPacketV1 } from "@/lib/schemas";
+
+// P2.3: the packet contract is now a versioned union, but the live pipeline
+// still emits the LaunchOps V1 packet (the ActionOps V2 producer lands with the
+// agents in Phases 4-8). Assert that invariant once and narrow to V1 so the
+// LaunchOps-field assertions below stay type-checked.
+function expectV1(packet: DecisionPacket): asserts packet is DecisionPacketV1 {
+  expect(packet.packetVersion).toBe(1);
+  if (packet.packetVersion !== 1) {
+    throw new Error(`expected a V1 packet, got packetVersion=${packet.packetVersion}`);
+  }
+}
 
 describe("exception pipeline", () => {
   const originalEnableLiveAi = process.env.ENABLE_LIVE_AI;
@@ -22,6 +34,7 @@ describe("exception pipeline", () => {
       useLiveSignals: false
     });
 
+    expectV1(packet);
     expect(packet.options).toHaveLength(3);
     expect(packet.gatekeeper.status).not.toBe("BLOCKED");
     expect(packet.agentRuns.map((run) => run.agentName)).toEqual([
@@ -40,6 +53,7 @@ describe("exception pipeline", () => {
       useLiveSignals: false
     });
 
+    expectV1(packet);
     expect(packet.recommendedOptionId).toBe("OPT-EXPEDITE-SPLIT");
     expect(packet.agentRuns).toHaveLength(5);
     // Live AI disabled by config is a HEALTHY deterministic run (R4-8), NOT degraded.

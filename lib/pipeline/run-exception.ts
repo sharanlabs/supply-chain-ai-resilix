@@ -87,7 +87,11 @@ async function executeExceptionPipeline({
   const requestedMode = liveAiEnabled() ? "LIVE_AI" : "DETERMINISTIC_RULES";
   const effectiveMode = computeEffectiveMode(agentRuns, requestedMode);
 
+  // P2.3: the pipeline still produces the LaunchOps V1 packet; the ActionOps
+  // (V2) producer lands when the ActionOps agents do (Phases 4-8). Stamping the
+  // discriminant keeps this a valid V1 member of the versioned union.
   const packet: DecisionPacket = {
+    packetVersion: 1,
     id: `DP-${randomUUID()}`,
     exception,
     publicSignals,

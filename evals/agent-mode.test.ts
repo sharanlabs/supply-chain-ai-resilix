@@ -125,6 +125,8 @@ describe("agent-mode taxonomy (R4-8)", () => {
       });
 
       const oldShape = JSON.parse(JSON.stringify(valid)) as Record<string, unknown>;
+      // A genuine pre-P2.2 payload also predates P2.3, so it has no packetVersion.
+      delete oldShape.packetVersion;
       delete oldShape.requestedMode;
       delete oldShape.effectiveMode;
       const oldRuns = oldShape.agentRuns as Array<Record<string, unknown>>;
@@ -132,6 +134,8 @@ describe("agent-mode taxonomy (R4-8)", () => {
 
       const parsed = parseStoredPacket(oldShape);
 
+      // The version-less legacy payload is tagged V1 (R4-7)...
+      expect(parsed.packetVersion).toBe(1);
       // The retired run value is mapped to the degraded value...
       expect(parsed.agentRuns[0].mode).toBe("FAILED_TO_FALLBACK");
       // ...no run still carries the retired value...
