@@ -6,6 +6,7 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp
 } from "drizzle-orm/pg-core";
@@ -43,7 +44,13 @@ export const suppliers = pgTable("suppliers", {
   region: text("region").notNull(),
   riskTier: severityEnum("risk_tier").notNull(),
   backupSupplierId: text("backup_supplier_id"),
-  standardLeadTimeDays: integer("standard_lead_time_days").notNull()
+  standardLeadTimeDays: integer("standard_lead_time_days").notNull(),
+  // P2.4: sector values are drawn from SectorSchema in lib/schemas.ts and
+  // validated at ingest. NULLABLE with no default -- ADD COLUMN NOT NULL with no
+  // default fails on a populated table, and NULL honestly means "not yet
+  // classified". P2.6 seed / P2.5 ingest populate it. country stays text;
+  // ISO-3166 enforcement is app-layer via CountryCodeSchema.
+  sector: text("sector")
 });
 
 export const components = pgTable("components", {
@@ -153,4 +160,171 @@ export const processedApprovalEvents = pgTable("processed_approval_events", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull()
 }, (table) => [
   index("processed_approval_events_packet_id_idx").on(table.packetId)
+]);
+
+// ===========================================================================
+// P2.4: ActionOps master + transactional schema (ADDITIVE; forward-laid for
+// Phases 5/7/8). The runtime pipeline still emits V1 packets and does not write
+// these tables yet.
+// ===========================================================================
+
+// Persisted product master (the single reconciled product notion referenced by
+// the existing components.product_id / orders.product_id text columns). Aligns
+// ProductSchema. The in-memory Product type in lib/data/operations.ts is legacy
+// LaunchOps scenario/replay data, superseded by this table for persisted data.
+// No FK constraints are added onto the existing components/orders columns -- they
+// reference by ID; keeping this increment surgical.
+export const products = pgTable("products", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  // mode: "number" so $inferSelect yields number (default numeric() infers
+  // string), matching ProductSchema.revenuePerUnitUsd (genuine Zod <-> DB align).
+  revenuePerUnitUsd: numeric("revenue_per_unit_usd", { mode: "number" }).notNull(),
+  priority: severityEnum("priority").notNull()
+});
+
+// Persisted chokepoint master (closed list per Phase 4). Aligns ChokepointSchema.
+export const chokepoints = pgTable("chokepoints", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  region: text("region"),
+  // ISO-3166 alpha-2; enforced app-layer via CountryCodeSchema.
+  country: text("country")
+});
+
+// Persisted route master. Aligns RouteSchema. mode is transport mode (e.g.
+// SEA/AIR/RAIL/ROAD); kept text.
+export const routes = pgTable("routes", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  originCountry: text("origin_country").notNull(),
+  destinationCountry: text("destination_country").notNull(),
+  mode: text("mode").notNull()
+});
+
+// M:N join: a route transits multiple chokepoints (e.g. Asia->Europe via
+// Malacca + Suez). Composite primary key; index on chokepoint_id for reverse
+// lookups (which routes transit a given chokepoint).
+export const routeChokepoints = pgTable("route_chokepoints", {
+  routeId: text("route_id")
+    .notNull()
+    .references(() => routes.id, { onDelete: "cascade" }),
+  chokepointId: text("chokepoint_id")
+    .notNull()
+    .references(() => chokepoints.id, { onDelete: "cascade" })
+}, (table) => [
+  primaryKey({ columns: [table.routeId, table.chokepointId] }),
+  index("route_chokepoints_chokepoint_id_idx").on(table.chokepointId)
+]);
+
+// ---------------------------------------------------------------------------
+// CANONICAL-SOURCE RULE (this codebase documents these calls):
+// The decision-packet `payload` jsonb stays canonical for packet-scoped output.
+// The exposure_results / action_items / supplier_messages tables below are
+// forward-laid relational projections, each with a NOT NULL disruption_event_id
+// FK -- every projection row belongs to a persisted event (no orphan rows),
+// populated by Phases 5/7/8. They are NOT mere packet-payload duplication --
+// keying them to persisted events earns event-centric queries the packet payload
+// cannot serve (e.g. all exposures across every packet for one event).
+// ---------------------------------------------------------------------------
+
+// Persisted disruption event (PERSISTED so events survive the GDELT ~3-month
+// window; aligns ThreatCard / DisruptionEventSchema).
+export const disruptionEvents = pgTable("disruption_events", {
+  id: text("id").primaryKey(),
+  // Open string -- Phase 4 owns the closed event vocab.
+  eventType: text("event_type").notNull(),
+  severity: severityEnum("severity").notNull(),
+  region: text("region"),
+  // ISO-3166 alpha-2; enforced app-layer via CountryCodeSchema.
+  country: text("country"),
+  chokepointId: text("chokepoint_id").references(() => chokepoints.id, {
+    onDelete: "set null"
+  }),
+  summary: text("summary").notNull(),
+  // jsonb infers `unknown` by default; $type pins the shape so $inferSelect
+  // matches DisruptionEventSchema.evidenceUrls (string[]).
+  evidenceUrls: jsonb("evidence_urls").$type<string[]>().notNull(),
+  confidence: numeric("confidence", { mode: "number" }).notNull(),
+  // timestamptz -> JS Date (house style, like every other table). The domain
+  // contract (DisruptionEventSchema) uses ISO strings, so the Phase 5/7/8
+  // DB-row -> domain mapper converts via Date.toISOString(). NOTE: Drizzle
+  // mode:"string" would emit the Postgres "YYYY-MM-DD HH:mm:ss+HH" text format,
+  // which z.string().datetime() REJECTS (verified) -- so do not use it here.
+  sourceCapturedAt: timestamp("source_captured_at", {
+    withTimezone: true
+  }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull()
+}, (table) => [
+  index("disruption_events_created_at_idx").on(table.createdAt),
+  index("disruption_events_event_type_idx").on(table.eventType),
+  index("disruption_events_country_idx").on(table.country),
+  index("disruption_events_chokepoint_id_idx").on(table.chokepointId)
+]);
+
+// Atlas projection (Phase 5). Aligns ExposureResultSchema. Keyed to
+// disruption_events so it earns event-centric queries that outlive any single
+// packet -- this is WHY it is not mere packet-payload duplication.
+export const exposureResults = pgTable("exposure_results", {
+  id: text("id").primaryKey(),
+  disruptionEventId: text("disruption_event_id")
+    .notNull()
+    .references(() => disruptionEvents.id, { onDelete: "cascade" }),
+  supplierId: text("supplier_id")
+    .notNull()
+    .references(() => suppliers.id),
+  supplierName: text("supplier_name").notNull(),
+  country: text("country").notNull(),
+  // NOT NULL here while suppliers.sector is nullable: Phase 5 (Atlas) coalesces a
+  // NULL supplier sector to OTHER_UNMAPPED when projecting an exposure row.
+  sector: text("sector").notNull(),
+  exposureScore: numeric("exposure_score", { mode: "number" }).notNull(),
+  rationale: text("rationale").notNull(),
+  evidenceIds: jsonb("evidence_ids").$type<string[]>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull()
+}, (table) => [
+  index("exposure_results_disruption_event_id_idx").on(table.disruptionEventId),
+  index("exposure_results_supplier_id_idx").on(table.supplierId)
+]);
+
+// Action Packet projection (Phase 8). Aligns ActionItemSchema. status taxonomy
+// is owned by Phase 8 (text). NOT NULL disruption_event_id: every action item
+// belongs to the event that spawned it (no orphan rows in the MVP flow).
+export const actionItems = pgTable("action_items", {
+  id: text("id").primaryKey(),
+  disruptionEventId: text("disruption_event_id")
+    .notNull()
+    .references(() => disruptionEvents.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  owner: text("owner").notNull(),
+  status: text("status").notNull(),
+  dueDate: text("due_date"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull()
+}, (table) => [
+  index("action_items_disruption_event_id_idx").on(table.disruptionEventId)
+]);
+
+// Dispatcher projection (Phase 7). Aligns SupplierMessageDraftSchema. DRAFTS
+// ONLY -- nothing sends without human approval, a project invariant. The
+// approval_required default(true) encodes the no-send-without-approval rule.
+// NOT NULL disruption_event_id: every draft belongs to the event that spawned it.
+export const supplierMessages = pgTable("supplier_messages", {
+  id: text("id").primaryKey(),
+  disruptionEventId: text("disruption_event_id")
+    .notNull()
+    .references(() => disruptionEvents.id, { onDelete: "cascade" }),
+  supplierId: text("supplier_id")
+    .notNull()
+    .references(() => suppliers.id),
+  channel: text("channel").notNull(),
+  subject: text("subject"),
+  body: text("body").notNull(),
+  claims: jsonb("claims")
+    .$type<{ value: number | string; unit: string; sourcePath: string }[]>()
+    .notNull(),
+  approvalRequired: boolean("approval_required").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull()
+}, (table) => [
+  index("supplier_messages_disruption_event_id_idx").on(table.disruptionEventId),
+  index("supplier_messages_supplier_id_idx").on(table.supplierId)
 ]);

@@ -15,6 +15,13 @@
       "when": 1781354901370,
       "tag": "0001_supreme_iron_lad",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781393896530,
+      "tag": "0002_same_hairball",
+      "breakpoints": true
     }
   ]
 }

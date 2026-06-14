@@ -194,6 +194,36 @@ export const AuditTrailEntrySchema = z.object({
 
 // --- V2 (ActionOps) section schemas ---------------------------------------
 
+// Closed US supply-chain sector taxonomy. This is the STARTING taxonomy; Phase 4
+// (Sentinel) owns and refines the closed vocab and reuses this enum. The last
+// member, OTHER_UNMAPPED, is the escape hatch for anything not yet classified.
+// Enforcement of the closed set happens at the Atlas/ingest boundary (Phase 4/5),
+// mirroring how eventType stays a string here (the closed vocab is owned by the
+// boundary, not pinned at every leaf).
+export const SectorSchema = z.enum([
+  "SEMICONDUCTORS",
+  "ELECTRONICS",
+  "AUTOMOTIVE",
+  "AEROSPACE_DEFENSE",
+  "PHARMACEUTICALS",
+  "MEDICAL_DEVICES",
+  "CHEMICALS",
+  "ENERGY",
+  "METALS_MINING",
+  "INDUSTRIAL_MACHINERY",
+  "AGRICULTURE_FOOD",
+  "TEXTILES_APPAREL",
+  "CONSUMER_GOODS",
+  "LOGISTICS",
+  "OTHER_UNMAPPED"
+]);
+
+// Country is validated as an ISO-3166 alpha-2 code at the app/ingest boundary,
+// NOT as a DB enum (249 values would be a brittle pgEnum). Two uppercase letters.
+export const CountryCodeSchema = z
+  .string()
+  .regex(/^[A-Z]{2}$/, "ISO-3166 alpha-2 code");
+
 // Sentinel output (Phase 4). Phase 4 replaces the open eventType string with the
 // closed ISO/chokepoint/sector/event vocabulary + an `OTHER_UNMAPPED` escape
 // hatch — an enum here now would actively fight that, so it stays a string.
@@ -222,6 +252,9 @@ export const ExposureResultSchema = z.object({
   supplierId: z.string(),
   supplierName: z.string(),
   country: z.string(),
+  // The sector value is validated against SectorSchema at the Atlas/ingest
+  // boundary (Phase 4/5), same pattern as eventType. One sector notion:
+  // SectorSchema is the taxonomy, enforcement is layered, no divergence.
   sector: z.string(),
   exposureScore: z.number(),
   rationale: z.string(),
@@ -292,6 +325,58 @@ export const ActionItemSchema = z.object({
 // Tiered CSV schema (Phase 2): Tier-1 unlocks exposure mapping only; Tier-2
 // unlocks runway. SEEDED = the demo dataset path.
 export const DataTierSchema = z.enum(["TIER_1", "TIER_2", "SEEDED"]);
+
+// --- Master-data contracts (P2.4) -----------------------------------------
+// Typed contracts for the persisted master tables added in db/schema.ts. Kept
+// minimal and aligned to the table columns so the schema-extension alignment
+// test has a concrete contract to assert against (Zod <-> DB).
+
+// Persisted product master (the single reconciled product notion referenced by
+// components.product_id / orders.product_id). The in-memory Product type in
+// lib/data/operations.ts is legacy LaunchOps scenario/replay data, superseded by
+// this table for persisted data.
+export const ProductSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  revenuePerUnitUsd: z.number().nonnegative(),
+  priority: SeveritySchema
+});
+
+// Persisted chokepoint master (closed list, owned by Phase 4).
+export const ChokepointSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  // nullish (not optional) so a DB-shaped row's null parses (genuine Zod <-> DB).
+  region: z.string().nullish(),
+  country: CountryCodeSchema.nullish()
+});
+
+// Persisted route master. mode is transport mode (e.g. SEA/AIR/RAIL/ROAD); kept
+// an open string here, like other Phase-owned vocab.
+export const RouteSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  originCountry: CountryCodeSchema,
+  destinationCountry: CountryCodeSchema,
+  mode: z.string()
+});
+
+// Persisted disruption event (survives the GDELT ~3-month window; aligns with
+// ThreatCard). eventType stays an open string -- Phase 4 owns the closed vocab.
+export const DisruptionEventSchema = z.object({
+  id: z.string(),
+  eventType: z.string(),
+  severity: SeveritySchema,
+  // nullish (not optional) so DB-shaped null values parse (genuine Zod <-> DB).
+  region: z.string().nullish(),
+  country: CountryCodeSchema.nullish(),
+  chokepointId: z.string().nullish(),
+  summary: z.string(),
+  evidenceUrls: z.array(z.string().url()),
+  confidence: z.number().min(0).max(1),
+  sourceCapturedAt: z.string().datetime(),
+  createdAt: z.string().datetime()
+});
 
 // --- V1 (LaunchOps salvage) packet ----------------------------------------
 
@@ -383,6 +468,15 @@ export type Claim = z.infer<typeof ClaimSchema>;
 export type SupplierMessageDraft = z.infer<typeof SupplierMessageDraftSchema>;
 export type ActionItem = z.infer<typeof ActionItemSchema>;
 export type DataTier = z.infer<typeof DataTierSchema>;
+// Sector/country and master-data (P2.4) types.
+export type Sector = z.infer<typeof SectorSchema>;
+export type CountryCode = z.infer<typeof CountryCodeSchema>;
+// ProductMaster (not Product) avoids colliding with the legacy LaunchOps Product
+// type in lib/data/operations.ts, which is still live via .launchId/.program.
+export type ProductMaster = z.infer<typeof ProductSchema>;
+export type Chokepoint = z.infer<typeof ChokepointSchema>;
+export type Route = z.infer<typeof RouteSchema>;
+export type DisruptionEvent = z.infer<typeof DisruptionEventSchema>;
 // Packet types: the union is canonical; the per-version aliases are for code
 // that has already narrowed on packetVersion.
 export type DecisionPacketV1 = z.infer<typeof DecisionPacketV1Schema>;
