@@ -188,7 +188,7 @@ export const AuditTrailEntrySchema = z.object({
 // (store/UI/tests). The ActionOps AGENTS that populate V2 land in later phases,
 // so every agent-produced V2 leaf is intentionally MINIMAL and PERMISSIVE and
 // the owning phase tightens it (see per-field notes). The pipeline still emits
-// V1 until those agents exist, so no V2 packet persists in P2.3 — the
+// V1 until those agents exist, so no V2 packet persists in P2.3 -- the
 // "migrate API/UI/tests before any V2 packet persists" rule holds trivially.
 // ---------------------------------------------------------------------------
 
@@ -226,7 +226,7 @@ export const CountryCodeSchema = z
 
 // Sentinel output (Phase 4). Phase 4 replaces the open eventType string with the
 // closed ISO/chokepoint/sector/event vocabulary + an `OTHER_UNMAPPED` escape
-// hatch — an enum here now would actively fight that, so it stays a string.
+// hatch -- an enum here now would actively fight that, so it stays a string.
 export const ThreatCardSchema = z.object({
   id: z.string(),
   eventType: z.string(),
@@ -244,7 +244,7 @@ export const ThreatCardSchema = z.object({
   createdAt: z.string().datetime()
 });
 
-// Atlas output (Phase 5). supplierId is the canonical internal ID — uploaded
+// Atlas output (Phase 5). supplierId is the canonical internal ID -- uploaded
 // names are quarantined to IDs at ingest (Phase 2 P2.5), never crossing raw.
 // Phase 5 owns the scoring model, so exposureScore is left an open number.
 export const ExposureResultSchema = z.object({
@@ -281,7 +281,7 @@ export const SimulationSchema = z.object({
 });
 
 // Strategist output (Phase 7). Every number in a playbook traces to an
-// Atlas/Simulator claim id — Phase 7 enforces the grounding.
+// Atlas/Simulator claim id -- Phase 7 enforces the grounding.
 export const PlaybookSchema = z.object({
   id: z.string(),
   role: z.string(),
@@ -294,7 +294,7 @@ export const PlaybookSchema = z.object({
 // gatekeeper cross-checks BOTH directions (every numeral in prose maps to a
 // claim, and every claim's sourcePath resolves into the structured inputs).
 // The three fields are the locked contract; `value` stays union-typed because a
-// claim may carry a canonical number or a formatted numeral — Phase 7 interprets.
+// claim may carry a canonical number or a formatted numeral -- Phase 7 interprets.
 export const ClaimSchema = z.object({
   value: z.union([z.number(), z.string()]),
   unit: z.string(),
@@ -506,7 +506,7 @@ export const DecisionPacketV2Schema = z.object({
   threatCard: ThreatCardSchema,
   publicSignals: z.array(PublicSignalSchema),
   exposureResults: z.array(ExposureResultSchema),
-  // Absent on Tier-1-only uploads (no inventory data) — see dataGaps.
+  // Absent on Tier-1-only uploads (no inventory data) -- see dataGaps.
   simulation: SimulationSchema.optional(),
   dataTier: DataTierSchema,
   // Human-readable reasons a section is missing (e.g. "no runway: Tier-1 upload
