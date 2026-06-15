@@ -26,3 +26,12 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.bak
+
+# Local Claude Code working dir (personal settings + transient automation reports;
+# no shared project config lives here)
+.claude/
+
+# Quarantined legacy n8n pipeline exports (reference only; project reoriented to
+# ActionOps). Kept local, isolated from the active codebase per the quarantine
+# invariant. The ACTIVE workflow is tracked at workflows/launchops_approval_workflow.json.
+resilix_pipeline_v2*.json
