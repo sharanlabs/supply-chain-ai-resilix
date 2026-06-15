@@ -331,6 +331,30 @@ export const DataTierSchema = z.enum(["TIER_1", "TIER_2", "SEEDED"]);
 // minimal and aligned to the table columns so the schema-extension alignment
 // test has a concrete contract to assert against (Zod <-> DB).
 
+// Persisted supplier master (P2.5 CSV ingestion target). Aligned 1:1 to
+// `typeof suppliers.$inferSelect` so a Drizzle/Zod drift fails the alignment test,
+// not production (P2.4 lesson #1). Notes on the genuine alignment:
+//   - id is the CANONICAL internal ID derived from (normalized name + country) at
+//     ingest. Uploaded names are untrusted; downstream logic keys off this id,
+//     never the raw uploaded string (the ID-quarantine, R4-5/6).
+//   - name is the SANITIZED display name (leading formula trigger neutralized).
+//   - country is an ISO-3166 alpha-2 code (CountryCodeSchema), normalized at ingest.
+//   - sector is .nullish() because suppliers.sector is a NULLABLE column with no
+//     default -- Zod .optional() would reject the null a real selected row carries
+//     (P2.4 lesson #2). When present it is a SectorSchema member.
+//   - backupSupplierId is .nullish() (nullable column). CSV ingest does not set it
+//     (cross-supplier linkage is later-phase relational territory); it stays null.
+export const SupplierSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  country: CountryCodeSchema,
+  region: z.string(),
+  riskTier: SeveritySchema,
+  backupSupplierId: z.string().nullish(),
+  standardLeadTimeDays: z.number().int().nonnegative(),
+  sector: SectorSchema.nullish()
+});
+
 // Persisted product master (the single reconciled product notion referenced by
 // components.product_id / orders.product_id). The in-memory Product type in
 // lib/data/operations.ts is legacy LaunchOps scenario/replay data, superseded by
@@ -377,6 +401,75 @@ export const DisruptionEventSchema = z.object({
   sourceCapturedAt: z.string().datetime(),
   createdAt: z.string().datetime()
 });
+
+// --- Supplier CSV ingestion contract (P2.5, R4-5/6) -----------------------
+// The response contract for POST /api/suppliers/upload. A per-row report makes a
+// silent zero-match impossible: every input row resolves to exactly one entry that
+// is MATCHED (persisted), MATCHED_OVERWRITE (dedup last-write-wins), or UNMATCHED
+// with a specific human-readable reason. That guarantee is ENFORCED by the
+// discriminated union below -- an UNMATCHED row without a reason fails parse, so
+// the "every rejection carries a reason" rule is a schema invariant, not just a
+// code convention. The row index is the 1-based position in the data rows (header
+// excluded) so a user can find the offending row.
+
+export const SupplierRowOutcomeSchema = z.enum([
+  "MATCHED",
+  "MATCHED_OVERWRITE",
+  "UNMATCHED"
+]);
+
+// Discriminated on `outcome` so each variant carries exactly the fields its
+// outcome requires (and the right ones are REQUIRED, not optional):
+//   MATCHED            -> supplierId + supplierName (the persisted handle + name)
+//   MATCHED_OVERWRITE  -> supplierId + supplierName + reason (the dedup note)
+//   UNMATCHED          -> reason (the specific rejection cause; no ids)
+export const SupplierRowReportSchema = z.discriminatedUnion("outcome", [
+  z.object({
+    rowIndex: z.number().int().positive(),
+    outcome: z.literal("MATCHED"),
+    // The canonical internal ID assigned. Uploaded names never cross downstream as
+    // raw strings -- this id is the opaque handle.
+    supplierId: z.string(),
+    // The sanitized display name actually stored (formula trigger neutralized).
+    supplierName: z.string()
+  }),
+  z.object({
+    rowIndex: z.number().int().positive(),
+    outcome: z.literal("MATCHED_OVERWRITE"),
+    supplierId: z.string(),
+    supplierName: z.string(),
+    // The dedup note explaining the last-write-wins overwrite.
+    reason: z.string()
+  }),
+  z.object({
+    rowIndex: z.number().int().positive(),
+    outcome: z.literal("UNMATCHED"),
+    // A specific reason is REQUIRED for every UNMATCHED row -- this is the
+    // schema-level enforcement of zero-match-impossible.
+    reason: z.string()
+  })
+]);
+
+export const SupplierUploadReportSchema = z.object({
+  // The detected tier of the upload (Tier-2 columns present -> TIER_2, else TIER_1).
+  // Detection only; P2.5 writes Tier-1 fields to the suppliers table exclusively.
+  dataTier: DataTierSchema,
+  // Whether any recognized Tier-2 column (lane/route, on-hand, daily use, unit
+  // revenue) was present in the header. Tier-2 write paths are Phase 4/5.
+  tier2ColumnsDetected: z.array(z.string()),
+  totalRows: z.number().int().nonnegative(),
+  matched: z.number().int().nonnegative(),
+  overwritten: z.number().int().nonnegative(),
+  unmatched: z.number().int().nonnegative(),
+  rows: z.array(SupplierRowReportSchema),
+  // Retention disclosure carried on every response (the dashboard UI string is
+  // Phase 8; this exposes the rule in the contract now, R4-5/6).
+  retention: z.string()
+});
+
+export type SupplierRowOutcome = z.infer<typeof SupplierRowOutcomeSchema>;
+export type SupplierRowReport = z.infer<typeof SupplierRowReportSchema>;
+export type SupplierUploadReport = z.infer<typeof SupplierUploadReportSchema>;
 
 // --- V1 (LaunchOps salvage) packet ----------------------------------------
 
@@ -471,6 +564,7 @@ export type DataTier = z.infer<typeof DataTierSchema>;
 // Sector/country and master-data (P2.4) types.
 export type Sector = z.infer<typeof SectorSchema>;
 export type CountryCode = z.infer<typeof CountryCodeSchema>;
+export type Supplier = z.infer<typeof SupplierSchema>;
 // ProductMaster (not Product) avoids colliding with the legacy LaunchOps Product
 // type in lib/data/operations.ts, which is still live via .launchId/.program.
 export type ProductMaster = z.infer<typeof ProductSchema>;
