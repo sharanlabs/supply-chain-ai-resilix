@@ -1,0 +1,151 @@
+name,country,region,risk_tier,sector,standard_lead_time_days
+Hsinchu Semiconductor Holdings 001,TW,Hsinchu,CRITICAL,SEMICONDUCTORS,38
+Taichung Semiconductor Industries 002,TW,Taichung,HIGH,SEMICONDUCTORS,39
+Hsinchu Semiconductor Works 003,TW,Hsinchu,HIGH,SEMICONDUCTORS,40
+Taichung Semiconductor Group 004,TW,Taichung,HIGH,SEMICONDUCTORS,41
+Gyeonggi Semiconductor Manufacturing 005,KR,Gyeonggi,MEDIUM,SEMICONDUCTORS,42
+Chungcheong Semiconductor Partners 006,KR,Chungcheong,MEDIUM,SEMICONDUCTORS,43
+Gyeonggi Semiconductor Systems 007,KR,Gyeonggi,CRITICAL,SEMICONDUCTORS,44
+Kanto Semiconductor Solutions 008,JP,Kanto,HIGH,SEMICONDUCTORS,36
+Kansai Semiconductor Holdings 009,JP,Kansai,MEDIUM,SEMICONDUCTORS,37
+Guangdong Semiconductor Industries 010,CN,Guangdong,LOW,SEMICONDUCTORS,42
+Jiangsu Semiconductor Works 011,CN,Jiangsu,CRITICAL,SEMICONDUCTORS,43
+Texas Semiconductor Group 012,US,Texas Gulf Coast,HIGH,SEMICONDUCTORS,17
+Ohio Semiconductor Manufacturing 013,US,Ohio Valley,HIGH,SEMICONDUCTORS,18
+California Semiconductor Partners 014,US,California Bay Area,HIGH,SEMICONDUCTORS,19
+Zhejiang Electronics Systems 015,CN,Zhejiang,HIGH,ELECTRONICS,32
+Shanghai Electronics Solutions 016,CN,Shanghai Region,HIGH,ELECTRONICS,33
+Shandong Electronics Holdings 017,CN,Shandong,MEDIUM,ELECTRONICS,34
+Guangdong Electronics Industries 018,CN,Guangdong,MEDIUM,ELECTRONICS,35
+Jiangsu Electronics Works 019,CN,Jiangsu,HIGH,ELECTRONICS,36
+Michigan Electronics Group 020,US,Michigan Auto Belt,MEDIUM,ELECTRONICS,10
+North Electronics Manufacturing 021,US,North Carolina Piedmont,CRITICAL,ELECTRONICS,11
+Pacific Electronics Partners 022,US,Pacific Northwest,LOW,ELECTRONICS,5
+Greater Electronics Systems 023,US,Greater Houston,MEDIUM,ELECTRONICS,6
+Bac Electronics Solutions 024,VN,Bac Ninh,HIGH,ELECTRONICS,36
+Binh Electronics Holdings 025,VN,Binh Duong,HIGH,ELECTRONICS,37
+Nuevo Electronics Industries 026,MX,Nuevo Leon,HIGH,ELECTRONICS,14
+Baja Electronics Works 027,MX,Baja California,MEDIUM,ELECTRONICS,15
+Hsinchu Electronics Group 028,TW,Hsinchu,MEDIUM,ELECTRONICS,36
+Chungcheong Electronics Manufacturing 029,KR,Chungcheong,HIGH,ELECTRONICS,30
+Chubu Electronics Partners 030,JP,Chubu,MEDIUM,ELECTRONICS,29
+New Automotive Systems 031,US,New Jersey Corridor,HIGH,AUTOMOTIVE,5
+Arizona Automotive Solutions 032,US,Arizona Sun Corridor,HIGH,AUTOMOTIVE,6
+Tennessee Automotive Holdings 033,US,Tennessee Valley,MEDIUM,AUTOMOTIVE,7
+Illinois Automotive Industries 034,US,Illinois Midwest,MEDIUM,AUTOMOTIVE,8
+Georgia Automotive Works 035,US,Georgia Southeast,HIGH,AUTOMOTIVE,9
+Bavaria Automotive Group 036,DE,Bavaria,MEDIUM,AUTOMOTIVE,25
+Baden-Wurttemberg Automotive Manufacturing 037,DE,Baden-Wurttemberg,CRITICAL,AUTOMOTIVE,26
+North Automotive Partners 038,DE,North Rhine-Westphalia,LOW,AUTOMOTIVE,20
+Bajio Automotive Systems 039,MX,Bajio,MEDIUM,AUTOMOTIVE,11
+Nuevo Automotive Solutions 040,MX,Nuevo Leon,HIGH,AUTOMOTIVE,12
+Kanto Automotive Holdings 041,JP,Kanto,HIGH,AUTOMOTIVE,31
+Kansai Automotive Industries 042,JP,Kansai,HIGH,AUTOMOTIVE,32
+Zhejiang Automotive Works 043,CN,Zhejiang,MEDIUM,AUTOMOTIVE,37
+Shanghai Automotive Group 044,CN,Shanghai Region,MEDIUM,AUTOMOTIVE,38
+Texas Aerospace Manufacturing 045,US,Texas Gulf Coast,CRITICAL,AEROSPACE_DEFENSE,13
+Ohio Aerospace Partners 046,US,Ohio Valley,HIGH,AEROSPACE_DEFENSE,14
+California Aerospace Systems 047,US,California Bay Area,HIGH,AEROSPACE_DEFENSE,15
+Michigan Aerospace Solutions 048,US,Michigan Auto Belt,HIGH,AEROSPACE_DEFENSE,16
+North Aerospace Holdings 049,US,North Carolina Piedmont,MEDIUM,AEROSPACE_DEFENSE,17
+Bavaria Aerospace Industries 050,DE,Bavaria,MEDIUM,AEROSPACE_DEFENSE,33
+Pacific Pharma Works 051,US,Pacific Northwest,CRITICAL,PHARMACEUTICALS,13
+Greater Pharma Group 052,US,Greater Houston,HIGH,PHARMACEUTICALS,14
+New Pharma Manufacturing 053,US,New Jersey Corridor,HIGH,PHARMACEUTICALS,15
+Arizona Pharma Partners 054,US,Arizona Sun Corridor,HIGH,PHARMACEUTICALS,16
+Tennessee Pharma Systems 055,US,Tennessee Valley,MEDIUM,PHARMACEUTICALS,17
+Gujarat Pharma Solutions 056,IN,Gujarat,MEDIUM,PHARMACEUTICALS,49
+Maharashtra Pharma Holdings 057,IN,Maharashtra,CRITICAL,PHARMACEUTICALS,50
+Telangana Pharma Industries 058,IN,Telangana,HIGH,PHARMACEUTICALS,44
+Shandong Pharma Works 059,CN,Shandong,MEDIUM,PHARMACEUTICALS,41
+Guangdong Pharma Group 060,CN,Guangdong,LOW,PHARMACEUTICALS,42
+Baden-Wurttemberg Pharma Manufacturing 061,DE,Baden-Wurttemberg,CRITICAL,PHARMACEUTICALS,31
+Rotterdam Pharma Partners 062,NL,Rotterdam,HIGH,PHARMACEUTICALS,34
+Illinois MedTech Systems 063,US,Illinois Midwest,HIGH,MEDICAL_DEVICES,13
+Georgia MedTech Solutions 064,US,Georgia Southeast,HIGH,MEDICAL_DEVICES,14
+Texas MedTech Holdings 065,US,Texas Gulf Coast,MEDIUM,MEDICAL_DEVICES,15
+Ohio MedTech Industries 066,US,Ohio Valley,MEDIUM,MEDICAL_DEVICES,16
+California MedTech Works 067,US,California Bay Area,HIGH,MEDICAL_DEVICES,17
+Michigan MedTech Group 068,US,Michigan Auto Belt,MEDIUM,MEDICAL_DEVICES,18
+North MedTech Manufacturing 069,DE,North Rhine-Westphalia,CRITICAL,MEDICAL_DEVICES,34
+Baja MedTech Partners 070,MX,Baja California,LOW,MEDICAL_DEVICES,18
+Jiangsu MedTech Systems 071,CN,Jiangsu,MEDIUM,MEDICAL_DEVICES,41
+North Chemical Solutions 072,US,North Carolina Piedmont,HIGH,CHEMICALS,5
+Pacific Chemical Holdings 073,US,Pacific Northwest,HIGH,CHEMICALS,6
+Greater Chemical Industries 074,US,Greater Houston,MEDIUM,CHEMICALS,7
+New Chemical Works 075,US,New Jersey Corridor,MEDIUM,CHEMICALS,8
+Eastern Chemical Group 076,SA,Eastern Province,HIGH,CHEMICALS,44
+Jubail Chemical Manufacturing 077,SA,Jubail,MEDIUM,CHEMICALS,45
+Abu Chemical Partners 078,AE,Abu Dhabi,CRITICAL,CHEMICALS,44
+Ras Chemical Systems 079,QA,Ras Laffan,LOW,CHEMICALS,42
+Bavaria Chemical Solutions 080,DE,Bavaria,MEDIUM,CHEMICALS,21
+Zhejiang Chemical Holdings 081,CN,Zhejiang,HIGH,CHEMICALS,34
+Shanghai Chemical Industries 082,CN,Shanghai Region,HIGH,CHEMICALS,35
+Gujarat Chemical Works 083,IN,Gujarat,HIGH,CHEMICALS,40
+Arizona Energy Group 084,US,Arizona Sun Corridor,CRITICAL,ENERGY,5
+Tennessee Energy Manufacturing 085,US,Tennessee Valley,HIGH,ENERGY,6
+Illinois Energy Partners 086,US,Illinois Midwest,HIGH,ENERGY,7
+Georgia Energy Systems 087,US,Georgia Southeast,HIGH,ENERGY,8
+Texas Energy Solutions 088,US,Texas Gulf Coast,MEDIUM,ENERGY,9
+Ohio Energy Holdings 089,US,Ohio Valley,MEDIUM,ENERGY,10
+California Energy Industries 090,US,California Bay Area,CRITICAL,ENERGY,11
+Michigan Energy Works 091,US,Michigan Auto Belt,HIGH,ENERGY,5
+Jebel Energy Group 092,AE,Jebel Ali,MEDIUM,ENERGY,39
+Abu Energy Manufacturing 093,AE,Abu Dhabi,LOW,ENERGY,40
+Eastern Energy Partners 094,SA,Eastern Province,CRITICAL,ENERGY,43
+Ras Energy Systems 095,QA,Ras Laffan,HIGH,ENERGY,46
+Al Energy Solutions 096,KW,Al Ahmadi,HIGH,ENERGY,49
+Shandong Energy Holdings 097,CN,Shandong,HIGH,ENERGY,38
+Chubu Energy Industries 098,JP,Chubu,MEDIUM,ENERGY,28
+Baden-Wurttemberg Energy Works 099,DE,Baden-Wurttemberg,MEDIUM,ENERGY,21
+North Metals Group 100,US,North Carolina Piedmont,HIGH,METALS_MINING,5
+Pacific Metals Manufacturing 101,US,Pacific Northwest,HIGH,METALS_MINING,6
+Greater Metals Partners 102,US,Greater Houston,MEDIUM,METALS_MINING,7
+New Metals Systems 103,US,New Jersey Corridor,MEDIUM,METALS_MINING,8
+Arizona Metals Solutions 104,US,Arizona Sun Corridor,HIGH,METALS_MINING,9
+Guangdong Metals Holdings 105,CN,Guangdong,MEDIUM,METALS_MINING,37
+Jiangsu Metals Industries 106,CN,Jiangsu,CRITICAL,METALS_MINING,38
+North Metals Works 107,DE,North Rhine-Westphalia,LOW,METALS_MINING,20
+Bajio Metals Group 108,MX,Bajio,MEDIUM,METALS_MINING,11
+Tennessee Industrial Manufacturing 109,US,Tennessee Valley,MEDIUM,INDUSTRIAL_MACHINERY,5
+Illinois Industrial Partners 110,US,Illinois Midwest,MEDIUM,INDUSTRIAL_MACHINERY,6
+Georgia Industrial Systems 111,US,Georgia Southeast,HIGH,INDUSTRIAL_MACHINERY,7
+Texas Industrial Solutions 112,US,Texas Gulf Coast,LOW,INDUSTRIAL_MACHINERY,8
+Ohio Industrial Holdings 113,US,Ohio Valley,MEDIUM,INDUSTRIAL_MACHINERY,9
+California Industrial Industries 114,US,California Bay Area,HIGH,INDUSTRIAL_MACHINERY,10
+Michigan Industrial Works 115,US,Michigan Auto Belt,MEDIUM,INDUSTRIAL_MACHINERY,11
+Bavaria Industrial Group 116,DE,Bavaria,LOW,INDUSTRIAL_MACHINERY,20
+Baden-Wurttemberg Industrial Manufacturing 117,DE,Baden-Wurttemberg,MEDIUM,INDUSTRIAL_MACHINERY,21
+Kanto Industrial Partners 118,JP,Kanto,HIGH,INDUSTRIAL_MACHINERY,30
+Zhejiang Industrial Systems 119,CN,Zhejiang,MEDIUM,INDUSTRIAL_MACHINERY,35
+North AgriFood Solutions 120,US,North Carolina Piedmont,LOW,AGRICULTURE_FOOD,5
+Pacific AgriFood Holdings 121,US,Pacific Northwest,MEDIUM,AGRICULTURE_FOOD,6
+Greater AgriFood Industries 122,US,Greater Houston,LOW,AGRICULTURE_FOOD,7
+New AgriFood Works 123,US,New Jersey Corridor,MEDIUM,AGRICULTURE_FOOD,8
+Arizona AgriFood Group 124,US,Arizona Sun Corridor,LOW,AGRICULTURE_FOOD,9
+Tennessee AgriFood Manufacturing 125,US,Tennessee Valley,MEDIUM,AGRICULTURE_FOOD,10
+Illinois AgriFood Partners 126,US,Illinois Midwest,HIGH,AGRICULTURE_FOOD,11
+Nuevo AgriFood Systems 127,MX,Nuevo Leon,LOW,AGRICULTURE_FOOD,10
+Georgia Textile Solutions 128,US,Georgia Southeast,LOW,TEXTILES_APPAREL,5
+Texas Textile Holdings 129,US,Texas Gulf Coast,MEDIUM,TEXTILES_APPAREL,6
+Shanghai Textile Industries 130,CN,Shanghai Region,LOW,TEXTILES_APPAREL,34
+Shandong Textile Works 131,CN,Shandong,MEDIUM,TEXTILES_APPAREL,35
+Maharashtra Textile Group 132,IN,Maharashtra,LOW,TEXTILES_APPAREL,40
+Baja Textile Manufacturing 133,MX,Baja California,MEDIUM,TEXTILES_APPAREL,15
+Guangdong Consumer Partners 134,CN,Guangdong,MEDIUM,CONSUMER_GOODS,32
+Jiangsu Consumer Systems 135,CN,Jiangsu,MEDIUM,CONSUMER_GOODS,33
+Zhejiang Consumer Solutions 136,CN,Zhejiang,HIGH,CONSUMER_GOODS,34
+Shanghai Consumer Holdings 137,CN,Shanghai Region,LOW,CONSUMER_GOODS,35
+Ohio Consumer Industries 138,US,Ohio Valley,MEDIUM,CONSUMER_GOODS,9
+California Consumer Works 139,US,California Bay Area,HIGH,CONSUMER_GOODS,10
+Michigan Consumer Group 140,US,Michigan Auto Belt,MEDIUM,CONSUMER_GOODS,11
+Bajio Consumer Manufacturing 141,MX,Bajio,LOW,CONSUMER_GOODS,10
+Gyeonggi Consumer Partners 142,KR,Gyeonggi,MEDIUM,CONSUMER_GOODS,31
+North Logistics Systems 143,US,North Carolina Piedmont,MEDIUM,LOGISTICS,5
+Pacific Logistics Solutions 144,US,Pacific Northwest,MEDIUM,LOGISTICS,6
+Greater Logistics Holdings 145,US,Greater Houston,HIGH,LOGISTICS,7
+New Logistics Industries 146,US,New Jersey Corridor,LOW,LOGISTICS,8
+Arizona Logistics Works 147,US,Arizona Sun Corridor,MEDIUM,LOGISTICS,9
+Tennessee Logistics Group 148,US,Tennessee Valley,HIGH,LOGISTICS,10
+Illinois Logistics Manufacturing 149,US,Illinois Midwest,MEDIUM,LOGISTICS,11
+Rotterdam Logistics Partners 150,NL,Rotterdam,LOW,LOGISTICS,22
