@@ -1,0 +1,290 @@
+## RISK EXPOSURE REPORT
+
+{
+  "report_id": "ATL-2026-0329-001",
+  "trigger_alert_id": "SEN-2026-0329-001",
+  "timestamp": "2026-03-29T10:00:00Z",
+  "crisis_type": "MILITARY_CONFLICT",
+  "severity": 4,
+  "total_suppliers_affected": 10,
+  "critical_suppliers_affected": 3,
+  "total_products_at_risk": 10,
+  "estimated_revenue_exposure": 42843446.88,
+  "average_inventory_buffer_days": 34.1,
+  "single_source_dependencies": 3,
+  "affected_suppliers": [
+    {
+      "supplier_id": "SUP-0213",
+      "supplier_name": "Tasmun Sweater",
+      "country": "Bangladesh",
+      "sector": "Apparel",
+      "dependency_level": "CRITICAL",
+      "backup_available": false,
+      "backup_supplier_id": "NONE",
+      "products_affected": 1,
+      "revenue_at_risk": 597552.84,
+      "inventory_buffer_days": 57,
+      "risk_score": 71,
+      "lead_time_days": 41,
+      "estimated_impact_date": "2026-04-15",
+      "contract_expiry": "2027-06-20"
+    },
+    {
+      "supplier_id": "SUP-0221",
+      "supplier_name": "Radnik Exports",
+      "country": "India",
+      "sector": "Apparel",
+      "dependency_level": "CRITICAL",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0124",
+      "products_affected": 1,
+      "revenue_at_risk": 306597.0,
+      "inventory_buffer_days": 47,
+      "risk_score": 73,
+      "lead_time_days": 40,
+      "estimated_impact_date": "2026-04-15",
+      "contract_expiry": "2026-11-26"
+    },
+    {
+      "supplier_id": "SUP-0223",
+      "supplier_name": "Arnit Creations Pvt Ltd",
+      "country": "India",
+      "sector": "Apparel",
+      "dependency_level": "CRITICAL",
+      "backup_available": false,
+      "backup_supplier_id": "NONE",
+      "products_affected": 1,
+      "revenue_at_risk": 298904.69,
+      "inventory_buffer_days": 31,
+      "risk_score": 80,
+      "lead_time_days": 54,
+      "estimated_impact_date": "2026-04-15",
+      "contract_expiry": "2026-11-20"
+    },
+    {
+      "supplier_id": "SUP-0195",
+      "supplier_name": "Aryan Knitwear",
+      "country": "Bangladesh",
+      "sector": "Apparel",
+      "dependency_level": "HIGH",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0326",
+      "products_affected": 1,
+      "revenue_at_risk": 157433.87,
+      "inventory_buffer_days": 41,
+      "risk_score": 74,
+      "lead_time_days": 56,
+      "estimated_impact_date": "2026-04-15",
+      "contract_expiry": "2026-06-09"
+    },
+    {
+      "supplier_id": "SUP-0208",
+      "supplier_name": "York Sports Wear Ltd.",
+      "country": "Bangladesh",
+      "sector": "Apparel",
+      "dependency_level": "HIGH",
+      "backup_available": false,
+      "backup_supplier_id": "NONE",
+      "products_affected": 1,
+      "revenue_at_risk": 10055662.74,
+      "inventory_buffer_days": 37,
+      "risk_score": 61,
+      "lead_time_days": 41,
+      "estimated_impact_date": "2026-04-15",
+      "contract_expiry": "2026-08-18"
+    },
+    {
+      "supplier_id": "SUP-0222",
+      "supplier_name": "Infiiloom India Private Limited",
+      "country": "India",
+      "sector": "Apparel",
+      "dependency_level": "HIGH",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0289",
+      "products_affected": 1,
+      "revenue_at_risk": 10779437.92,
+      "inventory_buffer_days": 43,
+      "risk_score": 66,
+      "lead_time_days": 56,
+      "estimated_impact_date": "2026-04-15",
+      "contract_expiry": "2026-11-14"
+    },
+    {
+      "supplier_id": "SUP-0193",
+      "supplier_name": "Max Sweater (Bd) Ltd",
+      "country": "Bangladesh",
+      "sector": "Apparel",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0211",
+      "products_affected": 1,
+      "revenue_at_risk": 8922707.09,
+      "inventory_buffer_days": 25,
+      "risk_score": 58,
+      "lead_time_days": 50,
+      "estimated_impact_date": "2026-04-15",
+      "contract_expiry": "2027-07-25"
+    },
+    {
+      "supplier_id": "SUP-0194",
+      "supplier_name": "Joynal Knit Composite Ltd.",
+      "country": "Bangladesh",
+      "sector": "Apparel",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0100",
+      "products_affected": 1,
+      "revenue_at_risk": 2516221.79,
+      "inventory_buffer_days": 26,
+      "risk_score": 48,
+      "lead_time_days": 43,
+      "estimated_impact_date": "2026-04-15",
+      "contract_expiry": "2026-11-28"
+    },
+    {
+      "supplier_id": "SUP-0196",
+      "supplier_name": "Rabeya Garments (Unit-2)",
+      "country": "Bangladesh",
+      "sector": "Apparel",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0013",
+      "products_affected": 1,
+      "revenue_at_risk": 6954040.29,
+      "inventory_buffer_days": 16,
+      "risk_score": 59,
+      "lead_time_days": 58,
+      "estimated_impact_date": "2026-04-15",
+      "contract_expiry": "2027-01-19"
+    },
+    {
+      "supplier_id": "SUP-0199",
+      "supplier_name": "TBH Fashion Tex (Pvt.) Ltd.",
+      "country": "Bangladesh",
+      "sector": "Apparel",
+      "dependency_level": "LOW",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0225",
+      "products_affected": 1,
+      "revenue_at_risk": 2254888.65,
+      "inventory_buffer_days": 18,
+      "risk_score": 41,
+      "lead_time_days": 38,
+      "estimated_impact_date": "2026-04-15",
+      "contract_expiry": "2026-11-30"
+    }
+  ],
+  "route_disruptions": [
+    {
+      "route_id": "RTE-0001",
+      "route_name": "Strait of Hormuz",
+      "current_status": "BLOCKED",
+      "normal_transit_days": 1,
+      "additional_transit_days": 13,
+      "cost_increase_pct": 48,
+      "alternate_route": "Cape of Good Hope via Oman ports",
+      "affected_products_count": 3,
+      "affected_revenue": 32808841.82
+    },
+    {
+      "route_id": "RTE-0014",
+      "route_name": "Mumbai to Felixstowe",
+      "current_status": "DISRUPTED",
+      "normal_transit_days": 22,
+      "additional_transit_days": 14,
+      "cost_increase_pct": 48,
+      "alternate_route": "Cape of Good Hope (+14 days)",
+      "affected_products_count": 42,
+      "affected_revenue": 170727448.24
+    },
+    {
+      "route_id": "RTE-0015",
+      "route_name": "Ras Tanura to Yokohama",
+      "current_status": "BLOCKED",
+      "normal_transit_days": 18,
+      "additional_transit_days": 17,
+      "cost_increase_pct": 80,
+      "alternate_route": "Oman ports (Duqm/Sohar) if accessible",
+      "affected_products_count": 9,
+      "affected_revenue": 62679932.86
+    },
+    {
+      "route_id": "RTE-0016",
+      "route_name": "Jebel Ali to Singapore",
+      "current_status": "BLOCKED",
+      "normal_transit_days": 7,
+      "additional_transit_days": 14,
+      "cost_increase_pct": 75,
+      "alternate_route": "Oman transshipment via Sohar",
+      "affected_products_count": 33,
+      "affected_revenue": 152073376.51
+    },
+    {
+      "route_id": "RTE-0025",
+      "route_name": "Doha to Incheon",
+      "current_status": "BLOCKED",
+      "normal_transit_days": 16,
+      "additional_transit_days": 14,
+      "cost_increase_pct": 80,
+      "alternate_route": "No viable short-term alternative for LNG",
+      "affected_products_count": 1,
+      "affected_revenue": 3760932.56
+    }
+  ],
+  "no_exposure_detected": false,
+  "estimated_time_to_impact_days": 0,
+  "concentration_risk_summary": {
+    "single_country_exposure_pct": 73.4,
+    "single_supplier_exposure_pct": 25.2,
+    "top_country": "Bangladesh",
+    "top_supplier_id": "SUP-0222",
+    "risk_level": "CRITICAL"
+  }
+}
+
+## PLAYBOOK TEMPLATE
+
+Template ID: TPL-01
+Crisis Type: MILITARY_CONFLICT
+Scenario: SCN-01
+Description: Response framework for shipping route disruption caused by military conflict in a maritime chokepoint region
+Severity Threshold: 4
+Estimated Recovery Days: 30-180
+Source Frameworks: ISO 22301 Business Continuity|NIST SP 800-34 Contingency Planning|BIMCO Maritime Security Guidelines
+Responsible Roles: Immediate: Crisis Response Team, Procurement Lead|Short-term: VP Supply Chain, Logistics Director|Strategic: Chief Supply Chain Officer, Board Risk Committee
+Escalation Criteria: Escalate to C-suite if: revenue exposure exceeds $5M, inventory coverage falls below 14 days for any CRITICAL product, or disruption is projected to last beyond 30 days
+
+Immediate Actions:
+1. Activate crisis response team and notify executive leadership
+2. Conduct emergency inventory audit for all products sourced through affected chokepoint
+3. Contact all suppliers in affected region to confirm operational status
+4. Place hold on new purchase orders routed through disrupted corridor
+5. Assess current safety stock levels against projected demand for next 30 days
+6. Identify vessels currently in transit through or near the affected zone
+
+Short-term Actions:
+1. Engage backup suppliers and request expedited capacity allocation
+2. Evaluate alternate shipping routes with cost and transit time comparison
+3. Adjust safety stock targets upward for affected product lines
+4. Negotiate emergency freight rates with carriers on alternate routes
+5. Review insurance coverage for war risk and business interruption
+6. Brief sales and customer service teams on potential delivery delays
+
+Strategic Actions:
+1. Diversify supplier base to reduce concentration in single chokepoint corridor
+2. Establish long-term contracts with carriers on multiple route options
+3. Evaluate nearshoring or regional sourcing for critical single-source items
+4. Build strategic buffer inventory for highest-criticality products
+5. Develop permanent dual-routing capability for top revenue product lines
+6. Review and update business continuity plan with lessons learned
+
+Internal Communication Template:
+SUBJECT: Supply Chain Alert - [Chokepoint] Disruption Active
+
+Team, a military conflict has disrupted shipping through [chokepoint]. [X] of our suppliers and [Y] products are directly affected. Current inventory covers approximately [Z] days of demand. The crisis response team is activated. Next briefing at [time]. Immediate actions: [list from playbook].
+
+Supplier Communication Template:
+Dear [Supplier Name], we are monitoring the current disruption to [chokepoint/region]. Please confirm: (1) your current operational status, (2) any expected delays to open orders, (3) your ability to fulfill orders through alternate routing. We value our partnership and want to coordinate response. Please respond within 24 hours.
+
+Customer Communication Template:
+Dear [Customer], we are aware of the current shipping disruption in [region]. We are actively managing our supply chain to minimize any impact to your orders. Current status: [status]. We will provide updates every [frequency]. Your account representative [name] is available for questions.

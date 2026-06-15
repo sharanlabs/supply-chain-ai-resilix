@@ -1,0 +1,115 @@
+{
+  "name": "RESILIX LaunchOps Approval Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resilix-launchops-approval",
+        "responseMode": "responseNode"
+      },
+      "id": "Webhook_Receive_Decision_Packet",
+      "name": "Receive Decision Packet",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "decisionPacketId",
+              "name": "decisionPacketId",
+              "value": "={{ $json.decisionPacketId || $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "approvalStatus",
+              "name": "approvalStatus",
+              "value": "APPROVED",
+              "type": "string"
+            },
+            {
+              "id": "approver",
+              "name": "approver",
+              "value": "n8n-demo-approver",
+              "type": "string"
+            },
+            {
+              "id": "reason",
+              "name": "reason",
+              "value": "Approved by simulated n8n approval workflow.",
+              "type": "string"
+            },
+            {
+              "id": "callbackEventId",
+              "name": "callbackEventId",
+              "value": "={{ $json.callbackEventId || $execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "callbackSentAt",
+              "name": "callbackSentAt",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "Set_Approval_Result",
+      "name": "Set Approval Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.callbackUrl || 'http://host.docker.internal:3000/api/n8n/approval-callback' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-resilix-callback-secret",
+              "value": "={{ $json.callbackSecret || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "Callback_To_App",
+      "name": "Callback To App",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [780, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'callback_sent', decisionPacketId: $('Set Approval Result').first().json.decisionPacketId } }}"
+      },
+      "id": "Respond_To_App",
+      "name": "Respond To App",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1040, 300]
+    }
+  ],
+  "connections": {
+    "Receive Decision Packet": {
+      "main": [[{ "node": "Set Approval Result", "type": "main", "index": 0 }]]
+    },
+    "Set Approval Result": {
+      "main": [[{ "node": "Callback To App", "type": "main", "index": 0 }]]
+    },
+    "Callback To App": {
+      "main": [[{ "node": "Respond To App", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

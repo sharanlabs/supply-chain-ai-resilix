@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f7f4;
+  --foreground: #1e2421;
+  --panel: #ffffff;
+  --panel-muted: #f0f2ee;
+  --border: #d8ded7;
+  --muted: #62706a;
+  --accent: #0f766e;
+  --accent-foreground: #ffffff;
+  --warning: #b45309;
+  --critical: #b91c1c;
+  --success: #15803d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--background);
+}
+
+body {
+  margin: 0;
+  color: var(--foreground);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(247, 247, 244, 0.95)),
+    var(--background);
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+  letter-spacing: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.panel {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.stable-table {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.stable-table th,
+.stable-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.stable-table th {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.stable-table td {
+  font-size: 13px;
+}

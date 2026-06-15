@@ -1,0 +1,94 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit and eval tests
+        run: npm run test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Secret scan
+        run: npm run secrets:scan
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright flagship scenario
+        run: npm run test:e2e
+
+  postgres:
+    name: Optional Postgres/Neon Proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: app
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ENABLE_LIVE_AI: "false"
+      RUN_DB_INTEGRATION_TESTS: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Skip DB proof when secret is absent
+        if: env.DATABASE_URL == ''
+        run: echo "DATABASE_URL secret is not configured; skipping Postgres/Neon proof."
+
+      - name: Push schema
+        if: env.DATABASE_URL != ''
+        run: npm run db:push
+
+      - name: Run DB integration proof
+        if: env.DATABASE_URL != ''
+        run: npm run test:db

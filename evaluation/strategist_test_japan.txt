@@ -1,0 +1,236 @@
+## RISK EXPOSURE REPORT
+
+{
+  "report_id": "ATL-2026-0329-002",
+  "trigger_alert_id": "SEN-2026-0329-002",
+  "timestamp": "2026-03-29T11:00:00Z",
+  "crisis_type": "NATURAL_DISASTER",
+  "severity": 4,
+  "total_suppliers_affected": 8,
+  "critical_suppliers_affected": 5,
+  "total_products_at_risk": 8,
+  "estimated_revenue_exposure": 63705259.43,
+  "average_inventory_buffer_days": 33.6,
+  "single_source_dependencies": 4,
+  "affected_suppliers": [
+    {
+      "supplier_id": "SUP-0343",
+      "supplier_name": "Sakura Transport Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "CRITICAL",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0056",
+      "products_affected": 1,
+      "revenue_at_risk": 5707929.83,
+      "inventory_buffer_days": 46,
+      "risk_score": 88,
+      "lead_time_days": 63,
+      "estimated_impact_date": "2026-04-10",
+      "contract_expiry": "2026-09-03"
+    },
+    {
+      "supplier_id": "SUP-0359",
+      "supplier_name": "Shichifuku Towel Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "CRITICAL",
+      "backup_available": false,
+      "backup_supplier_id": "NONE",
+      "products_affected": 1,
+      "revenue_at_risk": 15108573.54,
+      "inventory_buffer_days": 34,
+      "risk_score": 85,
+      "lead_time_days": 51,
+      "estimated_impact_date": "2026-04-10",
+      "contract_expiry": "2026-05-15"
+    },
+    {
+      "supplier_id": "SUP-0352",
+      "supplier_name": "Godo Taxi Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "CRITICAL",
+      "backup_available": false,
+      "backup_supplier_id": "NONE",
+      "products_affected": 1,
+      "revenue_at_risk": 6378677.87,
+      "inventory_buffer_days": 31,
+      "risk_score": 84,
+      "lead_time_days": 48,
+      "estimated_impact_date": "2026-04-10",
+      "contract_expiry": "2027-02-08"
+    },
+    {
+      "supplier_id": "SUP-0369",
+      "supplier_name": "Netz Toyota Takamatsu Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "CRITICAL",
+      "backup_available": false,
+      "backup_supplier_id": "NONE",
+      "products_affected": 1,
+      "revenue_at_risk": 7057962.49,
+      "inventory_buffer_days": 41,
+      "risk_score": 84,
+      "lead_time_days": 50,
+      "estimated_impact_date": "2026-04-10",
+      "contract_expiry": "2027-02-26"
+    },
+    {
+      "supplier_id": "SUP-0342",
+      "supplier_name": "F.B. Bison Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "CRITICAL",
+      "backup_available": false,
+      "backup_supplier_id": "NONE",
+      "products_affected": 1,
+      "revenue_at_risk": 15318353.62,
+      "inventory_buffer_days": 52,
+      "risk_score": 74,
+      "lead_time_days": 35,
+      "estimated_impact_date": "2026-04-10",
+      "contract_expiry": "2026-05-10"
+    },
+    {
+      "supplier_id": "SUP-0346",
+      "supplier_name": "Oe Oil Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0161",
+      "products_affected": 1,
+      "revenue_at_risk": 8144704.5,
+      "inventory_buffer_days": 21,
+      "risk_score": 66,
+      "lead_time_days": 62,
+      "estimated_impact_date": "2026-04-10",
+      "contract_expiry": "2026-05-09"
+    },
+    {
+      "supplier_id": "SUP-0353",
+      "supplier_name": "Aihara Automobile Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "HIGH",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0198",
+      "products_affected": 1,
+      "revenue_at_risk": 2710389.97,
+      "inventory_buffer_days": 23,
+      "risk_score": 64,
+      "lead_time_days": 35,
+      "estimated_impact_date": "2026-04-10",
+      "contract_expiry": "2026-12-01"
+    },
+    {
+      "supplier_id": "SUP-0344",
+      "supplier_name": "Nishikawa Bussan Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0390",
+      "products_affected": 1,
+      "revenue_at_risk": 3278667.61,
+      "inventory_buffer_days": 21,
+      "risk_score": 62,
+      "lead_time_days": 51,
+      "estimated_impact_date": "2026-04-10",
+      "contract_expiry": "2027-06-26"
+    }
+  ],
+  "route_disruptions": [
+    {
+      "route_id": "RTE-0009",
+      "route_name": "Shanghai to Los Angeles",
+      "current_status": "DISRUPTED",
+      "normal_transit_days": 14,
+      "additional_transit_days": 7,
+      "cost_increase_pct": 20,
+      "alternate_route": "Seattle or Vancouver (+2 days)",
+      "affected_products_count": 4,
+      "affected_revenue": 30473848.85
+    },
+    {
+      "route_id": "RTE-0022",
+      "route_name": "Nagoya to Long Beach",
+      "current_status": "DISRUPTED",
+      "normal_transit_days": 13,
+      "additional_transit_days": 7,
+      "cost_increase_pct": 25,
+      "alternate_route": "Oakland or Vancouver",
+      "affected_products_count": 1,
+      "affected_revenue": 8144704.5
+    },
+    {
+      "route_id": "RTE-0023",
+      "route_name": "Shenzhen to New York",
+      "current_status": "DISRUPTED",
+      "normal_transit_days": 25,
+      "additional_transit_days": 10,
+      "cost_increase_pct": 35,
+      "alternate_route": "All-water via Suez or transpacific to LA then rail",
+      "affected_products_count": 3,
+      "affected_revenue": 25086706.08
+    }
+  ],
+  "no_exposure_detected": false,
+  "estimated_time_to_impact_days": 0,
+  "concentration_risk_summary": {
+    "single_country_exposure_pct": 100.0,
+    "single_supplier_exposure_pct": 24.0,
+    "top_country": "Japan",
+    "top_supplier_id": "SUP-0342",
+    "risk_level": "CRITICAL"
+  }
+}
+
+## PLAYBOOK TEMPLATE
+
+Template ID: TPL-05
+Crisis Type: NATURAL_DISASTER
+Scenario: SCN-05
+Description: Response framework for earthquakes, typhoons, floods, or other natural disasters affecting manufacturing facilities or logistics infrastructure
+Severity Threshold: 4
+Estimated Recovery Days: 14-180
+Source Frameworks: ISO 22301 Business Continuity|FEMA Emergency Management Framework|UN OCHA Disaster Response Guidelines
+Responsible Roles: Immediate: Crisis Response Team, Supplier Relations|Short-term: VP Supply Chain, HR (employee safety)|Strategic: CEO, Board Risk Committee
+Escalation Criteria: Escalate to C-suite if: any supplier facility is confirmed destroyed or severely damaged, recovery timeline exceeds 60 days, revenue exposure exceeds $5M, humanitarian concerns require corporate response, or product availability drops below 70% of demand
+
+Immediate Actions:
+1. Confirm safety and status of personnel at affected supplier facilities
+2. Assess structural and operational damage to supplier manufacturing sites
+3. Identify all products and components sourced from affected area
+4. Check current inventory levels for affected product lines
+5. Determine transportation infrastructure status (roads, ports, airports)
+6. Activate business continuity contacts at affected suppliers
+
+Short-term Actions:
+1. Engage backup suppliers to fill production gap during recovery
+2. Assess supplier recovery timeline based on damage severity
+3. Prioritize shipment of available finished goods from unaffected facilities
+4. Coordinate with logistics providers on alternate transport routes
+5. Evaluate expedited air freight for critical shortage items
+6. Support affected suppliers with advance payments or flexible terms if appropriate
+
+Strategic Actions:
+1. Require supplier business continuity plans as part of qualification criteria
+2. Map geographic concentration risk across full supplier base
+3. Establish regional emergency response partnerships
+4. Build parametric insurance coverage for high-risk geographic zones
+5. Diversify manufacturing across multiple geographic regions
+6. Invest in predictive natural disaster monitoring for supplier locations
+
+Internal Communication Template:
+SUBJECT: Natural Disaster Impact - [Event Type] in [Region]
+
+Team, a [disaster type] has struck [region] affecting [X] of our suppliers. We are confirming personnel safety first, then assessing operational impact. Products at risk: [list]. Current inventory covers [Y] days. Recovery timeline is being assessed. Crisis team meeting at [time].
+
+Supplier Communication Template:
+Dear [Supplier Name], we are aware of the [disaster] affecting your region. First, we hope all your team members are safe. When you are able, please share: (1) status of your facility and personnel, (2) estimated timeline to resume operations, (3) any support we can provide. There is no pressure to respond immediately. Safety comes first.
+
+Customer Communication Template:
+Dear [Customer], a natural disaster in [region] has affected some of our manufacturing partners. We are assessing the full impact and activating contingency plans. We will provide a detailed update on any order impacts within [timeframe]. Thank you for your understanding.

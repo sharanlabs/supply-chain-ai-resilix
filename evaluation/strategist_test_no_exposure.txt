@@ -1,0 +1,73 @@
+## RISK EXPOSURE REPORT
+
+{
+  "report_id": "ATL-2026-0329-003",
+  "trigger_alert_id": "SEN-2026-0329-003",
+  "timestamp": "2026-03-29T12:00:00Z",
+  "crisis_type": "NATURAL_DISASTER",
+  "severity": 3,
+  "total_suppliers_affected": 0,
+  "critical_suppliers_affected": 0,
+  "total_products_at_risk": 0,
+  "estimated_revenue_exposure": 0,
+  "average_inventory_buffer_days": 0,
+  "single_source_dependencies": 0,
+  "affected_suppliers": [],
+  "route_disruptions": [],
+  "no_exposure_detected": true,
+  "estimated_time_to_impact_days": 0,
+  "concentration_risk_summary": {
+    "single_country_exposure_pct": 0,
+    "single_supplier_exposure_pct": 0,
+    "top_country": "N/A",
+    "top_supplier_id": "N/A",
+    "risk_level": "LOW"
+  }
+}
+
+## PLAYBOOK TEMPLATE
+
+Template ID: TPL-05
+Crisis Type: NATURAL_DISASTER
+Scenario: SCN-05
+Description: Response framework for earthquakes, typhoons, floods, or other natural disasters affecting manufacturing facilities or logistics infrastructure
+Severity Threshold: 4
+Estimated Recovery Days: 14-180
+Source Frameworks: ISO 22301 Business Continuity|FEMA Emergency Management Framework|UN OCHA Disaster Response Guidelines
+Responsible Roles: Immediate: Crisis Response Team, Supplier Relations|Short-term: VP Supply Chain, HR (employee safety)|Strategic: CEO, Board Risk Committee
+Escalation Criteria: Escalate to C-suite if: any supplier facility is confirmed destroyed or severely damaged, recovery timeline exceeds 60 days, revenue exposure exceeds $5M, humanitarian concerns require corporate response, or product availability drops below 70% of demand
+
+Immediate Actions:
+1. Confirm safety and status of personnel at affected supplier facilities
+2. Assess structural and operational damage to supplier manufacturing sites
+3. Identify all products and components sourced from affected area
+4. Check current inventory levels for affected product lines
+5. Determine transportation infrastructure status (roads, ports, airports)
+6. Activate business continuity contacts at affected suppliers
+
+Short-term Actions:
+1. Engage backup suppliers to fill production gap during recovery
+2. Assess supplier recovery timeline based on damage severity
+3. Prioritize shipment of available finished goods from unaffected facilities
+4. Coordinate with logistics providers on alternate transport routes
+5. Evaluate expedited air freight for critical shortage items
+6. Support affected suppliers with advance payments or flexible terms if appropriate
+
+Strategic Actions:
+1. Require supplier business continuity plans as part of qualification criteria
+2. Map geographic concentration risk across full supplier base
+3. Establish regional emergency response partnerships
+4. Build parametric insurance coverage for high-risk geographic zones
+5. Diversify manufacturing across multiple geographic regions
+6. Invest in predictive natural disaster monitoring for supplier locations
+
+Internal Communication Template:
+SUBJECT: Natural Disaster Impact - [Event Type] in [Region]
+
+Team, a [disaster type] has struck [region] affecting [X] of our suppliers. We are confirming personnel safety first, then assessing operational impact. Products at risk: [list]. Current inventory covers [Y] days. Recovery timeline is being assessed. Crisis team meeting at [time].
+
+Supplier Communication Template:
+Dear [Supplier Name], we are aware of the [disaster] affecting your region. First, we hope all your team members are safe. When you are able, please share: (1) status of your facility and personnel, (2) estimated timeline to resume operations, (3) any support we can provide. There is no pressure to respond immediately. Safety comes first.
+
+Customer Communication Template:
+Dear [Customer], a natural disaster in [region] has affected some of our manufacturing partners. We are assessing the full impact and activating contingency plans. We will provide a detailed update on any order impacts within [timeframe]. Thank you for your understanding.

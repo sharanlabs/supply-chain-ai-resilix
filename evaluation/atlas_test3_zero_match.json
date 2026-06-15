@@ -1,0 +1,48 @@
+{
+  "filtering_mode": "COUNTRY_FIRST",
+  "sentinel_card": {
+    "alert_id": "SEN-2026-0329-002",
+    "timestamp": "2026-03-29T10:00:00Z",
+    "event_type": "NATURAL_DISASTER",
+    "event_summary": "Volcanic eruption reported on a remote Pacific island. No major shipping lanes affected. Limited regional impact expected.",
+    "severity": 2,
+    "affected_regions": [
+      "Pacific Islands"
+    ],
+    "affected_routes": [],
+    "affected_commodities": [],
+    "confidence": "LOW",
+    "data_freshness": "2 hours",
+    "event_subcategory": "Volcanic Eruption",
+    "source_count": 2,
+    "affected_countries": [
+      "Atlantis"
+    ],
+    "estimated_duration": "7-14 days",
+    "affected_sectors": [
+      "ALL"
+    ]
+  },
+  "pre_calculated": {
+    "report_id": "ATL-2026-0329-001",
+    "trigger_alert_id": "SEN-2026-0329-002",
+    "timestamp": "2026-03-29T12:00:00Z",
+    "total_suppliers_affected": 0,
+    "critical_suppliers_affected": 0,
+    "total_products_at_risk": 0,
+    "estimated_revenue_exposure": 0,
+    "average_inventory_buffer_days": 0,
+    "single_source_dependencies": 0,
+    "estimated_time_to_impact_days": 0,
+    "no_exposure_detected": true,
+    "concentration_risk": {
+      "single_country_exposure_pct": 0,
+      "single_supplier_exposure_pct": 0,
+      "top_country": "N/A",
+      "top_supplier_id": "N/A",
+      "risk_level": "LOW"
+    }
+  },
+  "supplier_details": [],
+  "route_details": []
+}

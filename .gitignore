@@ -1,7 +1,19 @@
 # API keys and secrets
 .env
+.env*.local
 *.key
 secrets/
+
+# Dependencies and build output
+node_modules/
+.next/
+next-env.d.ts
+out/
+coverage/
+playwright-report/
+test-results/
+dist/
+*.tsbuildinfo
 
 # OS files
 .DS_Store

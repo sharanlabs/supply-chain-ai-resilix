@@ -1,0 +1,742 @@
+{
+  "filtering_mode": "COUNTRY_FIRST",
+  "sentinel_card": {
+    "alert_id": "SEN-2026-0329-001",
+    "timestamp": "2026-03-29T08:00:00Z",
+    "event_type": "NATURAL_DISASTER",
+    "event_summary": "A 7.2 magnitude earthquake struck the Kanto region of Japan, causing structural damage to port facilities and manufacturing plants. Multiple factories in Yokohama and Tokyo report operational shutdowns pending safety inspections.",
+    "severity": 4,
+    "affected_regions": [
+      "East Asia",
+      "Japan"
+    ],
+    "affected_routes": [],
+    "affected_commodities": [
+      "Electronics",
+      "Automotive parts",
+      "Semiconductors"
+    ],
+    "confidence": "HIGH",
+    "data_freshness": "6 hours",
+    "event_subcategory": "Earthquake",
+    "source_count": 12,
+    "affected_countries": [
+      "Japan"
+    ],
+    "estimated_duration": "14-30 days",
+    "affected_sectors": [
+      "ALL"
+    ]
+  },
+  "pre_calculated": {
+    "report_id": "ATL-2026-0329-001",
+    "trigger_alert_id": "SEN-2026-0329-001",
+    "timestamp": "2026-03-29T12:00:00Z",
+    "total_suppliers_affected": 30,
+    "critical_suppliers_affected": 5,
+    "total_products_at_risk": 30,
+    "estimated_revenue_exposure": 197574582.82,
+    "average_inventory_buffer_days": 22.3,
+    "single_source_dependencies": 4,
+    "estimated_time_to_impact_days": 0,
+    "no_exposure_detected": false,
+    "concentration_risk": {
+      "single_country_exposure_pct": 100.0,
+      "single_supplier_exposure_pct": 8.2,
+      "top_country": "Japan",
+      "top_supplier_id": "SUP-0349",
+      "risk_level": "CRITICAL"
+    }
+  },
+  "supplier_details": [
+    {
+      "supplier_id": "SUP-0342",
+      "supplier_name": "F.B. Bison Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "CRITICAL",
+      "backup_available": false,
+      "backup_supplier_id": "NONE",
+      "products_affected": 1,
+      "revenue_at_risk": 15318353.62,
+      "inventory_buffer_days": 52,
+      "risk_score": 74,
+      "contract_expiry": "2026-05-10",
+      "lead_time_days": 35,
+      "estimated_impact_date": "2026-05-20"
+    },
+    {
+      "supplier_id": "SUP-0359",
+      "supplier_name": "Shichifuku Towel Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "CRITICAL",
+      "backup_available": false,
+      "backup_supplier_id": "NONE",
+      "products_affected": 1,
+      "revenue_at_risk": 15108573.54,
+      "inventory_buffer_days": 34,
+      "risk_score": 85,
+      "contract_expiry": "2026-05-15",
+      "lead_time_days": 51,
+      "estimated_impact_date": "2026-05-02"
+    },
+    {
+      "supplier_id": "SUP-0369",
+      "supplier_name": "Netz Toyota Takamatsu Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "CRITICAL",
+      "backup_available": false,
+      "backup_supplier_id": "NONE",
+      "products_affected": 1,
+      "revenue_at_risk": 7057962.49,
+      "inventory_buffer_days": 41,
+      "risk_score": 84,
+      "contract_expiry": "2027-02-26",
+      "lead_time_days": 50,
+      "estimated_impact_date": "2026-05-09"
+    },
+    {
+      "supplier_id": "SUP-0352",
+      "supplier_name": "Godo Taxi Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "CRITICAL",
+      "backup_available": false,
+      "backup_supplier_id": "NONE",
+      "products_affected": 1,
+      "revenue_at_risk": 6378677.87,
+      "inventory_buffer_days": 31,
+      "risk_score": 84,
+      "contract_expiry": "2027-02-08",
+      "lead_time_days": 48,
+      "estimated_impact_date": "2026-04-29"
+    },
+    {
+      "supplier_id": "SUP-0343",
+      "supplier_name": "Sakura Transport Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "CRITICAL",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0056",
+      "products_affected": 1,
+      "revenue_at_risk": 5707929.83,
+      "inventory_buffer_days": 46,
+      "risk_score": 88,
+      "contract_expiry": "2026-09-03",
+      "lead_time_days": 63,
+      "estimated_impact_date": "2026-05-14",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0056",
+        "secondary_supplier_country": "China",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0353",
+      "supplier_name": "Aihara Automobile Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "HIGH",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0198",
+      "products_affected": 1,
+      "revenue_at_risk": 2710389.97,
+      "inventory_buffer_days": 23,
+      "risk_score": 64,
+      "contract_expiry": "2026-12-01",
+      "lead_time_days": 35,
+      "estimated_impact_date": "2026-04-21",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0198",
+        "secondary_supplier_country": "Bangladesh",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0349",
+      "supplier_name": "CL Link Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0241",
+      "products_affected": 1,
+      "revenue_at_risk": 16263105.75,
+      "inventory_buffer_days": 14,
+      "risk_score": 50,
+      "contract_expiry": "2026-08-26",
+      "lead_time_days": 41,
+      "estimated_impact_date": "2026-04-12",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0241",
+        "secondary_supplier_country": "Thailand",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0345",
+      "supplier_name": "Sanuki Brick Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0342",
+      "products_affected": 1,
+      "revenue_at_risk": 14691553.44,
+      "inventory_buffer_days": 21,
+      "risk_score": 59,
+      "contract_expiry": "2026-08-29",
+      "lead_time_days": 57,
+      "estimated_impact_date": "2026-04-19",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0342",
+        "secondary_supplier_country": "Japan",
+        "secondary_in_affected_zone": true
+      }
+    },
+    {
+      "supplier_id": "SUP-0341",
+      "supplier_name": "Honda Kita Tokushima Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0206",
+      "products_affected": 1,
+      "revenue_at_risk": 9936169.73,
+      "inventory_buffer_days": 22,
+      "risk_score": 59,
+      "contract_expiry": "2027-08-27",
+      "lead_time_days": 61,
+      "estimated_impact_date": "2026-04-20",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0206",
+        "secondary_supplier_country": "Bangladesh",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0346",
+      "supplier_name": "Oe Oil Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0161",
+      "products_affected": 1,
+      "revenue_at_risk": 8144704.5,
+      "inventory_buffer_days": 21,
+      "risk_score": 66,
+      "contract_expiry": "2026-05-09",
+      "lead_time_days": 62,
+      "estimated_impact_date": "2026-04-19",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0161",
+        "secondary_supplier_country": "United States",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0366",
+      "supplier_name": "SACO AUTO VERITA Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0293",
+      "products_affected": 1,
+      "revenue_at_risk": 7898842.86,
+      "inventory_buffer_days": 21,
+      "risk_score": 52,
+      "contract_expiry": "2026-05-10",
+      "lead_time_days": 43,
+      "estimated_impact_date": "2026-04-19",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0293",
+        "secondary_supplier_country": "Italy",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0347",
+      "supplier_name": "C-COM Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0171",
+      "products_affected": 1,
+      "revenue_at_risk": 7894573.06,
+      "inventory_buffer_days": 20,
+      "risk_score": 60,
+      "contract_expiry": "2027-08-09",
+      "lead_time_days": 49,
+      "estimated_impact_date": "2026-04-18",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0171",
+        "secondary_supplier_country": "United States",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0360",
+      "supplier_name": "HIVEC Inc. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0154",
+      "products_affected": 1,
+      "revenue_at_risk": 7889128.13,
+      "inventory_buffer_days": 14,
+      "risk_score": 52,
+      "contract_expiry": "2027-03-11",
+      "lead_time_days": 48,
+      "estimated_impact_date": "2026-04-12",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0154",
+        "secondary_supplier_country": "South Korea",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0362",
+      "supplier_name": "Chugoku Shimbun Transportation Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0090",
+      "products_affected": 1,
+      "revenue_at_risk": 7501316.6,
+      "inventory_buffer_days": 27,
+      "risk_score": 52,
+      "contract_expiry": "2026-11-30",
+      "lead_time_days": 48,
+      "estimated_impact_date": "2026-04-25",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0090",
+        "secondary_supplier_country": "Vietnam",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0358",
+      "supplier_name": "Meibutsu Kamado Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0318",
+      "products_affected": 1,
+      "revenue_at_risk": 5905549.58,
+      "inventory_buffer_days": 24,
+      "risk_score": 61,
+      "contract_expiry": "2027-06-02",
+      "lead_time_days": 58,
+      "estimated_impact_date": "2026-04-22",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0318",
+        "secondary_supplier_country": "Germany",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0354",
+      "supplier_name": "Amegio Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0378",
+      "products_affected": 1,
+      "revenue_at_risk": 5253752.09,
+      "inventory_buffer_days": 26,
+      "risk_score": 47,
+      "contract_expiry": "2026-10-12",
+      "lead_time_days": 35,
+      "estimated_impact_date": "2026-04-24",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0378",
+        "secondary_supplier_country": "United Arab Emirates",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0344",
+      "supplier_name": "Nishikawa Bussan Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0390",
+      "products_affected": 1,
+      "revenue_at_risk": 3278667.61,
+      "inventory_buffer_days": 21,
+      "risk_score": 62,
+      "contract_expiry": "2027-06-26",
+      "lead_time_days": 51,
+      "estimated_impact_date": "2026-04-19",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0390",
+        "secondary_supplier_country": "United Arab Emirates",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0357",
+      "supplier_name": "Nanyu Transportation Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0278",
+      "products_affected": 1,
+      "revenue_at_risk": 2961468.78,
+      "inventory_buffer_days": 21,
+      "risk_score": 58,
+      "contract_expiry": "2026-09-18",
+      "lead_time_days": 45,
+      "estimated_impact_date": "2026-04-19",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0278",
+        "secondary_supplier_country": "Egypt",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0350",
+      "supplier_name": "Toyota Rent-A-Lease Nishi-Shikoku Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0207",
+      "products_affected": 1,
+      "revenue_at_risk": 1952585.07,
+      "inventory_buffer_days": 14,
+      "risk_score": 55,
+      "contract_expiry": "2027-08-16",
+      "lead_time_days": 48,
+      "estimated_impact_date": "2026-04-12",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0207",
+        "secondary_supplier_country": "Bangladesh",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0363",
+      "supplier_name": "Japan Martz Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0382",
+      "products_affected": 1,
+      "revenue_at_risk": 1628790.15,
+      "inventory_buffer_days": 20,
+      "risk_score": 59,
+      "contract_expiry": "2027-02-24",
+      "lead_time_days": 62,
+      "estimated_impact_date": "2026-04-18",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0382",
+        "secondary_supplier_country": "United Arab Emirates",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0365",
+      "supplier_name": "Setouchi Transport Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0123",
+      "products_affected": 1,
+      "revenue_at_risk": 398870.31,
+      "inventory_buffer_days": 24,
+      "risk_score": 53,
+      "contract_expiry": "2026-09-16",
+      "lead_time_days": 42,
+      "estimated_impact_date": "2026-04-22",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0123",
+        "secondary_supplier_country": "Taiwan",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0368",
+      "supplier_name": "Aio Corporation Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "MEDIUM",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0019",
+      "products_affected": 1,
+      "revenue_at_risk": 308089.8,
+      "inventory_buffer_days": 28,
+      "risk_score": 55,
+      "contract_expiry": "2026-09-13",
+      "lead_time_days": 36,
+      "estimated_impact_date": "2026-04-26",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0019",
+        "secondary_supplier_country": "China",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0356",
+      "supplier_name": "Toyota Rental & Lease Co., Ltd. Oita Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "LOW",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0317",
+      "products_affected": 1,
+      "revenue_at_risk": 12594565.39,
+      "inventory_buffer_days": 8,
+      "risk_score": 43,
+      "contract_expiry": "2026-11-11",
+      "lead_time_days": 44,
+      "estimated_impact_date": "2026-04-06",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0317",
+        "secondary_supplier_country": "Germany",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0364",
+      "supplier_name": "Uwajima Motor Transport Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "LOW",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0046",
+      "products_affected": 1,
+      "revenue_at_risk": 11678976.49,
+      "inventory_buffer_days": 19,
+      "risk_score": 42,
+      "contract_expiry": "2026-11-04",
+      "lead_time_days": 37,
+      "estimated_impact_date": "2026-04-17",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0046",
+        "secondary_supplier_country": "China",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0355",
+      "supplier_name": "Yamagata Transportation Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "LOW",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0032",
+      "products_affected": 1,
+      "revenue_at_risk": 8107205.99,
+      "inventory_buffer_days": 10,
+      "risk_score": 44,
+      "contract_expiry": "2027-07-14",
+      "lead_time_days": 43,
+      "estimated_impact_date": "2026-04-08",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0032",
+        "secondary_supplier_country": "China",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0361",
+      "supplier_name": "Meiwa Transportation Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "LOW",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0355",
+      "products_affected": 1,
+      "revenue_at_risk": 6927997.63,
+      "inventory_buffer_days": 13,
+      "risk_score": 43,
+      "contract_expiry": "2026-09-21",
+      "lead_time_days": 38,
+      "estimated_impact_date": "2026-04-11",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0355",
+        "secondary_supplier_country": "Japan",
+        "secondary_in_affected_zone": true
+      }
+    },
+    {
+      "supplier_id": "SUP-0370",
+      "supplier_name": "Nishii Manufacturing Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "LOW",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0135",
+      "products_affected": 1,
+      "revenue_at_risk": 1293264.07,
+      "inventory_buffer_days": 9,
+      "risk_score": 41,
+      "contract_expiry": "2027-06-08",
+      "lead_time_days": 43,
+      "estimated_impact_date": "2026-04-07",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0135",
+        "secondary_supplier_country": "Taiwan",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0351",
+      "supplier_name": "Shirasunagumi Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "LOW",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0219",
+      "products_affected": 1,
+      "revenue_at_risk": 1213767.66,
+      "inventory_buffer_days": 17,
+      "risk_score": 54,
+      "contract_expiry": "2027-06-28",
+      "lead_time_days": 61,
+      "estimated_impact_date": "2026-04-15",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0219",
+        "secondary_supplier_country": "India",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0348",
+      "supplier_name": "Logicom Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "LOW",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0052",
+      "products_affected": 1,
+      "revenue_at_risk": 786312.1,
+      "inventory_buffer_days": 9,
+      "risk_score": 49,
+      "contract_expiry": "2026-05-16",
+      "lead_time_days": 52,
+      "estimated_impact_date": "2026-04-07",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0052",
+        "secondary_supplier_country": "China",
+        "secondary_in_affected_zone": false
+      }
+    },
+    {
+      "supplier_id": "SUP-0367",
+      "supplier_name": "Fuji Seisaku Co., Ltd. Head Office",
+      "country": "Japan",
+      "sector": "Automotive",
+      "dependency_level": "LOW",
+      "backup_available": true,
+      "backup_supplier_id": "SUP-0364",
+      "products_affected": 1,
+      "revenue_at_risk": 783438.71,
+      "inventory_buffer_days": 19,
+      "risk_score": 41,
+      "contract_expiry": "2026-07-20",
+      "lead_time_days": 44,
+      "estimated_impact_date": "2026-04-17",
+      "secondary_supplier_info": {
+        "secondary_supplier_id": "SUP-0364",
+        "secondary_supplier_country": "Japan",
+        "secondary_in_affected_zone": true
+      }
+    }
+  ],
+  "route_details": [
+    {
+      "route_id": "RTE-0009",
+      "route_name": "Shanghai to Los Angeles",
+      "current_status": "OPEN",
+      "normal_transit_days": 14,
+      "additional_transit_days": 7,
+      "cost_increase_pct": 20.0,
+      "alternate_route": "Seattle or Vancouver (+2 days)",
+      "affected_products_count": 21,
+      "affected_revenue": 133780238.31
+    },
+    {
+      "route_id": "RTE-0023",
+      "route_name": "Shenzhen to New York",
+      "current_status": "OPEN",
+      "normal_transit_days": 25,
+      "additional_transit_days": 10,
+      "cost_increase_pct": 35.0,
+      "alternate_route": "All-water via Suez or transpacific to LA then rail",
+      "affected_products_count": 3,
+      "affected_revenue": 25086706.08
+    },
+    {
+      "route_id": "RTE-0008",
+      "route_name": "Shanghai to Rotterdam",
+      "current_status": "DISRUPTED",
+      "normal_transit_days": 30,
+      "additional_transit_days": 14,
+      "cost_increase_pct": 48.0,
+      "alternate_route": "Cape of Good Hope (+14 days)",
+      "affected_products_count": 1,
+      "affected_revenue": 14691553.44
+    },
+    {
+      "route_id": "RTE-0022",
+      "route_name": "Nagoya to Long Beach",
+      "current_status": "OPEN",
+      "normal_transit_days": 13,
+      "additional_transit_days": 7,
+      "cost_increase_pct": 25.0,
+      "alternate_route": "Oakland or Vancouver",
+      "affected_products_count": 2,
+      "affected_revenue": 8928143.21
+    },
+    {
+      "route_id": "RTE-0011",
+      "route_name": "Busan to Rotterdam",
+      "current_status": "DISRUPTED",
+      "normal_transit_days": 28,
+      "additional_transit_days": 14,
+      "cost_increase_pct": 48.0,
+      "alternate_route": "Cape of Good Hope (+14 days)",
+      "affected_products_count": 1,
+      "affected_revenue": 7889128.13
+    },
+    {
+      "route_id": "RTE-0017",
+      "route_name": "Tokyo to Long Beach",
+      "current_status": "OPEN",
+      "normal_transit_days": 11,
+      "additional_transit_days": 7,
+      "cost_increase_pct": 25.0,
+      "alternate_route": "Oakland or Tacoma (+1-2 days)",
+      "affected_products_count": 1,
+      "affected_revenue": 5905549.58
+    },
+    {
+      "route_id": "RTE-0010",
+      "route_name": "Taipei to San Francisco",
+      "current_status": "OPEN",
+      "normal_transit_days": 12,
+      "additional_transit_days": 6,
+      "cost_increase_pct": 55.0,
+      "alternate_route": "South Korea or Japan transshipment",
+      "affected_products_count": 1,
+      "affected_revenue": 1293264.07
+    }
+  ]
+}
