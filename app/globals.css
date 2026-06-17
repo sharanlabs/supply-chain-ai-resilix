@@ -1,17 +1,88 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f7f7f4;
-  --foreground: #1e2421;
-  --panel: #ffffff;
-  --panel-muted: #f0f2ee;
-  --border: #d8ded7;
-  --muted: #62706a;
-  --accent: #0f766e;
-  --accent-foreground: #ffffff;
-  --warning: #b45309;
-  --critical: #b91c1c;
-  --success: #15803d;
+/* ---------------------------------------------------------------------------
+   RESILIX ActionOps — "calm command center" design language.
+
+   A serious crisis-to-action decision tool, read like a briefing document.
+   Tokens are OKLCH; neutrals are tinted toward the teal accent (low chroma)
+   rather than pure grey, and the ground/ink are warm off-white / deep ink
+   rather than #fff / #000. Severity is a perceptual ramp (low -> critical),
+   not a rainbow, and every color carries a meaning.
+
+   Tailwind v4: tokens are registered in @theme so utilities like
+   `bg-ground` / `text-ink` / `border-line` / `text-sev-critical` exist. The
+   next/font CSS variables are bound under @theme inline so `font-serif` /
+   `font-sans` resolve to the loaded faces (without `inline` the var would not
+   resolve through the theme).
+   --------------------------------------------------------------------------- */
+
+@theme {
+  /* Surfaces — warm off-white ground, slightly lifted panels, a tinted sink. */
+  --color-ground: oklch(0.982 0.004 152);
+  --color-surface: oklch(1 0 0);
+  --color-sink: oklch(0.965 0.006 152);
+  --color-line: oklch(0.906 0.008 152);
+  --color-line-strong: oklch(0.84 0.01 152);
+
+  /* Text — deep ink (not #000), a muted mid, and a faint label grey. All three
+     clear WCAG AA 4.5:1 for small text on every surface (ground/sink/surface);
+     ink-faint sits at L 0.52, the lightest value that still passes on the sink. */
+  --color-ink: oklch(0.27 0.018 168);
+  --color-ink-muted: oklch(0.48 0.014 168);
+  --color-ink-faint: oklch(0.52 0.012 168);
+
+  /* One confident accent — refined teal. */
+  --color-accent: oklch(0.52 0.072 184);
+  --color-accent-strong: oklch(0.46 0.078 184);
+  --color-accent-soft: oklch(0.95 0.022 184);
+  --color-accent-ink: oklch(0.99 0.004 184);
+
+  /* Semantic severity — a single perceptual ramp, calm -> alarm. The -edge
+     value is a touch deeper/brighter for the trailing end of a runway gradient
+     (a single hue shift, never a rainbow). */
+  --color-sev-low: oklch(0.55 0.05 200);
+  --color-sev-low-soft: oklch(0.955 0.02 200);
+  --color-sev-medium: oklch(0.62 0.1 95);
+  --color-sev-medium-soft: oklch(0.96 0.035 95);
+  --color-sev-medium-edge: oklch(0.68 0.105 88);
+  --color-sev-high: oklch(0.62 0.13 55);
+  --color-sev-high-soft: oklch(0.96 0.04 55);
+  --color-sev-high-edge: oklch(0.66 0.135 60);
+  --color-sev-critical: oklch(0.53 0.16 28);
+  --color-sev-critical-soft: oklch(0.955 0.035 28);
+  --color-sev-critical-edge: oklch(0.57 0.16 36);
+
+  /* Badge-text ink per severity. The base --color-sev-* values are tuned for
+     runway-fill gradients and icon strokes, where they sit on light surfaces at
+     large/graphic scale — but as small badge TEXT on the matching -soft fill
+     they fall below WCAG AA (low 4.19, medium 3.24, high 3.29 against -soft).
+     These dedicated ink tokens darken the same hue just enough to clear AA for
+     small text WITHOUT touching the runway colors. Measured against their -soft
+     background: low 5.37, medium 5.34, high 5.47, critical 5.56 (>=4.5 AA). */
+  --color-sev-low-ink: oklch(0.49 0.06 200);
+  --color-sev-medium-ink: oklch(0.5 0.11 95);
+  --color-sev-high-ink: oklch(0.5 0.145 52);
+  --color-sev-critical-ink: oklch(0.5 0.165 28);
+
+  /* Status semantics distinct from severity (mode/approval/validation). */
+  --color-positive: oklch(0.52 0.1 152);
+  --color-positive-soft: oklch(0.955 0.03 152);
+  --color-caution: oklch(0.6 0.12 75);
+  --color-caution-soft: oklch(0.96 0.04 75);
+  /* Caution badge text on caution-soft is 3.55 (< AA); a dedicated ink token
+     darkens the same amber for AA-compliant small badge text (5.41) while the
+     base --color-caution keeps its role on chips/icons. */
+  --color-caution-ink: oklch(0.5 0.13 72);
+  --color-danger: oklch(0.53 0.16 28);
+  --color-danger-soft: oklch(0.955 0.035 28);
+
+  --radius-card: 0.5rem;
+}
+
+@theme inline {
+  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
 }
 
 * {
@@ -20,20 +91,59 @@
 
 html {
   min-width: 320px;
-  background: var(--background);
+  background: var(--color-ground);
 }
 
 body {
+  position: relative;
   margin: 0;
-  color: var(--foreground);
+  color: var(--color-ink);
+  background: var(--color-ground);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv01", "ss01";
+  letter-spacing: -0.003em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* The "lamp on the desk" warmth — two faint radial blooms tinted toward the
+   accent. Fixed, pointer-events-none, never on a scroll container (so it never
+   triggers a continuous GPU repaint). This is the warm-command-center ground. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(247, 247, 244, 0.95)),
-    var(--background);
-  font-family:
-    Arial,
-    Helvetica,
-    sans-serif;
-  letter-spacing: 0;
+    radial-gradient(
+      120% 80% at 8% -6%,
+      oklch(0.97 0.012 168 / 0.7),
+      transparent 52%
+    ),
+    radial-gradient(
+      100% 70% at 100% 0%,
+      oklch(0.965 0.016 196 / 0.4),
+      transparent 48%
+    );
+}
+
+/* A faint tactile grain — same fixed-overlay discipline. Subtle enough to read
+   as paper, not noise; lifts the flat off-white off a "default" feel. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+/* The app shell sits above the ground washes. */
+.app-shell {
+  position: relative;
+  z-index: 1;
 }
 
 button,
@@ -43,46 +153,224 @@ select {
   font: inherit;
 }
 
+/* Every interactive element gets a visible, accent-keyed focus ring. */
 button:focus-visible,
 a:focus-visible,
+[role="tab"]:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+  border-radius: 2px;
 }
 
+/* All figures align in columns and read as data, not prose. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Briefing headline voice — the serif display face, optically sized. The
+   italic <em> is the one place the teal accent enters the headline (the figure
+   that the whole packet turns on), matching the iter-3 editorial lede. */
+.headline {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  letter-spacing: -0.012em;
+}
+
+.headline em {
+  font-style: italic;
+  color: var(--color-accent-strong);
+}
+
+/* The masthead mark — serif wordmark with the accented italic sub-word. */
+.wordmark {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+.wordmark em {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--color-accent-strong);
+}
+
+/* A panel: one hairline, a faint warm lift — no decorative drop shadow. */
 .panel {
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
 }
 
-.metric-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
+/* A scroll guard so data tables never overflow the viewport on small screens
+   (the 4-column exposure/task tables would otherwise clip at ~320px). */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
 }
 
-.stable-table {
-  table-layout: fixed;
+.table-scroll .brief-table {
+  min-width: 32rem;
+}
+
+/* Scannable evidence/exposure table — hairline rows, label header. */
+.brief-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.stable-table th,
-.stable-table td {
-  border-bottom: 1px solid var(--border);
-  padding: 10px;
+.brief-table th,
+.brief-table td {
+  border-bottom: 1px solid var(--color-line);
+  padding: 0.625rem 0.75rem;
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
 }
 
-.stable-table th {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+.brief-table thead th {
+  color: var(--color-ink-faint);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  border-bottom-color: var(--color-line-strong);
 }
 
-.stable-table td {
-  font-size: 13px;
+.brief-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.brief-table td {
+  font-size: 0.875rem;
+}
+
+/* Runway bar track — the inline sparkline-style exposure-over-time gauge. */
+.runway-track {
+  position: relative;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--color-sink);
+  overflow: hidden;
+}
+
+.runway-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  /* A calm grow-in: bars animate their width on mount (one transition, not a
+     loop). The inline `width` is set after first paint so the bar fills from 0
+     — JS that drives it is reduced-motion-guarded. */
+  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* A single-hue depth gradient per severity (deeper at the trailing edge), so a
+   filled bar reads as one calm ramp, never a flat block or a rainbow. */
+.runway-fill[data-sev="low"] {
+  background: linear-gradient(
+    90deg,
+    var(--color-sev-low-soft),
+    var(--color-sev-low)
+  );
+}
+.runway-fill[data-sev="medium"] {
+  background: linear-gradient(
+    90deg,
+    var(--color-sev-medium),
+    var(--color-sev-medium-edge)
+  );
+}
+.runway-fill[data-sev="high"] {
+  background: linear-gradient(
+    90deg,
+    var(--color-sev-high),
+    var(--color-sev-high-edge)
+  );
+}
+.runway-fill[data-sev="critical"] {
+  background: linear-gradient(
+    90deg,
+    var(--color-sev-critical),
+    var(--color-sev-critical-edge)
+  );
+}
+
+/* The inset well under a runway bar — a faint recessed track, tactile not flat. */
+.runway-track {
+  box-shadow: inset 0 1px 1px oklch(0.3 0.02 168 / 0.05);
+}
+
+/* ---------------------------------------------------------------------------
+   Entrance motion — restrained, one pass.
+
+   `.reveal` rises a panel into place on mount; the per-panel `--d` (ms) staggers
+   the sequence so the briefing assembles top-down. `.tab-enter` is the ≤200ms
+   tab-switch fade/slide, re-fired by a changing React `key`. Both are single
+   transitions — no perpetual loops anywhere.
+   --------------------------------------------------------------------------- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tab-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  opacity: 0;
+  animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--d, 0) * 1ms);
+}
+
+.tab-enter {
+  animation: tab-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Reduced-motion: zero every duration AND show any opacity:0 entrance state at
+   its final value. The duration override alone would leave .reveal content
+   invisible (opacity:0 with a 0ms animation never paints frame two), so the
+   opacity reset is mandatory, not cosmetic. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .reveal,
+  .tab-enter {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .runway-fill {
+    transition: none !important;
+  }
+
+  /* Looping loaders (Tailwind's animate-spin / -ping / -bounce / -pulse) are
+     infinite keyframe animations. The universal 0.01ms duration override above
+     would not stop them — it would turn a spinner into a near-instant flicker
+     looping forever. For reduced motion they must HALT at a static frame, so
+     null the animation outright rather than just shrinking its duration. */
+  .animate-spin,
+  .animate-ping,
+  .animate-pulse,
+  .animate-bounce {
+    animation: none !important;
+  }
 }

@@ -1,0 +1,970 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RESILIX ActionOps — Action Packet (Operations console)</title>
+
+<!--
+  Iteration 2 — "Calm command center", Operations-console lens.
+
+  This is a STANDALONE design exploration of the RESILIX ActionOps "Action Packet"
+  screen. It faithfully adopts the project's locked design language from
+  app/globals.css (the same OKLCH token set, the Newsreader serif headline +
+  Geist grotesk pairing, the severity ramp, and the .panel / .brief-table /
+  .runway-track pattern classes) — lifted out of Tailwind v4 @theme into a raw
+  :root block and hand-written layout CSS, since this file ships no Tailwind.
+
+  Lens for this iteration: a calm-but-DENSE operations console — a confident
+  grid, tabular precision, more data on screen (the exposure table + runway are
+  prominent), still unhurried. Not a marketing page; a serious decision tool.
+-->
+
+<!-- Real fonts: the exact faces the app loads via next/font (Newsreader + Geist + Geist Mono). -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet" />
+
+<style>
+/* ───────────────────────────────────────────────────────────────────────────
+   TOKENS — transplanted verbatim from app/globals.css (Tailwind v4 @theme →
+   raw custom properties). Neutrals are tinted toward the teal accent (low
+   chroma), ground/ink are warm off-white / deep ink — never #fff / #000.
+   Severity is one perceptual ramp (calm → alarm), every colour carries meaning.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --color-ground:       oklch(0.982 0.004 152);
+  --color-surface:      oklch(1 0 0);
+  --color-sink:         oklch(0.965 0.006 152);
+  --color-line:         oklch(0.906 0.008 152);
+  --color-line-strong:  oklch(0.84 0.01 152);
+
+  /* Text */
+  --color-ink:          oklch(0.27 0.018 168);
+  --color-ink-muted:    oklch(0.48 0.014 168);
+  --color-ink-faint:    oklch(0.52 0.012 168);
+
+  /* One confident accent — refined teal */
+  --color-accent:        oklch(0.52 0.072 184);
+  --color-accent-strong: oklch(0.46 0.078 184);
+  --color-accent-soft:   oklch(0.95 0.022 184);
+  --color-accent-ink:    oklch(0.99 0.004 184);
+
+  /* Semantic severity — one ramp, calm → alarm */
+  --color-sev-low:           oklch(0.55 0.05 200);
+  --color-sev-low-soft:      oklch(0.955 0.02 200);
+  --color-sev-medium:        oklch(0.62 0.1 95);
+  --color-sev-medium-soft:   oklch(0.96 0.035 95);
+  --color-sev-high:          oklch(0.62 0.13 55);
+  --color-sev-high-soft:     oklch(0.96 0.04 55);
+  --color-sev-critical:      oklch(0.53 0.16 28);
+  --color-sev-critical-soft: oklch(0.955 0.035 28);
+
+  /* Status semantics distinct from severity */
+  --color-positive:       oklch(0.52 0.1 152);
+  --color-positive-soft:  oklch(0.955 0.03 152);
+  --color-caution:        oklch(0.6 0.12 75);
+  --color-caution-soft:   oklch(0.96 0.04 75);
+  --color-danger:         oklch(0.53 0.16 28);
+  --color-danger-soft:    oklch(0.955 0.035 28);
+
+  --radius-card: 0.5rem;
+
+  /* Fonts — bound to the Google-loaded families (mirrors the app's @theme vars) */
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-sans:  "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:  "Geist Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* A baseline rhythm so spacing reads on a grid */
+  --gap: 1rem;
+}
+
+* { box-sizing: border-box; }
+
+html { min-width: 320px; background: var(--color-ground); }
+
+body {
+  margin: 0;
+  color: var(--color-ink);
+  background:
+    /* a faint warm vignette — depth without a decorative gradient */
+    radial-gradient(120% 80% at 50% -10%, oklch(1 0 0 / 0.6), transparent 60%),
+    var(--color-ground);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv01", "ss01";
+  letter-spacing: -0.003em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Figures align in columns and read as data, not prose */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* Briefing headline voice — the serif display face, optically sized */
+.headline {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  letter-spacing: -0.012em;
+  color: var(--color-ink);
+}
+
+/* A panel: one hairline, a faint warm lift — no decorative drop shadow */
+.panel {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+}
+
+/* Every interactive element gets a visible, accent-keyed focus ring */
+button:focus-visible,
+a:focus-visible,
+[role="tab"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+button { font: inherit; cursor: pointer; }
+
+/* ── Scannable evidence/exposure table — hairline rows, label header ──────── */
+.table-scroll { width: 100%; overflow-x: auto; }
+.table-scroll .brief-table { min-width: 40rem; }
+
+.brief-table { width: 100%; border-collapse: collapse; }
+
+.brief-table th,
+.brief-table td {
+  border-bottom: 1px solid var(--color-line);
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.brief-table thead th {
+  color: var(--color-ink-faint);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom-color: var(--color-line-strong);
+}
+
+.brief-table tbody tr:last-child td { border-bottom: none; }
+.brief-table td { font-size: 0.875rem; }
+
+/* a quiet zebra to aid scanning across a dense row count */
+.brief-table tbody tr:nth-child(even) td { background: oklch(0.98 0.004 152); }
+.brief-table tbody tr { transition: background 0.18s ease; }
+.brief-table tbody tr:hover td { background: var(--color-accent-soft); }
+
+/* Runway bar track — the inline sparkline-style exposure-over-time gauge */
+.runway-track {
+  position: relative;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--color-sink);
+  overflow: hidden;
+}
+.runway-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: 999px;
+  transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Layout chrome ───────────────────────────────────────────────────────── */
+.shell { max-width: 1340px; margin: 0 auto; padding: 0 1.5rem 5rem; }
+
+/* Top utility bar */
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  background: oklch(0.982 0.004 152 / 0.86);
+  backdrop-filter: saturate(1.2) blur(8px);
+  border-bottom: 1px solid var(--color-line);
+}
+.topbar-inner {
+  max-width: 1340px; margin: 0 auto;
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.85rem 1.5rem;
+}
+.brand { display: flex; align-items: baseline; gap: 0.6rem; }
+.brand-mark {
+  font-family: var(--font-mono);
+  font-weight: 600; font-size: 0.95rem;
+  letter-spacing: 0.16em; color: var(--color-ink);
+}
+.brand-sub {
+  font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--color-ink-faint);
+}
+.topbar-spacer { flex: 1; }
+
+/* Signal provenance badge — honest, deterministic */
+.provenance {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: 0.72rem; color: var(--color-ink-muted);
+  white-space: nowrap;
+}
+.dot { width: 0.45rem; height: 0.45rem; border-radius: 999px; flex: none; }
+.dot-recorded { background: var(--color-caution); }
+.run-clock {
+  font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-ink-faint);
+  letter-spacing: 0.02em; white-space: nowrap;
+}
+
+/* Tabs (the 4-tab shell) */
+.tabs {
+  display: flex; gap: 0.25rem;
+  border-bottom: 1px solid var(--color-line);
+  margin: 0;
+  overflow-x: auto;
+}
+.tab {
+  appearance: none; border: 0; background: transparent;
+  padding: 0.85rem 0.25rem; margin-right: 1.5rem;
+  font-size: 0.86rem; font-weight: 500; color: var(--color-ink-faint);
+  position: relative; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  transition: color 0.18s ease;
+}
+.tab:hover { color: var(--color-ink-muted); }
+.tab[aria-selected="true"] { color: var(--color-ink); }
+.tab[aria-selected="true"]::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+  background: var(--color-accent);
+}
+.tab-count {
+  font-family: var(--font-mono); font-size: 0.68rem;
+  color: var(--color-ink-faint);
+  background: var(--color-sink); border: 1px solid var(--color-line);
+  border-radius: 999px; padding: 0.05rem 0.4rem;
+}
+.tab[aria-selected="true"] .tab-count {
+  color: var(--color-accent-strong); border-color: var(--color-accent-soft);
+  background: var(--color-accent-soft);
+}
+
+/* Console grid — the confident two-column command layout */
+.console {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+  margin-top: 1.25rem;
+}
+.col { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+
+/* Section header within the console */
+.sec-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 1rem; margin-bottom: 0.65rem;
+}
+.sec-kicker {
+  font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--color-ink-faint); font-weight: 600;
+}
+.sec-meta { font-size: 0.72rem; color: var(--color-ink-faint); }
+
+/* Severity chip — keyed off the ramp */
+.sev {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.22rem 0.55rem; border-radius: 999px;
+  font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.sev-critical { color: oklch(0.42 0.16 28); background: var(--color-sev-critical-soft);
+  border: 1px solid oklch(0.82 0.09 28); }
+.sev-high { color: oklch(0.45 0.13 55); background: var(--color-sev-high-soft);
+  border: 1px solid oklch(0.85 0.08 55); }
+.sev-medium { color: oklch(0.45 0.1 95); background: var(--color-sev-medium-soft);
+  border: 1px solid oklch(0.86 0.07 95); }
+.sev-dot { width: 0.5rem; height: 0.5rem; border-radius: 999px; }
+
+/* ── Threat card ─────────────────────────────────────────────────────────── */
+.threat { padding: 1.4rem 1.5rem 1.25rem; position: relative; overflow: hidden; }
+.threat::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--color-sev-high);
+}
+.threat-top { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+  margin-bottom: 0.85rem; }
+.threat-route {
+  font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-ink-muted);
+  letter-spacing: 0.02em;
+}
+.threat-headline {
+  font-size: clamp(1.55rem, 3.2vw, 2.05rem); line-height: 1.12;
+  font-weight: 500; margin: 0 0 0.55rem;
+}
+.threat-summary {
+  color: var(--color-ink-muted); font-size: 0.92rem; max-width: 62ch; margin: 0;
+}
+/* Threat parameter strip — closure %, duration, surcharge (the console density) */
+.params {
+  display: grid; grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 0; margin: 1.1rem 0 0; border-top: 1px solid var(--color-line);
+}
+.param { padding: 0.85rem 0; border-right: 1px solid var(--color-line); padding-right: 1rem; }
+.param:last-child { border-right: 0; }
+.param + .param { padding-left: 1rem; }
+.param-val {
+  font-family: var(--font-mono); font-weight: 600; font-size: 1.35rem;
+  color: var(--color-ink); line-height: 1;
+}
+.param-val .unit { font-size: 0.8rem; color: var(--color-ink-faint); font-weight: 500; }
+.param-label { font-size: 0.7rem; color: var(--color-ink-faint); margin-top: 0.35rem;
+  letter-spacing: 0.02em; }
+
+/* Evidence line — deterministic, with an SVG check (never an emoji) */
+.evidence {
+  display: flex; align-items: center; gap: 0.6rem;
+  margin-top: 1.1rem; padding: 0.7rem 0.85rem;
+  background: var(--color-positive-soft);
+  border: 1px solid oklch(0.88 0.04 152);
+  border-radius: 0.4rem;
+}
+.evidence svg { flex: none; }
+.evidence-text { font-size: 0.82rem; color: oklch(0.38 0.06 152); }
+.evidence-text strong { color: oklch(0.34 0.08 152); font-weight: 600; }
+.evidence-link {
+  margin-left: auto; font-size: 0.74rem; color: var(--color-accent-strong);
+  text-decoration: none; white-space: nowrap; border-bottom: 1px solid transparent;
+}
+.evidence-link:hover { border-bottom-color: var(--color-accent); }
+
+/* ── Exposure table region ───────────────────────────────────────────────── */
+.panel-pad { padding: 1.25rem 1.5rem 1.35rem; }
+.exposure-total {
+  display: flex; align-items: baseline; gap: 0.5rem;
+  font-family: var(--font-mono);
+}
+.exposure-total .big { font-size: 1.05rem; font-weight: 600; color: var(--color-sev-high); }
+
+.supplier-name { font-weight: 500; color: var(--color-ink); }
+.supplier-meta { font-size: 0.74rem; color: var(--color-ink-faint); margin-top: 0.1rem; }
+.atrisk { font-family: var(--font-mono); font-weight: 600; }
+
+/* Runway cell: a label + the bar; shorter runway = more alarmed colour */
+.runway-cell { min-width: 9rem; }
+.runway-meta {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+.runway-days { font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; }
+.runway-days .unit { color: var(--color-ink-faint); font-weight: 500; font-size: 0.72rem; }
+
+.exp-foot {
+  display: flex; align-items: center; gap: 0.5rem; margin-top: 0.9rem;
+  font-size: 0.74rem; color: var(--color-ink-faint);
+}
+.tail-note {
+  margin-left: auto; font-size: 0.72rem; color: var(--color-ink-faint);
+  font-style: italic;
+}
+
+/* ── Simulation (runway over horizons) ───────────────────────────────────── */
+.sim-grid {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--color-line); border-radius: 0.45rem; overflow: hidden;
+}
+.sim-cell { padding: 0.85rem 0.9rem; border-right: 1px solid var(--color-line); }
+.sim-cell:last-child { border-right: 0; }
+.sim-h { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-ink-faint);
+  letter-spacing: 0.02em; }
+.sim-v { font-family: var(--font-mono); font-weight: 600; font-size: 1.05rem;
+  margin-top: 0.3rem; }
+.sim-spark { display: flex; align-items: flex-end; gap: 3px; height: 1.5rem; margin-top: 0.6rem; }
+.sim-bar { flex: 1; background: var(--color-sev-high); border-radius: 2px 2px 0 0;
+  height: 0; transition: height 0.7s cubic-bezier(0.16,1,0.3,1); }
+.sim-note { font-size: 0.74rem; color: var(--color-ink-faint); margin-top: 0.75rem; }
+
+/* ── Action Packet right column ──────────────────────────────────────────── */
+.packet-card { overflow: hidden; }
+
+/* Drafted supplier email */
+.draft {
+  border: 1px solid var(--color-line); border-radius: 0.45rem;
+  background: var(--color-sink); overflow: hidden;
+}
+.draft-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--color-line);
+  background: var(--color-surface);
+}
+.draft-to { font-size: 0.78rem; color: var(--color-ink-muted); }
+.draft-to b { color: var(--color-ink); font-weight: 500; }
+.draft-tag {
+  font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--color-accent-strong); font-weight: 600;
+  background: var(--color-accent-soft); border-radius: 999px; padding: 0.15rem 0.45rem;
+}
+.draft-body { padding: 0.85rem; font-size: 0.82rem; color: var(--color-ink-muted);
+  line-height: 1.62; }
+.draft-subject { font-weight: 600; color: var(--color-ink); margin-bottom: 0.5rem;
+  font-size: 0.84rem; }
+.draft-body .num { font-family: var(--font-mono); color: var(--color-ink);
+  background: oklch(0.95 0.022 184); border-radius: 3px; padding: 0 0.2rem; }
+
+/* Task list */
+.tasklist { display: flex; flex-direction: column; }
+.task {
+  display: grid; grid-template-columns: 1.25rem 1fr auto; gap: 0.65rem;
+  align-items: start; padding: 0.6rem 0;
+  border-bottom: 1px solid var(--color-line);
+}
+.task:last-child { border-bottom: 0; }
+.task-check {
+  width: 1.1rem; height: 1.1rem; border-radius: 4px; margin-top: 0.05rem;
+  border: 1.5px solid var(--color-line-strong); background: var(--color-surface);
+  display: grid; place-items: center; flex: none;
+}
+.task-check.done { background: var(--color-positive); border-color: var(--color-positive); }
+.task-title { font-size: 0.83rem; color: var(--color-ink); }
+.task-owner { font-size: 0.72rem; color: var(--color-ink-faint); margin-top: 0.15rem; }
+.task-status {
+  font-size: 0.66rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 0.18rem 0.45rem; border-radius: 999px; white-space: nowrap;
+}
+.st-ready { color: var(--color-accent-strong); background: var(--color-accent-soft); }
+.st-progress { color: oklch(0.45 0.1 95); background: var(--color-sev-medium-soft); }
+.st-done { color: oklch(0.4 0.08 152); background: var(--color-positive-soft); }
+
+/* Exec one-pager preview */
+.onepager {
+  border: 1px solid var(--color-line); border-radius: 0.45rem; padding: 0.95rem 1rem;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 1.45rem,
+      oklch(0.93 0.006 152) 1.45rem, oklch(0.93 0.006 152) calc(1.45rem + 1px)),
+    var(--color-surface);
+}
+.onepager-title { font-family: var(--font-serif); font-size: 1rem; font-weight: 500;
+  margin: 0 0 0.45rem; }
+.onepager-line { font-size: 0.8rem; color: var(--color-ink-muted); line-height: 1.45rem; }
+.onepager-line b { color: var(--color-ink); font-weight: 500; }
+
+.subcard + .subcard { margin-top: 1.1rem; }
+.subcard-label {
+  font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--color-ink-faint); font-weight: 600; margin-bottom: 0.55rem;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.subcard-label .ix {
+  font-family: var(--font-mono); color: var(--color-accent-strong);
+  font-size: 0.66rem; letter-spacing: 0;
+}
+
+/* ── The approve action — prominent and trustworthy ──────────────────────── */
+.approve-card {
+  border: 1px solid var(--color-line-strong);
+  background:
+    linear-gradient(180deg, var(--color-surface), oklch(0.985 0.006 184));
+  border-radius: var(--radius-card);
+  padding: 1.15rem 1.25rem;
+  position: sticky; top: 5.2rem;
+}
+.approve-status {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--color-caution);
+}
+.approve-status .dot { background: var(--color-caution); }
+.gate-line {
+  display: flex; align-items: center; gap: 0.5rem; margin-top: 0.85rem;
+  font-size: 0.78rem; color: var(--color-ink-muted);
+}
+.gate-line svg { flex: none; color: var(--color-positive); }
+.btn-approve {
+  width: 100%; margin-top: 1.1rem;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.55rem;
+  padding: 0.85rem 1rem;
+  background: var(--color-accent-strong); color: var(--color-accent-ink);
+  border: 0; border-radius: 0.45rem;
+  font-size: 0.92rem; font-weight: 600; letter-spacing: 0.01em;
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.18), 0 1px 2px oklch(0.46 0.078 184 / 0.25);
+  transition: transform 0.12s cubic-bezier(0.16,1,0.3,1), background 0.18s ease, box-shadow 0.18s ease;
+}
+.btn-approve:hover { background: var(--color-accent);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.22), 0 4px 14px oklch(0.46 0.078 184 / 0.28); }
+.btn-approve:active { transform: translateY(1px); }
+.btn-secondary {
+  width: 100%; margin-top: 0.6rem; padding: 0.62rem 1rem;
+  background: var(--color-surface); color: var(--color-ink-muted);
+  border: 1px solid var(--color-line-strong); border-radius: 0.45rem;
+  font-size: 0.82rem; font-weight: 500;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.btn-secondary:hover { background: var(--color-sink); color: var(--color-ink); }
+.approve-foot {
+  margin-top: 0.95rem; padding-top: 0.85rem; border-top: 1px solid var(--color-line);
+  font-size: 0.72rem; color: var(--color-ink-faint); line-height: 1.5;
+}
+.approve-foot b { color: var(--color-ink-muted); font-weight: 500; }
+.audit-row { display: flex; justify-content: space-between; gap: 1rem; margin-top: 0.3rem; }
+.audit-row .v { font-family: var(--font-mono); color: var(--color-ink-muted); }
+
+/* ── Entry motion — short enough to settle inside the 1200ms screenshot ──── */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.rise { opacity: 0; animation: rise 0.55s cubic-bezier(0.16,1,0.3,1) forwards; }
+.rise[data-d="1"] { animation-delay: 0.05s; }
+.rise[data-d="2"] { animation-delay: 0.13s; }
+.rise[data-d="3"] { animation-delay: 0.21s; }
+.rise[data-d="4"] { animation-delay: 0.29s; }
+.rise[data-d="5"] { animation-delay: 0.37s; }
+
+/* ── Responsive: dense console collapses to a single readable column ─────── */
+@media (max-width: 940px) {
+  .console { grid-template-columns: 1fr; }
+  .approve-card { position: static; }
+}
+@media (max-width: 520px) {
+  .shell { padding: 0 1rem 4rem; }
+  .topbar-inner { padding: 0.7rem 1rem; flex-wrap: wrap; }
+  .params { grid-template-columns: 1fr; }
+  .param { border-right: 0; border-bottom: 1px solid var(--color-line); padding: 0.7rem 0; }
+  .param:last-child { border-bottom: 0; }
+  .param + .param { padding-left: 0; }
+  .sim-grid { grid-template-columns: repeat(2, 1fr); }
+  .sim-cell:nth-child(2) { border-right: 0; }
+  .sim-cell:nth-child(-n+2) { border-bottom: 1px solid var(--color-line); }
+}
+
+/* Reduced motion: SNAP to final state — no partial reveals, bars at full width */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+  }
+  .rise { opacity: 1 !important; transform: none !important; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ── Utility bar: brand, honest provenance, run clock ──────────────────── -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">RESILIX</span>
+      <span class="brand-sub">ActionOps</span>
+    </div>
+    <div class="topbar-spacer"></div>
+    <span class="run-clock tnum">Scan&nbsp;→&nbsp;packet&nbsp;04:12</span>
+    <span class="provenance" title="Signals served from dated recorded fixtures — not a live fetch.">
+      <span class="dot dot-recorded"></span>
+      Recorded signals: 2026-06-15
+    </span>
+  </div>
+</header>
+
+<main class="shell">
+
+  <!-- ── 4-tab shell ──────────────────────────────────────────────────── -->
+  <div role="tablist" aria-label="Decision workspace" class="tabs">
+    <button role="tab" id="tab-live" aria-selected="false" tabindex="-1" class="tab">
+      Live Events <span class="tab-count tnum">3</span>
+    </button>
+    <button role="tab" id="tab-exposure" aria-selected="false" tabindex="-1" class="tab">
+      Exposure <span class="tab-count tnum">5</span>
+    </button>
+    <button role="tab" id="tab-sim" aria-selected="false" tabindex="-1" class="tab">
+      Simulation <span class="tab-count tnum">4</span>
+    </button>
+    <button role="tab" id="tab-packet" aria-selected="true" tabindex="0" class="tab">
+      Action Packet
+    </button>
+  </div>
+
+  <section role="tabpanel" aria-labelledby="tab-packet" class="console">
+
+    <!-- ── LEFT: the evidence column (threat → exposure → simulation) ──── -->
+    <div class="col">
+
+      <!-- Threat card -->
+      <article class="panel threat rise" data-d="1">
+        <div class="threat-top">
+          <span class="sev sev-high">
+            <span class="sev-dot" style="background: var(--color-sev-high)"></span>
+            High severity
+          </span>
+          <span class="threat-route">CHOKEPOINT · Strait of Hormuz · Sea lane</span>
+        </div>
+
+        <h1 class="headline threat-headline">
+          Strait of Hormuz partial closure threatens Gulf energy &amp; chemical inbound
+        </h1>
+        <p class="threat-summary">
+          A 40% capacity reduction at the strait is signalled over a projected 14-day window,
+          with surcharge pressure on diverted tonnage. Five mapped suppliers route through the
+          lane; two carry sub-two-week inventory runway.
+        </p>
+
+        <!-- Console-density parameter strip -->
+        <div class="params">
+          <div class="param">
+            <div class="param-val tnum">40<span class="unit">%</span></div>
+            <div class="param-label">Capacity closure</div>
+          </div>
+          <div class="param">
+            <div class="param-val tnum">14<span class="unit">days</span></div>
+            <div class="param-label">Projected duration</div>
+          </div>
+          <div class="param">
+            <div class="param-val tnum">+18<span class="unit">% surcharge</span></div>
+            <div class="param-label">Diverted-route cost</div>
+          </div>
+        </div>
+
+        <!-- Deterministic evidence line with an SVG check (never an emoji) -->
+        <div class="evidence">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" fill="oklch(0.52 0.1 152)"/>
+            <path d="M7.5 12.4l3 3 6-6.4" stroke="oklch(0.99 0.01 152)" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="evidence-text">
+            <strong>3 sources</strong>, all &lt;48h, <strong>2 independent outlets</strong>
+            &middot; geo-plausible &middot; verified deterministically
+          </span>
+          <a href="#" class="evidence-link" aria-label="View evidence sources">View sources</a>
+        </div>
+      </article>
+
+      <!-- Exposure table -->
+      <article class="panel panel-pad rise" data-d="2">
+        <div class="sec-head">
+          <div>
+            <div class="sec-kicker">Mapped exposure</div>
+          </div>
+          <div class="exposure-total tnum">
+            <span class="sec-meta" style="font-family: var(--font-sans)">At risk total</span>
+            <span class="big">$3.74M</span>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table class="brief-table" aria-label="Exposed suppliers by at-risk value and inventory runway">
+            <thead>
+              <tr>
+                <th scope="col">Supplier</th>
+                <th scope="col" style="text-align:right">At-risk value</th>
+                <th scope="col">Sector · Country</th>
+                <th scope="col">Inventory runway</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="supplier-name">Gulf Energy Co</div>
+                  <div class="supplier-meta">SUP-0417 · Tier-1 inbound</div>
+                </td>
+                <td style="text-align:right"><span class="atrisk">$2.10M</span></td>
+                <td>Energy · AE</td>
+                <td>
+                  <div class="runway-cell">
+                    <div class="runway-meta">
+                      <span class="runway-days tnum">7<span class="unit"> days</span></span>
+                    </div>
+                    <div class="runway-track">
+                      <div class="runway-fill" data-w="20" style="background: var(--color-sev-critical)"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="supplier-name">Chemix Ltd</div>
+                  <div class="supplier-meta">SUP-0288 · Tier-1 inbound</div>
+                </td>
+                <td style="text-align:right"><span class="atrisk">$0.90M</span></td>
+                <td>Chemicals · AE</td>
+                <td>
+                  <div class="runway-cell">
+                    <div class="runway-meta">
+                      <span class="runway-days tnum">14<span class="unit"> days</span></span>
+                    </div>
+                    <div class="runway-track">
+                      <div class="runway-fill" data-w="40" style="background: var(--color-sev-high)"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="supplier-name">Marib Petrochem</div>
+                  <div class="supplier-meta">SUP-0531 · Tier-2 feedstock</div>
+                </td>
+                <td style="text-align:right"><span class="atrisk">$0.41M</span></td>
+                <td>Chemicals · OM</td>
+                <td>
+                  <div class="runway-cell">
+                    <div class="runway-meta">
+                      <span class="runway-days tnum">11<span class="unit"> days</span></span>
+                    </div>
+                    <div class="runway-track">
+                      <div class="runway-fill" data-w="31" style="background: var(--color-sev-high)"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="supplier-name">Khalij Forwarding</div>
+                  <div class="supplier-meta">SUP-0163 · Lane carrier</div>
+                </td>
+                <td style="text-align:right"><span class="atrisk">$0.23M</span></td>
+                <td>Logistics · BH</td>
+                <td>
+                  <div class="runway-cell">
+                    <div class="runway-meta">
+                      <span class="runway-days tnum">23<span class="unit"> days</span></span>
+                    </div>
+                    <div class="runway-track">
+                      <div class="runway-fill" data-w="66" style="background: var(--color-sev-medium)"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div class="supplier-name">Qeshm Polymers</div>
+                  <div class="supplier-meta">SUP-0609 · Tier-2 resin</div>
+                </td>
+                <td style="text-align:right"><span class="atrisk">$0.10M</span></td>
+                <td>Chemicals · IR</td>
+                <td>
+                  <div class="runway-cell">
+                    <div class="runway-meta">
+                      <span class="runway-days tnum">31<span class="unit"> days</span></span>
+                    </div>
+                    <div class="runway-track">
+                      <div class="runway-fill" data-w="89" style="background: var(--color-sev-low)"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="exp-foot">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 8v5M12 16.5v.01" stroke="var(--color-ink-faint)" stroke-width="2"
+              stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="9" stroke="var(--color-ink-faint)" stroke-width="1.5"/>
+          </svg>
+          Runway from seeded Tier-2 inventory. Shorter runway shades toward critical.
+          <span class="tail-note">+12 tail suppliers below $0.10M — template draft</span>
+        </div>
+      </article>
+
+      <!-- Simulation -->
+      <article class="panel panel-pad rise" data-d="3">
+        <div class="sec-head">
+          <div class="sec-kicker">Revenue-at-risk runway</div>
+          <span class="sec-meta">Closure held at 40% · 4 horizons</span>
+        </div>
+
+        <div class="sim-grid">
+          <div class="sim-cell">
+            <div class="sim-h">3-day</div>
+            <div class="sim-v">$0.48M</div>
+            <div class="sim-spark"><div class="sim-bar" data-h="14"></div></div>
+          </div>
+          <div class="sim-cell">
+            <div class="sim-h">7-day</div>
+            <div class="sim-v">$1.62M</div>
+            <div class="sim-spark"><div class="sim-bar" data-h="44"></div></div>
+          </div>
+          <div class="sim-cell">
+            <div class="sim-h">14-day</div>
+            <div class="sim-v" style="color: var(--color-sev-high)">$3.74M</div>
+            <div class="sim-spark"><div class="sim-bar" data-h="100"></div></div>
+          </div>
+          <div class="sim-cell">
+            <div class="sim-h">30-day</div>
+            <div class="sim-v">$5.10M</div>
+            <div class="sim-spark"><div class="sim-bar" data-h="100"
+              style="background: var(--color-sev-critical)"></div></div>
+          </div>
+        </div>
+        <p class="sim-note">
+          Gulf Energy runs out first at day 7; the 14-day figure ties to the mapped
+          exposure total. Beyond 14 days, surcharge compounding drives the 30-day curve.
+        </p>
+      </article>
+
+    </div>
+
+    <!-- ── RIGHT: the Action Packet column (drafts → tasks → one-pager → approve) ── -->
+    <div class="col">
+
+      <!-- Approve card — prominent, sticky, trustworthy -->
+      <article class="approve-card rise" data-d="2">
+        <span class="approve-status">
+          <span class="dot"></span> Pending review
+        </span>
+        <div class="gate-line">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3l7 3v5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6l7-3z"
+              stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.6"
+              stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Gatekeeper PASS — every figure traces to a cited claim.
+        </div>
+        <button class="btn-approve" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Approve action packet
+        </button>
+        <button class="btn-secondary" type="button">Request changes</button>
+        <div class="approve-foot">
+          Nothing sends on approval — drafts unlock for export and routing.
+          <div class="audit-row"><span>Reviewer</span><span class="v">d.okonkwo@</span></div>
+          <div class="audit-row"><span>Prepared</span><span class="v tnum">2026-06-15 09:41</span></div>
+          <div class="audit-row"><span>Packet</span><span class="v">v2 · PKT-7C4A</span></div>
+        </div>
+      </article>
+
+      <!-- Action Packet contents -->
+      <article class="panel packet-card panel-pad rise" data-d="3">
+        <div class="sec-head" style="margin-bottom: 1rem">
+          <div class="sec-kicker">Action packet</div>
+          <span class="sec-meta">3 deliverables</span>
+        </div>
+
+        <!-- Drafted supplier email -->
+        <div class="subcard">
+          <div class="subcard-label"><span class="ix">01</span> Supplier email — draft</div>
+          <div class="draft">
+            <div class="draft-head">
+              <span class="draft-to">To <b>Gulf Energy Co</b> · procurement</span>
+              <span class="draft-tag">Draft</span>
+            </div>
+            <div class="draft-body">
+              <div class="draft-subject">Hormuz lane contingency — confirming alternate routing for SUP-0417</div>
+              We are tracking a <span class="num">40%</span> capacity closure on the Strait of
+              Hormuz over an estimated <span class="num">14-day</span> window. Our current runway on
+              your inbound is <span class="num">7 days</span>. Please confirm earliest alternate-lane
+              availability and any <span class="num">+18%</span> diverted-route surcharge before we
+              release the next call-off.
+            </div>
+          </div>
+        </div>
+
+        <!-- Task list -->
+        <div class="subcard">
+          <div class="subcard-label"><span class="ix">02</span> Task list</div>
+          <div class="tasklist">
+            <div class="task">
+              <span class="task-check" aria-hidden="true"></span>
+              <div>
+                <div class="task-title">Confirm alternate lane with Gulf Energy Co</div>
+                <div class="task-owner">D. Okonkwo · Procurement</div>
+              </div>
+              <span class="task-status st-ready">Ready</span>
+            </div>
+            <div class="task">
+              <span class="task-check" aria-hidden="true"></span>
+              <div>
+                <div class="task-title">Pull forward Chemix call-off by 5 days</div>
+                <div class="task-owner">R. Haddad · Planning</div>
+              </div>
+              <span class="task-status st-progress">In progress</span>
+            </div>
+            <div class="task">
+              <span class="task-check done" aria-hidden="true">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                  <path d="M5 12.5l4.2 4.2L19 7" stroke="oklch(0.99 0.01 152)"
+                    stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <div>
+                <div class="task-title">Quote air-freight bridge for 2-week gap</div>
+                <div class="task-owner">M. Sørensen · Logistics</div>
+              </div>
+              <span class="task-status st-done">Done</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Exec one-pager -->
+        <div class="subcard">
+          <div class="subcard-label"><span class="ix">03</span> Executive one-pager</div>
+          <div class="onepager">
+            <p class="onepager-title">Hormuz closure — decision brief</p>
+            <p class="onepager-line">
+              <b>$3.74M</b> revenue at risk over 14 days across <b>5 suppliers</b>; Gulf Energy
+              (7-day runway) is the binding constraint. Recommended: approve alternate-lane
+              outreach and the <b>$0.31M</b> air-freight bridge, holding the 30-day exposure
+              under <b>$5.1M</b>. Severity <b>High</b>, evidence verified.
+            </p>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+</main>
+
+<script>
+  // Bar-fill + spark micro-animation. Kept short (≤700ms) so the screenshot
+  // harness (waits 1200ms) captures the settled frame, never a partial fill.
+  // Honors prefers-reduced-motion by snapping straight to the final value.
+  (function () {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const apply = () => {
+      document.querySelectorAll(".runway-fill").forEach((el) => {
+        el.style.width = el.dataset.w + "%";
+      });
+      document.querySelectorAll(".sim-bar").forEach((el) => {
+        el.style.height = el.dataset.h + "%";
+      });
+    };
+    if (reduce) { apply(); return; }
+    // one frame after paint so the transition runs from 0 → target
+    requestAnimationFrame(() => requestAnimationFrame(apply));
+
+    // 4-tab shell: roving-tabindex keyboard nav (Left/Right/Home/End), single
+    // active panel — the Action Packet tab stays selected for this mockup.
+    const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+    const select = (tab) => {
+      tabs.forEach((t) => {
+        const on = t === tab;
+        t.setAttribute("aria-selected", String(on));
+        t.tabIndex = on ? 0 : -1;
+      });
+      tab.focus();
+    };
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => select(tab));
+      tab.addEventListener("keydown", (e) => {
+        const i = tabs.indexOf(tab);
+        let n = null;
+        if (e.key === "ArrowRight") n = (i + 1) % tabs.length;
+        else if (e.key === "ArrowLeft") n = (i - 1 + tabs.length) % tabs.length;
+        else if (e.key === "Home") n = 0;
+        else if (e.key === "End") n = tabs.length - 1;
+        if (n !== null) { e.preventDefault(); select(tabs[n]); }
+      });
+    });
+  })();
+</script>
+</body>
+</html>

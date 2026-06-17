@@ -1,0 +1,1336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RESILIX ActionOps — Action Packet</title>
+
+<!-- Type: refined serif display (Fraunces) + clean grotesk body (Geist via CDN) + mono for figures -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-mono/style.css" />
+
+<style>
+/* ============================================================
+   RESILIX ActionOps — Action Packet
+   Lens: WARM COMMAND CENTER (2026 warmth / tactile counter-trend)
+   Single self-contained mockup. OKLCH color, baseline-grid spacing.
+   ============================================================ */
+
+:root {
+  /* --- Warm ground & ink (NOT pure #fff / #000) --- */
+  --paper:        oklch(0.972 0.008 78);    /* warm off-white ground */
+  --paper-raised: oklch(0.988 0.006 80);    /* lifted surfaces */
+  --paper-sunk:   oklch(0.955 0.010 76);    /* recessed wells */
+  --ink:          oklch(0.255 0.018 52);    /* deep warm ink */
+  --ink-soft:     oklch(0.430 0.016 55);    /* secondary text */
+  --ink-faint:    oklch(0.582 0.014 58);    /* tertiary / labels */
+  --line:         oklch(0.882 0.012 72);    /* hairline borders */
+  --line-strong:  oklch(0.820 0.014 70);
+
+  /* --- One confident accent: refined teal --- */
+  --teal:         oklch(0.520 0.072 196);
+  --teal-deep:    oklch(0.430 0.068 198);
+  --teal-tint:    oklch(0.940 0.022 192);
+  --teal-ink:     oklch(0.360 0.060 200);
+
+  /* --- Semantic severity (warm-leaning, calm not alarmist) --- */
+  --sev-low:      oklch(0.560 0.060 168);   /* sage */
+  --sev-low-bg:   oklch(0.945 0.028 162);
+  --sev-med:      oklch(0.640 0.090 78);    /* amber */
+  --sev-med-bg:   oklch(0.948 0.040 82);
+  --sev-high:     oklch(0.585 0.130 45);    /* burnt orange */
+  --sev-high-bg:  oklch(0.945 0.045 56);
+  --sev-crit:     oklch(0.530 0.150 28);    /* terracotta-red */
+  --sev-crit-bg:  oklch(0.940 0.045 32);
+
+  /* --- Rhythm: 4px baseline grid --- */
+  --u: 4px;
+  --maxw: 1180px;
+  --radius: 7px;
+  --radius-lg: 12px;
+
+  --shadow-card: 0 1px 2px oklch(0.30 0.02 60 / 0.05),
+                 0 1px 1px oklch(0.30 0.02 60 / 0.04);
+  --shadow-raise: 0 6px 22px -10px oklch(0.32 0.03 50 / 0.22),
+                  0 2px 6px -3px oklch(0.32 0.03 50 / 0.10);
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --serif: "Fraunces", Georgia, "Times New Roman", serif;
+  --grotesk: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: var(--grotesk);
+  background-color: var(--paper);
+  color: var(--ink);
+  line-height: 1.5;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv01";
+}
+
+/* Subtle tactile texture — fixed overlay, pointer-events-none, never on a scroll container */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.55;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+}
+/* a faint warm radial bloom — the "lamp on the desk" warmth */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 12% -8%, oklch(0.965 0.026 70 / 0.7), transparent 55%),
+    radial-gradient(100% 70% at 100% 0%, oklch(0.955 0.020 200 / 0.35), transparent 50%);
+}
+
+.tabnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* ---------- Layout shell ---------- */
+.shell { position: relative; z-index: 1; }
+
+.wrap { max-width: var(--maxw); margin-inline: auto; padding-inline: calc(var(--u) * 7); }
+
+/* ---------- Masthead ---------- */
+.masthead {
+  border-bottom: 1px solid var(--line);
+  background: oklch(0.975 0.008 78 / 0.86);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.masthead .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--u) * 4);
+  padding-block: calc(var(--u) * 4);
+}
+.brand { display: flex; align-items: baseline; gap: calc(var(--u) * 3); }
+.brand .mark {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.brand .mark em { font-style: italic; color: var(--teal-deep); font-weight: 500; }
+.brand .sub {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+  font-weight: 500;
+}
+.masthead-right { display: flex; align-items: center; gap: calc(var(--u) * 4); }
+
+/* Honest source badge — recorded signals, never labeled live */
+.signal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--u) * 2);
+  font-size: 12px;
+  color: var(--ink-soft);
+  padding: calc(var(--u) * 1.5) calc(var(--u) * 3);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-raised);
+}
+.signal-badge .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ink-faint);
+  box-shadow: 0 0 0 3px oklch(0.582 0.014 58 / 0.14);
+}
+.signal-badge .when { font-family: var(--mono); font-size: 11px; color: var(--ink); }
+
+.opno { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); letter-spacing: 0.02em; }
+
+/* ---------- Tab nav ---------- */
+nav.tabs {
+  border-bottom: 1px solid var(--line);
+  background: oklch(0.975 0.008 78 / 0.7);
+  position: sticky;
+  top: 57px;
+  z-index: 30;
+}
+nav.tabs .wrap { display: flex; gap: calc(var(--u) * 1); }
+.tab {
+  appearance: none;
+  background: none;
+  border: none;
+  font-family: var(--grotesk);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-faint);
+  padding: calc(var(--u) * 3.5) calc(var(--u) * 4);
+  cursor: pointer;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--u) * 2);
+  transition: color 0.25s var(--ease);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.tab:hover { color: var(--ink-soft); }
+.tab .idx { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); opacity: 0.7; }
+.tab[aria-selected="true"] { color: var(--ink); }
+.tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--u) * 4); right: calc(var(--u) * 4);
+  bottom: -1px; height: 2px;
+  background: var(--teal);
+  border-radius: 2px 2px 0 0;
+}
+.tab:focus-visible { outline: 2px solid var(--teal); outline-offset: -3px; }
+.tab .pip {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--teal-tint);
+  color: var(--teal-ink);
+  font-weight: 500;
+}
+
+/* ---------- Page body ---------- */
+main { padding-block: calc(var(--u) * 9) calc(var(--u) * 16); }
+
+.packet-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: calc(var(--u) * 6);
+  margin-bottom: calc(var(--u) * 8);
+}
+.kicker {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--teal-deep);
+  font-weight: 600;
+  margin-bottom: calc(var(--u) * 2);
+}
+.packet-head h1 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: clamp(30px, 4.4vw, 46px);
+  line-height: 1.02;
+  letter-spacing: -0.018em;
+  color: var(--ink);
+  max-width: 18ch;
+}
+.packet-head h1 em { font-style: italic; color: var(--teal-deep); }
+.packet-meta {
+  text-align: right;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--ink-faint);
+  line-height: 1.7;
+}
+.packet-meta b { color: var(--ink); font-weight: 500; }
+.packet-meta .pid { font-family: var(--mono); font-size: 11px; }
+
+/* ---------- Grid composition: editorial 2-col, not card-grid ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: calc(var(--u) * 7);
+  align-items: start;
+}
+.col-main { display: flex; flex-direction: column; gap: calc(var(--u) * 6); }
+.col-side { display: flex; flex-direction: column; gap: calc(var(--u) * 6); position: sticky; top: 116px; }
+
+/* ---------- Section primitives (cardless-leaning) ---------- */
+.panel {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.panel-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--u) * 3);
+  padding: calc(var(--u) * 4) calc(var(--u) * 5);
+  border-bottom: 1px solid var(--line);
+}
+.panel-hd h2 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.panel-hd .eyebrow {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+.panel-bd { padding: calc(var(--u) * 5); }
+
+/* ---------- Threat card ---------- */
+.threat {
+  border-left: 3px solid var(--sev-crit);
+  background:
+    linear-gradient(180deg, var(--sev-crit-bg), transparent 38%),
+    var(--paper-raised);
+}
+.threat .panel-bd { padding-top: calc(var(--u) * 5); }
+.threat-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: calc(var(--u) * 4);
+  margin-bottom: calc(var(--u) * 4);
+}
+.threat h2 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: clamp(22px, 2.6vw, 29px);
+  line-height: 1.12;
+  letter-spacing: -0.016em;
+  color: var(--ink);
+  max-width: 26ch;
+}
+.sev-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--u) * 2);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: calc(var(--u) * 1.5) calc(var(--u) * 3);
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.sev-chip .glyph { width: 8px; height: 8px; border-radius: 2px; transform: rotate(45deg); }
+.sev-chip[data-sev="critical"] { color: var(--sev-crit); background: var(--sev-crit-bg); }
+.sev-chip[data-sev="critical"] .glyph { background: var(--sev-crit); }
+.sev-chip[data-sev="high"] { color: var(--sev-high); background: var(--sev-high-bg); }
+.sev-chip[data-sev="high"] .glyph { background: var(--sev-high); }
+.sev-chip[data-sev="medium"] { color: var(--sev-med); background: var(--sev-med-bg); }
+.sev-chip[data-sev="medium"] .glyph { background: var(--sev-med); }
+.sev-chip[data-sev="low"] { color: var(--sev-low); background: var(--sev-low-bg); }
+.sev-chip[data-sev="low"] .glyph { background: var(--sev-low); }
+
+.threat-summary {
+  font-size: 15px;
+  color: var(--ink-soft);
+  line-height: 1.62;
+  max-width: 62ch;
+  margin-bottom: calc(var(--u) * 5);
+}
+.threat-params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--u) * 5) calc(var(--u) * 9);
+  padding-block: calc(var(--u) * 4);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: calc(var(--u) * 5);
+}
+.param .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); margin-bottom: calc(var(--u) * 1.5); }
+.param .v { font-family: var(--serif); font-size: 26px; font-weight: 500; color: var(--ink); line-height: 1; }
+.param .v small { font-family: var(--grotesk); font-size: 13px; color: var(--ink-soft); font-weight: 400; margin-left: 2px; }
+
+/* Evidence line — deterministic Verifier output, rendered as a verified statement */
+.evidence {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 3);
+  padding: calc(var(--u) * 3.5) calc(var(--u) * 4);
+  background: var(--teal-tint);
+  border: 1px solid oklch(0.880 0.030 192);
+  border-radius: var(--radius);
+}
+.evidence .check {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--teal);
+  display: grid;
+  place-items: center;
+}
+.evidence .check svg { width: 12px; height: 12px; }
+.evidence .body { font-size: 13.5px; color: var(--teal-ink); line-height: 1.45; }
+.evidence .body b { color: var(--teal-deep); font-weight: 600; }
+.evidence .meta { font-family: var(--mono); font-size: 11px; color: var(--teal-ink); opacity: 0.8; display: block; margin-top: 2px; }
+
+/* ---------- Exposure table ---------- */
+.exposure-tot {
+  display: flex;
+  align-items: baseline;
+  gap: calc(var(--u) * 2);
+}
+.exposure-tot .n { font-family: var(--serif); font-size: 17px; font-weight: 500; color: var(--ink); }
+.exposure-tot .lbl { font-size: 11px; color: var(--ink-faint); }
+
+table.exposure { width: 100%; border-collapse: collapse; }
+table.exposure thead th {
+  text-align: left;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  font-weight: 600;
+  padding: 0 calc(var(--u) * 3) calc(var(--u) * 3);
+  border-bottom: 1px solid var(--line);
+}
+table.exposure thead th.num { text-align: right; }
+table.exposure tbody tr {
+  border-bottom: 1px solid var(--line);
+  transition: background 0.2s var(--ease);
+}
+table.exposure tbody tr:last-child { border-bottom: none; }
+table.exposure tbody tr:hover { background: var(--paper-sunk); }
+table.exposure td { padding: calc(var(--u) * 3.5) calc(var(--u) * 3); vertical-align: middle; }
+
+.supcell { display: flex; flex-direction: column; gap: 2px; }
+.supcell .name { font-weight: 500; font-size: 14px; color: var(--ink); }
+.supcell .meta { font-size: 11.5px; color: var(--ink-faint); }
+.supcell .meta .sector { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.02em; }
+
+td.atrisk { text-align: right; }
+.atrisk .amt { font-family: var(--serif); font-size: 17px; font-weight: 500; color: var(--ink); }
+.atrisk .sub { font-size: 11px; color: var(--ink-faint); }
+
+/* Runway as an inline sparkline-style bar */
+.runway { min-width: 168px; }
+.runway-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: calc(var(--u) * 1.5);
+}
+.runway-head .days { font-family: var(--mono); font-size: 12.5px; color: var(--ink); font-weight: 500; }
+.runway-head .days b { font-size: 15px; }
+.runway-head .tag {
+  font-size: 9.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.runway-head .tag[data-sev="critical"] { color: var(--sev-crit); background: var(--sev-crit-bg); }
+.runway-head .tag[data-sev="high"] { color: var(--sev-high); background: var(--sev-high-bg); }
+.runway-head .tag[data-sev="medium"] { color: var(--sev-med); background: var(--sev-med-bg); }
+.bar-track {
+  height: 7px;
+  background: var(--paper-sunk);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 1px oklch(0.30 0.02 60 / 0.06);
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  width: 0;
+  transition: width 1.1s var(--ease);
+}
+.bar-fill[data-sev="critical"] { background: linear-gradient(90deg, var(--sev-crit), oklch(0.560 0.150 36)); }
+.bar-fill[data-sev="high"] { background: linear-gradient(90deg, var(--sev-high), oklch(0.620 0.130 56)); }
+.bar-fill[data-sev="medium"] { background: linear-gradient(90deg, var(--sev-med), oklch(0.680 0.090 88)); }
+.bar-scale {
+  display: flex; justify-content: space-between;
+  margin-top: calc(var(--u) * 1.5);
+  font-family: var(--mono); font-size: 9px; color: var(--ink-faint); opacity: 0.7;
+}
+
+/* ---------- Simulation strip ---------- */
+.sim-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+.sim-col {
+  padding: calc(var(--u) * 4) calc(var(--u) * 4);
+  border-left: 1px solid var(--line);
+}
+.sim-col:first-child { border-left: none; }
+.sim-col .h { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); letter-spacing: 0.04em; margin-bottom: calc(var(--u) * 2); }
+.sim-col .h b { color: var(--ink); }
+.sim-col .val { font-family: var(--serif); font-size: clamp(20px, 2.4vw, 27px); font-weight: 500; color: var(--ink); line-height: 1; }
+.sim-col .val.warn { color: var(--sev-high); }
+.sim-col .val.crit { color: var(--sev-crit); }
+.sim-col .note { font-size: 11px; color: var(--ink-faint); margin-top: calc(var(--u) * 2); line-height: 1.45; }
+.sim-foot {
+  padding: calc(var(--u) * 3.5) calc(var(--u) * 5);
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink-soft);
+  display: flex; align-items: center; gap: calc(var(--u) * 2);
+  background: var(--paper-sunk);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+.sim-foot .runout { font-family: var(--mono); color: var(--sev-crit); font-weight: 500; }
+
+/* ---------- Action Packet artifacts: email / tasks / one-pager ---------- */
+.artifacts { display: flex; flex-direction: column; gap: calc(var(--u) * 5); }
+
+.draft {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.draft-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: calc(var(--u) * 3) calc(var(--u) * 4);
+  background: var(--paper-sunk);
+  border-bottom: 1px solid var(--line);
+}
+.draft-hd .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-weight: 600; display: flex; align-items: center; gap: calc(var(--u) * 2); }
+.draft-hd .lbl svg { width: 13px; height: 13px; color: var(--ink-soft); }
+.draft-hd .stat {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.05em;
+  color: var(--ink-faint);
+  font-family: var(--mono);
+}
+.draft-bd { padding: calc(var(--u) * 4); }
+
+.email-meta { font-size: 12px; color: var(--ink-soft); margin-bottom: calc(var(--u) * 3); }
+.email-meta .row { display: flex; gap: calc(var(--u) * 2); padding-block: 1px; }
+.email-meta .row .k { color: var(--ink-faint); width: 52px; flex-shrink: 0; }
+.email-meta .row .vv { color: var(--ink); }
+.email-subj { font-weight: 500; color: var(--ink); }
+.email-body {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.62;
+  border-top: 1px solid var(--line);
+  padding-top: calc(var(--u) * 3);
+}
+.email-body p { margin-bottom: calc(var(--u) * 2.5); }
+.email-body .cited {
+  background: var(--teal-tint);
+  color: var(--teal-ink);
+  padding: 0 4px;
+  border-radius: 3px;
+  font-weight: 500;
+  font-feature-settings: "tnum";
+}
+
+/* task list */
+ul.tasks { list-style: none; }
+ul.tasks li {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--u) * 3);
+  padding: calc(var(--u) * 3) 0;
+  border-bottom: 1px solid var(--line);
+}
+ul.tasks li:last-child { border-bottom: none; }
+ul.tasks li:first-child { padding-top: 0; }
+.task-box {
+  flex-shrink: 0;
+  width: 18px; height: 18px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 5px;
+  margin-top: 1px;
+  display: grid; place-items: center;
+  color: transparent;
+}
+.task-box[data-done="true"] { background: var(--teal); border-color: var(--teal); color: var(--paper-raised); }
+.task-box svg { width: 11px; height: 11px; }
+.task-main { flex: 1; min-width: 0; }
+.task-main .t { font-size: 13.5px; color: var(--ink); line-height: 1.4; }
+.task-meta { display: flex; gap: calc(var(--u) * 3); margin-top: 2px; font-size: 11px; color: var(--ink-faint); }
+.task-meta .owner { font-weight: 500; color: var(--ink-soft); }
+.task-meta .due { font-family: var(--mono); }
+
+/* exec one-pager */
+.onepager-bd { padding: calc(var(--u) * 4) calc(var(--u) * 5); }
+.onepager-bd .lede {
+  font-family: var(--serif);
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--ink);
+  margin-bottom: calc(var(--u) * 4);
+}
+.onepager-bd .lede .em { font-style: italic; color: var(--teal-deep); }
+.onepager-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: calc(var(--u) * 4);
+  border-top: 1px solid var(--line);
+  padding-top: calc(var(--u) * 4);
+}
+.onepager-stats .k { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--ink-faint); margin-bottom: calc(var(--u) * 1.5); }
+.onepager-stats .v { font-family: var(--serif); font-size: 22px; font-weight: 500; color: var(--ink); line-height: 1; }
+
+/* ---------- Side rail: approve + gatekeeper + audit ---------- */
+.approve-panel {
+  background:
+    linear-gradient(180deg, oklch(0.965 0.018 192 / 0.6), transparent 30%),
+    var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raise);
+  overflow: hidden;
+}
+.approve-bd { padding: calc(var(--u) * 5); }
+.approve-bd .status-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: calc(var(--u) * 4);
+}
+.status-pill {
+  display: inline-flex; align-items: center; gap: calc(var(--u) * 2);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  padding: calc(var(--u) * 1.5) calc(var(--u) * 3);
+  border-radius: 999px;
+}
+.status-pill[data-state="pending"] { color: var(--sev-med); background: var(--sev-med-bg); }
+.status-pill[data-state="approved"] { color: var(--sev-low); background: var(--sev-low-bg); }
+.status-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.approve-bd h3 {
+  font-family: var(--serif); font-weight: 500; font-size: 21px;
+  letter-spacing: -0.01em; line-height: 1.15; color: var(--ink);
+  margin-bottom: calc(var(--u) * 2);
+}
+.approve-bd .desc { font-size: 12.5px; color: var(--ink-soft); line-height: 1.55; margin-bottom: calc(var(--u) * 4); }
+
+/* gatekeeper checks */
+.gate {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: calc(var(--u) * 3) calc(var(--u) * 3.5);
+  margin-bottom: calc(var(--u) * 4);
+  background: var(--paper);
+}
+.gate-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: calc(var(--u) * 2.5);
+}
+.gate-hd .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); font-weight: 600; }
+.gate-hd .verdict {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--sev-low); display: inline-flex; align-items: center; gap: calc(var(--u) * 1.5);
+}
+.gate-hd .verdict svg { width: 13px; height: 13px; }
+.gate ul { list-style: none; display: flex; flex-direction: column; gap: calc(var(--u) * 2); }
+.gate li { display: flex; align-items: center; gap: calc(var(--u) * 2.5); font-size: 12px; color: var(--ink-soft); }
+.gate li .tick {
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--sev-low-bg); color: var(--sev-low);
+  display: grid; place-items: center; flex-shrink: 0;
+}
+.gate li .tick svg { width: 9px; height: 9px; }
+.gate li b { color: var(--ink); font-weight: 500; }
+
+/* the APPROVE button */
+.btn-approve {
+  width: 100%;
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--grotesk);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: oklch(0.985 0.01 192);
+  background: linear-gradient(180deg, var(--teal), var(--teal-deep));
+  padding: calc(var(--u) * 4) calc(var(--u) * 5);
+  border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center; gap: calc(var(--u) * 2.5);
+  box-shadow: 0 1px 0 oklch(0.99 0.01 192 / 0.25) inset,
+              0 8px 18px -8px oklch(0.43 0.07 198 / 0.55);
+  transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease), filter 0.16s var(--ease);
+}
+.btn-approve svg { width: 17px; height: 17px; }
+.btn-approve:hover { filter: brightness(1.04); box-shadow: 0 1px 0 oklch(0.99 0.01 192 / 0.3) inset, 0 12px 24px -8px oklch(0.43 0.07 198 / 0.6); }
+.btn-approve:active { transform: translateY(1px) scale(0.992); }
+.btn-approve:focus-visible { outline: 2px solid var(--teal-deep); outline-offset: 3px; }
+.btn-approve:disabled { cursor: default; filter: none; }
+
+.approve-fine {
+  font-size: 11px; color: var(--ink-faint); text-align: center;
+  margin-top: calc(var(--u) * 3); line-height: 1.5;
+}
+.approve-fine .auth { font-family: var(--mono); }
+
+/* approved confirmation block (revealed on approve) */
+.approved-block {
+  display: none;
+  padding: calc(var(--u) * 4) calc(var(--u) * 5) calc(var(--u) * 5);
+  border-top: 1px solid var(--line);
+  background: oklch(0.962 0.024 162 / 0.5);
+}
+.approved-block.show { display: block; animation: slideUp 0.5s var(--ease) both; }
+.approved-block .conf {
+  display: flex; align-items: center; gap: calc(var(--u) * 3);
+  margin-bottom: calc(var(--u) * 3);
+}
+.approved-block .conf .seal {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--sev-low); color: var(--paper-raised);
+  display: grid; place-items: center; flex-shrink: 0;
+  box-shadow: 0 0 0 4px var(--sev-low-bg);
+}
+.approved-block .conf .seal svg { width: 16px; height: 16px; }
+.approved-block .conf .txt strong { font-family: var(--serif); font-weight: 500; font-size: 16px; color: var(--ink); display: block; }
+.approved-block .conf .txt span { font-size: 11.5px; color: var(--ink-soft); }
+.approved-block .trail { font-size: 11.5px; color: var(--ink-soft); line-height: 1.6; }
+.approved-block .trail .ts { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); display: block; }
+
+/* audit trail mini-log */
+.audit {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.audit .panel-bd { padding: calc(var(--u) * 4) calc(var(--u) * 5); }
+.audit ol { list-style: none; position: relative; padding-left: calc(var(--u) * 5); }
+.audit ol::before {
+  content: ""; position: absolute; left: 5px; top: 4px; bottom: 4px;
+  width: 1.5px; background: var(--line);
+}
+.audit li { position: relative; padding-bottom: calc(var(--u) * 4); }
+.audit li:last-child { padding-bottom: 0; }
+.audit li::before {
+  content: ""; position: absolute; left: -18px; top: 4px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--paper-raised); border: 2px solid var(--line-strong);
+}
+.audit li.live::before { border-color: var(--teal); background: var(--teal); }
+.audit li .act { font-size: 12.5px; color: var(--ink); font-weight: 500; }
+.audit li .det { font-size: 11.5px; color: var(--ink-soft); margin-top: 1px; }
+.audit li .ts { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); margin-top: 2px; display: block; }
+
+/* mode line — honest run provenance */
+.mode-line {
+  display: flex; align-items: center; gap: calc(var(--u) * 2);
+  font-size: 11px; color: var(--ink-faint);
+  padding: calc(var(--u) * 3) calc(var(--u) * 5);
+  border-top: 1px solid var(--line);
+}
+.mode-line .badge {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  color: var(--ink-soft); background: var(--paper-sunk);
+  padding: 2px 7px; border-radius: 4px; border: 1px solid var(--line);
+}
+
+/* ---------- Entry reveal motion ---------- */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal { opacity: 0; animation: rise 0.7s var(--ease) forwards; animation-delay: calc(var(--d, 0) * 1ms); }
+
+/* ---------- Footer ---------- */
+.foot {
+  border-top: 1px solid var(--line);
+  margin-top: calc(var(--u) * 14);
+}
+.foot .wrap {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-block: calc(var(--u) * 6);
+  font-size: 11.5px; color: var(--ink-faint);
+}
+.foot .wrap a { color: var(--ink-soft); text-decoration: none; }
+.foot .lim { max-width: 56ch; line-height: 1.5; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 940px) {
+  .layout { grid-template-columns: 1fr; }
+  .col-side { position: static; top: auto; }
+  .packet-head { flex-direction: column; align-items: flex-start; gap: calc(var(--u) * 4); }
+  .packet-meta { text-align: left; }
+  .sim-grid { grid-template-columns: repeat(2, 1fr); }
+  .sim-col:nth-child(3) { border-left: none; }
+  nav.tabs .wrap { overflow-x: auto; }
+  .wrap { padding-inline: calc(var(--u) * 5); }
+}
+@media (max-width: 560px) {
+  .sim-grid { grid-template-columns: 1fr; }
+  .sim-col { border-left: none; border-top: 1px solid var(--line); }
+  .sim-col:first-child { border-top: none; }
+  .onepager-stats { grid-template-columns: 1fr; gap: calc(var(--u) * 3); }
+  .threat-top { flex-direction: column; }
+}
+
+/* ---------- Reduced motion: show final state immediately ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-delay: 0ms !important; transition-duration: 0.001ms !important; }
+  .reveal { opacity: 1; }
+  .bar-fill { transition: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="shell">
+
+  <!-- ===================== MASTHEAD ===================== -->
+  <header class="masthead">
+    <div class="wrap">
+      <div class="brand">
+        <span class="mark">RESILIX <em>ActionOps</em></span>
+        <span class="sub">War Room</span>
+      </div>
+      <div class="masthead-right">
+        <span class="opno">OP&nbsp;·&nbsp;RX-2614</span>
+        <!-- Honest provenance: recorded signals, never labeled live -->
+        <span class="signal-badge" title="Signals served from dated recorded fixtures — not a live fetch">
+          <span class="dot" aria-hidden="true"></span>
+          Recorded signals
+          <span class="when tabnum">2026&#8209;06&#8209;15</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== TAB NAV SHELL ===================== -->
+  <nav class="tabs" aria-label="Decision packet sections">
+    <div class="wrap">
+      <button class="tab" role="tab" aria-selected="false"><span class="idx">01</span> Live Events</button>
+      <button class="tab" role="tab" aria-selected="false"><span class="idx">02</span> Exposure</button>
+      <button class="tab" role="tab" aria-selected="false"><span class="idx">03</span> Simulation</button>
+      <button class="tab" role="tab" aria-selected="true"><span class="idx">04</span> Action Packet <span class="pip">READY</span></button>
+    </div>
+  </nav>
+
+  <!-- ===================== MAIN ===================== -->
+  <main>
+    <div class="wrap">
+
+      <!-- Packet header -->
+      <div class="packet-head reveal" style="--d:40">
+        <div>
+          <div class="kicker">Decision Packet · Pending Approval</div>
+          <h1>A 14&#8209;day Hormuz closure puts <em>$3.0M</em> of supply at risk.</h1>
+        </div>
+        <div class="packet-meta tabnum">
+          <div>Packet <b class="pid">PKT&#8209;8842&#8209;V2</b></div>
+          <div>Compiled <b>11:06 ET</b> · 4m 12s scan</div>
+          <div>Reviewer <b>D. Okonkwo</b></div>
+        </div>
+      </div>
+
+      <div class="layout">
+
+        <!-- ================= MAIN COLUMN ================= -->
+        <div class="col-main">
+
+          <!-- THREAT CARD -->
+          <section class="panel threat reveal" style="--d:120" aria-labelledby="threat-h">
+            <div class="panel-hd">
+              <span class="eyebrow">Threat Card · Sentinel</span>
+              <span class="opno">CHOKEPOINT · MARITIME</span>
+            </div>
+            <div class="panel-bd">
+              <div class="threat-top">
+                <h2 id="threat-h">Escalation signals point to a partial closure of the Strait of Hormuz</h2>
+                <span class="sev-chip" data-sev="critical"><span class="glyph" aria-hidden="true"></span>Critical</span>
+              </div>
+              <p class="threat-summary">
+                Three independent reports describe a credible 40% throughput reduction across the Strait
+                of Hormuz over an estimated 14&#8209;day window, with elevated war-risk insurance and
+                rerouting around the Cape adding 12&ndash;18 days transit. Energy and chemicals inbound to
+                US Gulf Coast operations are the first-order exposure.
+              </p>
+
+              <div class="threat-params tabnum">
+                <div class="param">
+                  <div class="k">Closure</div>
+                  <div class="v"><span class="countup" data-to="40">0</span><small>% throughput</small></div>
+                </div>
+                <div class="param">
+                  <div class="k">Duration</div>
+                  <div class="v"><span class="countup" data-to="14">0</span><small>days est.</small></div>
+                </div>
+                <div class="param">
+                  <div class="k">Reroute add</div>
+                  <div class="v">+12<small>&ndash;18 days</small></div>
+                </div>
+                <div class="param">
+                  <div class="k">Confidence</div>
+                  <div class="v"><span class="countup" data-to="82">0</span><small>%</small></div>
+                </div>
+              </div>
+
+              <!-- Deterministic Verifier evidence line, rendered as a verified statement -->
+              <div class="evidence" role="note" aria-label="Evidence verification">
+                <span class="check" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="body">
+                  <b>3 sources, all &lt;48h, 2 independent outlets.</b> Geo-plausible; corroboration met.
+                  <span class="meta">VERIFIER · DETERMINISTIC_RULES · evidence allowlist passed</span>
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <!-- EXPOSURE TABLE -->
+          <section class="panel reveal" style="--d:200" aria-labelledby="exp-h">
+            <div class="panel-hd">
+              <h2 id="exp-h">Exposure</h2>
+              <span class="exposure-tot">
+                <span class="n tabnum">$3.0M</span>
+                <span class="lbl">at risk · top 3 of 4 exposed</span>
+              </span>
+            </div>
+            <div class="panel-bd" style="padding-top: calc(var(--u) * 3);">
+              <table class="exposure">
+                <thead>
+                  <tr>
+                    <th scope="col">Supplier</th>
+                    <th scope="col" class="num">At-risk value</th>
+                    <th scope="col">Inventory runway</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="supcell">
+                        <span class="name">Gulf Energy Co</span>
+                        <span class="meta">Bahrain · Tier 1 · <span class="sector">ENERGY</span></span>
+                      </div>
+                    </td>
+                    <td class="atrisk">
+                      <div class="amt tabnum">$2.1M</div>
+                      <div class="sub">62% of total</div>
+                    </td>
+                    <td>
+                      <div class="runway">
+                        <div class="runway-head">
+                          <span class="days"><b class="tabnum">7</b> days</span>
+                          <span class="tag" data-sev="critical">Critical</span>
+                        </div>
+                        <div class="bar-track"><div class="bar-fill" data-sev="critical" data-w="18"></div></div>
+                        <div class="bar-scale tabnum"><span>0d</span><span>14d</span><span>30d+</span></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="supcell">
+                        <span class="name">Chemix Ltd</span>
+                        <span class="meta">UAE · Tier 1 · <span class="sector">CHEMICALS</span></span>
+                      </div>
+                    </td>
+                    <td class="atrisk">
+                      <div class="amt tabnum">$0.9M</div>
+                      <div class="sub">27% of total</div>
+                    </td>
+                    <td>
+                      <div class="runway">
+                        <div class="runway-head">
+                          <span class="days"><b class="tabnum">14</b> days</span>
+                          <span class="tag" data-sev="high">High</span>
+                        </div>
+                        <div class="bar-track"><div class="bar-fill" data-sev="high" data-w="44"></div></div>
+                        <div class="bar-scale tabnum"><span>0d</span><span>14d</span><span>30d+</span></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="supcell">
+                        <span class="name">Meridian Polymers</span>
+                        <span class="meta">Qatar · Tier 2 · <span class="sector">CHEMICALS</span></span>
+                      </div>
+                    </td>
+                    <td class="atrisk">
+                      <div class="amt tabnum">$0.4M</div>
+                      <div class="sub">11% of total</div>
+                    </td>
+                    <td>
+                      <div class="runway">
+                        <div class="runway-head">
+                          <span class="days"><b class="tabnum">26</b> days</span>
+                          <span class="tag" data-sev="medium">Watch</span>
+                        </div>
+                        <div class="bar-track"><div class="bar-fill" data-sev="medium" data-w="78"></div></div>
+                        <div class="bar-scale tabnum"><span>0d</span><span>14d</span><span>30d+</span></div>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- SIMULATION -->
+          <section class="panel reveal" style="--d:280" aria-labelledby="sim-h">
+            <div class="panel-hd">
+              <h2 id="sim-h">Runway Simulation</h2>
+              <span class="eyebrow">Tier&#8209;2 inventory · revenue-at-risk by horizon</span>
+            </div>
+            <div class="sim-grid">
+              <div class="sim-col">
+                <div class="h tabnum"><b>3</b>&#8209;day</div>
+                <div class="val tabnum">$0.2M</div>
+                <div class="note">Buffer absorbs first shock; no runout.</div>
+              </div>
+              <div class="sim-col">
+                <div class="h tabnum"><b>7</b>&#8209;day</div>
+                <div class="val warn tabnum">$1.4M</div>
+                <div class="note">Gulf Energy buffer depleted; expedite window closing.</div>
+              </div>
+              <div class="sim-col">
+                <div class="h tabnum"><b>14</b>&#8209;day</div>
+                <div class="val crit tabnum">$3.0M</div>
+                <div class="note">Full exposure realized across both Tier&#8209;1 lines.</div>
+              </div>
+              <div class="sim-col">
+                <div class="h tabnum"><b>30</b>&#8209;day</div>
+                <div class="val crit tabnum">$3.7M</div>
+                <div class="note">Carry-forward order slippage + SLA penalties.</div>
+              </div>
+            </div>
+            <div class="sim-foot">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              First projected stockout — <span class="runout tabnum">Gulf Energy Co, 2026&#8209;06&#8209;22</span> &nbsp;·&nbsp; 11 orders carry SLA risk.
+            </div>
+          </section>
+
+          <!-- ACTION PACKET ARTIFACTS -->
+          <section class="reveal artifacts" style="--d:360" aria-label="Drafted actions">
+
+            <!-- Drafted supplier email -->
+            <article class="draft">
+              <div class="draft-hd">
+                <span class="lbl">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="1.6"/></svg>
+                  Drafted Supplier Email
+                </span>
+                <span class="stat">DRAFT · NOT SENT</span>
+              </div>
+              <div class="draft-bd">
+                <div class="email-meta">
+                  <div class="row"><span class="k">To</span><span class="vv">accounts@gulfenergyco.bh</span></div>
+                  <div class="row"><span class="k">Subj</span><span class="vv email-subj">Expedite request — Hormuz transit disruption, PO&#8209;44182</span></div>
+                </div>
+                <div class="email-body">
+                  <p>Hi Reza —</p>
+                  <p>
+                    Given the developing Strait of Hormuz situation, we're tracking a
+                    <span class="cited">7&#8209;day</span> inventory runway on the energy line tied to
+                    <span class="cited">PO&#8209;44182</span>. We'd like to confirm air or alternate-lane
+                    options before the <span class="cited">June&nbsp;22</span> projected stockout.
+                  </p>
+                  <p>
+                    Can you confirm earliest dispatch and any surcharge for expedited handling? We're
+                    prepared to move quickly on a split shipment if it protects the first
+                    <span class="cited">$2.1M</span> of exposed volume.
+                  </p>
+                  <p>Thank you, <br/>Procurement, RESILIX Operations</p>
+                </div>
+              </div>
+            </article>
+
+            <!-- Task list -->
+            <article class="draft">
+              <div class="draft-hd">
+                <span class="lbl">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  Action Items
+                </span>
+                <span class="stat">4 OPEN · 1 DONE</span>
+              </div>
+              <div class="draft-bd">
+                <ul class="tasks">
+                  <li>
+                    <span class="task-box" data-done="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <div class="task-main">
+                      <div class="t">Confirm live exposure against latest GDELT + NWS signals</div>
+                      <div class="task-meta"><span class="owner">D. Okonkwo</span><span class="due tabnum">done · 10:58 ET</span></div>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="task-box"></span>
+                    <div class="task-main">
+                      <div class="t">Send expedite request to Gulf Energy Co (draft ready)</div>
+                      <div class="task-meta"><span class="owner">D. Okonkwo</span><span class="due tabnum">due 06&#8209;18</span></div>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="task-box"></span>
+                    <div class="task-main">
+                      <div class="t">Open alternate-lane quote with Meridian Polymers (Tier&#8209;2 backup)</div>
+                      <div class="task-meta"><span class="owner">P. Vasquez</span><span class="due tabnum">due 06&#8209;19</span></div>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="task-box"></span>
+                    <div class="task-main">
+                      <div class="t">Reserve air-freight capacity for first $2.1M tranche</div>
+                      <div class="task-meta"><span class="owner">Logistics desk</span><span class="due tabnum">due 06&#8209;20</span></div>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="task-box"></span>
+                    <div class="task-main">
+                      <div class="t">Brief CFO on 14&#8209;day $3.0M revenue-at-risk envelope</div>
+                      <div class="task-meta"><span class="owner">D. Okonkwo</span><span class="due tabnum">due 06&#8209;18</span></div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </article>
+
+            <!-- Exec one-pager -->
+            <article class="draft">
+              <div class="draft-hd">
+                <span class="lbl">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 2h9l5 5v15a0 0 0 010 0H6a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 2v6h6M8 13h8M8 17h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  Executive One-Pager
+                </span>
+                <span class="stat">FOR CFO BRIEFING</span>
+              </div>
+              <div class="onepager-bd">
+                <p class="lede">
+                  A partial Strait of Hormuz closure threatens <span class="em">$3.0M</span> of energy and
+                  chemicals supply over 14 days. Two Tier&#8209;1 lines have under-two-week runway; a
+                  $2.1M tranche is protectable now via expedite. Recommended posture: <span class="em">expedite + split shipment</span>,
+                  brief CFO, hold air-freight reserve.
+                </p>
+                <div class="onepager-stats tabnum">
+                  <div>
+                    <div class="k">Revenue at risk</div>
+                    <div class="v">$3.0M</div>
+                  </div>
+                  <div>
+                    <div class="k">Protectable now</div>
+                    <div class="v">$2.1M</div>
+                  </div>
+                  <div>
+                    <div class="k">Orders w/ SLA risk</div>
+                    <div class="v">11</div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+          </section>
+        </div>
+
+        <!-- ================= SIDE RAIL ================= -->
+        <aside class="col-side">
+
+          <!-- APPROVE -->
+          <section class="approve-panel reveal" style="--d:160" aria-labelledby="approve-h">
+            <div class="approve-bd">
+              <div class="status-row">
+                <span class="status-pill" data-state="pending" id="approve-pill">
+                  <span class="dot" aria-hidden="true"></span> Pending review
+                </span>
+                <span class="opno">1 reviewer</span>
+              </div>
+              <h3 id="approve-h">Approve the action packet</h3>
+              <p class="desc">
+                Approval releases the drafted email, tasks, and one-pager for execution and writes an
+                immutable audit entry. Nothing sends automatically.
+              </p>
+
+              <!-- Gatekeeper PASS — the trust anchor next to APPROVE -->
+              <div class="gate">
+                <div class="gate-hd">
+                  <span class="lbl">Gatekeeper</span>
+                  <span class="verdict">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10V6l8-4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    PASS
+                  </span>
+                </div>
+                <ul>
+                  <li><span class="tick"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Every numeral maps to a <b>structured claim</b></li>
+                  <li><span class="tick"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> All URLs in <b>evidence allowlist</b></li>
+                  <li><span class="tick"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Entities resolve to <b>known supplier IDs</b></li>
+                </ul>
+              </div>
+
+              <button class="btn-approve" id="approveBtn" type="button">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Approve packet
+              </button>
+              <p class="approve-fine">
+                Signs as <span class="auth">D. Okonkwo · token ••••8842</span><br/>
+                This action is logged and reversible until execution.
+              </p>
+            </div>
+
+            <!-- Revealed on approve -->
+            <div class="approved-block" id="approvedBlock">
+              <div class="conf">
+                <span class="seal" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <div class="txt">
+                  <strong>Packet approved</strong>
+                  <span>Drafts released for execution · audit entry written</span>
+                </div>
+              </div>
+              <p class="trail">
+                Approved by D. Okonkwo. Drafted supplier email, 4 action items, and the executive
+                one-pager are now cleared for manual dispatch.
+                <span class="ts" id="approvedTs">—</span>
+              </p>
+            </div>
+          </section>
+
+          <!-- AUDIT TRAIL -->
+          <section class="audit reveal" style="--d:240" aria-labelledby="audit-h">
+            <div class="panel-hd">
+              <h2 id="audit-h" style="font-size:17px;">Audit Trail</h2>
+              <span class="opno">V2 · PKT&#8209;8842</span>
+            </div>
+            <div class="panel-bd">
+              <ol id="auditLog">
+                <li class="live">
+                  <span class="act">Packet compiled</span>
+                  <span class="det">Sentinel → Atlas → Simulator → Strategist → Dispatcher</span>
+                  <span class="ts">2026&#8209;06&#8209;17 · 11:06:04 ET</span>
+                </li>
+                <li>
+                  <span class="act">Gatekeeper PASS</span>
+                  <span class="det">12 checks · 0 failures · 0 warnings</span>
+                  <span class="ts">2026&#8209;06&#8209;17 · 11:06:09 ET</span>
+                </li>
+                <li>
+                  <span class="act">Opened for review</span>
+                  <span class="det">Assigned to D. Okonkwo</span>
+                  <span class="ts">2026&#8209;06&#8209;17 · 11:07:31 ET</span>
+                </li>
+              </ol>
+            </div>
+            <div class="mode-line">
+              <span class="badge">DETERMINISTIC_RULES</span>
+              Replay run · no live-AI fallback · figures traceable to recorded signals.
+            </div>
+          </section>
+
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="foot">
+    <div class="wrap">
+      <span class="lim">
+        RESILIX ActionOps · on-demand decision support, not continuous monitoring.
+        Recorded-signal demo — figures are illustrative and reviewer-gated.
+      </span>
+      <a href="#top">Back to top ↑</a>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---- Bar fills (fire after first paint; reduced-motion shows final width) ----
+  const bars = document.querySelectorAll(".bar-fill");
+  const setBars = () => bars.forEach((b) => { b.style.width = (b.dataset.w || "0") + "%"; });
+  if (reduce) { setBars(); }
+  else { requestAnimationFrame(() => requestAnimationFrame(setBars)); }
+
+  // ---- Count-up (threat params) ----
+  const counts = document.querySelectorAll(".countup");
+  if (reduce) {
+    counts.forEach((el) => { el.textContent = el.dataset.to; });
+  } else {
+    const animate = (el) => {
+      const to = parseInt(el.dataset.to, 10);
+      const dur = 900;
+      const start = performance.now();
+      const tick = (now) => {
+        const p = Math.min(1, (now - start) / dur);
+        // easeOutCubic
+        const e = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(to * e).toString();
+        if (p < 1) requestAnimationFrame(tick);
+        else el.textContent = to.toString();
+      };
+      requestAnimationFrame(tick);
+    };
+    // small delay so it lands with the reveal of the threat card
+    setTimeout(() => counts.forEach(animate), 360);
+  }
+
+  // ---- Approve flow: PENDING -> APPROVED + audit entry ----
+  const btn = document.getElementById("approveBtn");
+  const pill = document.getElementById("approve-pill");
+  const block = document.getElementById("approvedBlock");
+  const tsEl = document.getElementById("approvedTs");
+  const log = document.getElementById("auditLog");
+
+  const fmtNow = () => {
+    // Deterministic-looking demo timestamp continuing the trail
+    return "2026-06-17 · 11:09:48 ET";
+  };
+
+  btn.addEventListener("click", () => {
+    if (btn.disabled) return;
+    btn.disabled = true;
+
+    // flip status pill
+    pill.dataset.state = "approved";
+    pill.innerHTML = '<span class="dot" aria-hidden="true"></span> Approved';
+
+    // morph button to a calm confirmed state
+    btn.style.background = "linear-gradient(180deg, var(--sev-low), oklch(0.500 0.060 168))";
+    btn.style.boxShadow = "0 1px 0 oklch(0.99 0.01 162 / 0.25) inset";
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg> Approved';
+
+    // reveal confirmation block
+    const ts = fmtNow();
+    tsEl.textContent = ts;
+    block.classList.add("show");
+
+    // append the audit-trail entry (the payoff: state change writes a record)
+    const li = document.createElement("li");
+    li.className = "live";
+    li.innerHTML =
+      '<span class="act">Packet approved</span>' +
+      '<span class="det">D. Okonkwo · drafts released for execution · token ••••8842</span>' +
+      '<span class="ts">' + ts + '</span>';
+    // mark the previous live node as not-live so only the newest pulses
+    log.querySelectorAll("li.live").forEach((n) => n.classList.remove("live"));
+    log.appendChild(li);
+    if (!reduce) li.animate(
+      [{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "translateY(0)" }],
+      { duration: 420, easing: "cubic-bezier(0.22,1,0.36,1)" }
+    );
+
+    // move focus to the confirmation for screen-reader users
+    block.setAttribute("tabindex", "-1");
+    block.focus({ preventScroll: true });
+  });
+})();
+</script>
+</body>
+</html>

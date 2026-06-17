@@ -1,6 +1,9 @@
 import { Slot } from "@radix-ui/react-slot";
 import { cn } from "@/lib/utils";
 
+// Restyled to the calm-command-center tokens. API unchanged (variant/size/
+// asChild) so every caller and test stays valid. The :active translate gives a
+// small tactile push without any continuous motion — calm, not cinematic.
 export function Button({
   children,
   className,
@@ -17,16 +20,16 @@ export function Button({
   return (
     <Comp
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md border font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex items-center justify-center gap-2 rounded-md border font-medium transition-colors duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55",
         size === "sm" ? "h-8 px-3 text-xs" : "h-10 px-4 text-sm",
         variant === "primary" &&
-          "border-teal-700 bg-teal-700 text-white hover:bg-teal-800",
+          "border-accent-strong bg-accent text-accent-ink hover:bg-accent-strong",
         variant === "secondary" &&
-          "border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50",
+          "border-line-strong bg-surface text-ink hover:bg-sink",
         variant === "ghost" &&
-          "border-transparent bg-transparent text-zinc-700 hover:bg-zinc-100",
+          "border-transparent bg-transparent text-ink-muted hover:bg-sink hover:text-ink",
         variant === "danger" &&
-          "border-red-700 bg-red-700 text-white hover:bg-red-800",
+          "border-danger bg-danger text-accent-ink hover:opacity-90",
         className
       )}
       {...props}

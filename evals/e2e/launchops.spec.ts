@@ -17,8 +17,10 @@ test("runs flagship scenario and approves decision packet", async ({ page }) => 
   await runButton.click();
   expect((await runResponse).ok()).toBe(true);
 
+  // The live-pipeline result (V1) renders the ranked options + the approval
+  // console together — no tab to open — so approve-packet is visible alongside
+  // decision-packet once the run returns.
   await expect(page.getByTestId("decision-packet")).toBeVisible({ timeout: 30_000 });
-  await page.getByRole("button", { name: "Approval Console" }).click();
   await page.getByTestId("approve-packet").click();
   await expect(page.getByText("APPROVED").first()).toBeVisible();
 });

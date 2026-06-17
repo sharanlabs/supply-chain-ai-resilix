@@ -1,13 +1,37 @@
 import { cn } from "@/lib/utils";
 
-type BadgeTone = "neutral" | "success" | "warning" | "critical" | "info";
+// Tones map to the design tokens (globals.css @theme). The original five tones
+// (neutral/success/warning/critical/info) are kept so existing callers and tests
+// stay valid; severity tones (low/medium/high/critical-sev) drive the threat /
+// exposure ramp. Every tone carries one meaning — no decorative color.
+type BadgeTone =
+  | "neutral"
+  | "success"
+  | "warning"
+  | "critical"
+  | "info"
+  | "low"
+  | "medium"
+  | "high"
+  | "critical-sev"
+  | "accent";
 
+// Foreground tokens are the AA-compliant *-ink severity inks (>=4.5:1 small-text
+// contrast on the matching -soft fill); border/background tokens are unchanged so
+// the calm severity palette is preserved. success/critical already clear AA on
+// their soft fills (4.65 / 4.87), so they keep their base tokens.
 const tones: Record<BadgeTone, string> = {
-  neutral: "border-zinc-300 bg-zinc-50 text-zinc-700",
-  success: "border-green-200 bg-green-50 text-green-800",
-  warning: "border-amber-200 bg-amber-50 text-amber-800",
-  critical: "border-red-200 bg-red-50 text-red-800",
-  info: "border-cyan-200 bg-cyan-50 text-cyan-800"
+  neutral: "border-line-strong bg-sink text-ink-muted",
+  success: "border-positive/30 bg-positive-soft text-positive",
+  warning: "border-caution/30 bg-caution-soft text-caution-ink",
+  critical: "border-danger/30 bg-danger-soft text-danger",
+  info: "border-accent/25 bg-accent-soft text-accent-strong",
+  accent: "border-accent/25 bg-accent-soft text-accent-strong",
+  low: "border-sev-low/30 bg-sev-low-soft text-sev-low-ink",
+  medium: "border-sev-medium/35 bg-sev-medium-soft text-sev-medium-ink",
+  high: "border-sev-high/35 bg-sev-high-soft text-sev-high-ink",
+  "critical-sev":
+    "border-sev-critical/35 bg-sev-critical-soft text-sev-critical-ink"
 };
 
 export function Badge({
@@ -22,7 +46,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center rounded border px-2 text-xs font-semibold",
+        "inline-flex h-[1.375rem] items-center gap-1 rounded border px-2 text-[0.6875rem] font-semibold tracking-wide uppercase",
         tones[tone],
         className
       )}

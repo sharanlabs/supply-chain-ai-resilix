@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RESILIX ActionOps — Action Packet</title>
+
+<!-- Editorial pairing, identical to app/layout.tsx: Newsreader (refined serif,
+     optical sizing + italic) for the briefing lede; Geist + Geist Mono for body,
+     labels, and all figures. Loaded via Google Fonts to match the next/font
+     faces the live app uses. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&display=swap"
+  rel="stylesheet"
+/>
+
+<style>
+/* ===========================================================================
+   RESILIX ActionOps — "calm command center" design language.
+   Tokens, panel/table/runway patterns, severity ramp, and reduced-motion block
+   are carried VERBATIM from app/globals.css (existing system — match, never
+   reinvent). This exploration renders the Action Packet screen under the
+   EDITORIAL-BRIEFING lens: threat + evidence as the story (serif lede +
+   standfirst), exposure & runway as the supporting evidence, briefing rhythm.
+   =========================================================================== */
+
+:root {
+  /* Surfaces — warm off-white ground, lifted panels, a tinted sink. */
+  --color-ground: oklch(0.982 0.004 152);
+  --color-surface: oklch(1 0 0);
+  --color-sink: oklch(0.965 0.006 152);
+  --color-line: oklch(0.906 0.008 152);
+  --color-line-strong: oklch(0.84 0.01 152);
+
+  /* Text — deep ink (not #000), a muted mid, a faint label grey. */
+  --color-ink: oklch(0.27 0.018 168);
+  --color-ink-muted: oklch(0.48 0.014 168);
+  --color-ink-faint: oklch(0.52 0.012 168);
+
+  /* One confident accent — refined teal. */
+  --color-accent: oklch(0.52 0.072 184);
+  --color-accent-strong: oklch(0.46 0.078 184);
+  --color-accent-soft: oklch(0.95 0.022 184);
+  --color-accent-ink: oklch(0.99 0.004 184);
+
+  /* Semantic severity — a single perceptual ramp, calm -> alarm. */
+  --color-sev-low: oklch(0.55 0.05 200);
+  --color-sev-low-soft: oklch(0.955 0.02 200);
+  --color-sev-medium: oklch(0.62 0.1 95);
+  --color-sev-medium-soft: oklch(0.96 0.035 95);
+  --color-sev-high: oklch(0.62 0.13 55);
+  --color-sev-high-soft: oklch(0.96 0.04 55);
+  --color-sev-critical: oklch(0.53 0.16 28);
+  --color-sev-critical-soft: oklch(0.955 0.035 28);
+
+  /* Status semantics distinct from severity (mode/approval/validation). */
+  --color-positive: oklch(0.52 0.1 152);
+  --color-positive-soft: oklch(0.955 0.03 152);
+  --color-caution: oklch(0.6 0.12 75);
+  --color-caution-soft: oklch(0.96 0.04 75);
+  --color-danger: oklch(0.53 0.16 28);
+  --color-danger-soft: oklch(0.955 0.035 28);
+
+  --radius-card: 0.5rem;
+
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", monospace;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  min-width: 320px;
+  background: var(--color-ground);
+}
+
+body {
+  margin: 0;
+  color: var(--color-ink);
+  background: var(--color-ground);
+  font-family: var(--font-sans);
+  font-feature-settings: "cv01", "ss01";
+  letter-spacing: -0.003em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button { font: inherit; cursor: pointer; }
+
+/* Every interactive element gets a visible, accent-keyed focus ring. */
+button:focus-visible,
+a:focus-visible,
+[role="tab"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* All figures align in columns and read as data, not prose. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Briefing headline voice — the serif display face, optically sized. */
+.headline {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  letter-spacing: -0.012em;
+}
+
+/* A panel: one hairline, a faint warm lift — no decorative drop shadow. */
+.panel {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+}
+
+.table-scroll { width: 100%; overflow-x: auto; }
+.table-scroll .brief-table { min-width: 32rem; }
+
+.brief-table { width: 100%; border-collapse: collapse; }
+
+.brief-table th,
+.brief-table td {
+  border-bottom: 1px solid var(--color-line);
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.brief-table thead th {
+  color: var(--color-ink-faint);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom-color: var(--color-line-strong);
+}
+
+.brief-table tbody tr:last-child td { border-bottom: none; }
+.brief-table td { font-size: 0.875rem; }
+
+/* Runway bar track — the inline sparkline-style exposure-over-time gauge. */
+.runway-track {
+  position: relative;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--color-sink);
+  overflow: hidden;
+}
+
+.runway-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ===========================================================================
+   Editorial-briefing composition (this exploration's own layer).
+   =========================================================================== */
+
+.shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 4vw, 2.5rem);
+}
+
+/* --- Masthead: a wire-service nameplate, honesty badge on the right -------- */
+.masthead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.5rem 0 1rem;
+  border-bottom: 1.5px solid var(--color-ink);
+  flex-wrap: wrap;
+}
+
+.nameplate {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625rem;
+}
+
+.nameplate .mark {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.nameplate .sub {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-accent-strong);
+}
+
+.masthead-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--color-ink-muted);
+}
+
+.masthead-meta .edition {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Honesty / mode badge — the trust element. Recorded (CACHED) vs LIVE. */
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem 0.3rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-sink);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-muted);
+}
+.mode-badge .pip {
+  width: 0.45rem; height: 0.45rem; border-radius: 999px;
+  background: var(--color-ink-faint);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ink-faint) 18%, transparent);
+}
+.mode-badge.is-recorded .pip { background: var(--color-caution); box-shadow: 0 0 0 3px var(--color-caution-soft); }
+
+/* --- Tab navigation (the 4-tab shell) ------------------------------------- */
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--color-line);
+  margin-top: 0.25rem;
+  overflow-x: auto;
+}
+.tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.85rem 0.95rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--color-ink-faint);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.tab:hover { color: var(--color-ink); }
+.tab[aria-selected="true"] {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-accent);
+  font-weight: 600;
+}
+.tab .count {
+  font-size: 0.625rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0.05rem 0.35rem;
+  border-radius: 999px;
+  background: var(--color-sink);
+  color: var(--color-ink-muted);
+}
+.tab[aria-selected="true"] .count {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+}
+
+/* --- Briefing layout: lede column + evidence rail ------------------------- */
+.brief {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  gap: clamp(1.5rem, 4vw, 2.75rem);
+  padding: 2rem 0 3rem;
+  align-items: start;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+  margin-bottom: 0.85rem;
+}
+.kicker .dateline { color: var(--color-ink-faint); font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+
+/* Severity chip — perceptual ramp, color carries meaning. */
+.sev-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sev-chip.crit { background: var(--color-sev-critical-soft); color: var(--color-sev-critical); }
+.sev-chip.high { background: var(--color-sev-high-soft); color: var(--color-sev-high); }
+.sev-chip.med  { background: var(--color-sev-medium-soft); color: var(--color-sev-medium); }
+.sev-chip.low  { background: var(--color-sev-low-soft); color: var(--color-sev-low); }
+.sev-chip .dot { width: 0.4rem; height: 0.4rem; border-radius: 999px; background: currentColor; }
+
+/* The lede — the threat as a wire-service headline. */
+.lede {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-size: clamp(2rem, 4.6vw, 3.05rem);
+  line-height: 1.06;
+  letter-spacing: -0.018em;
+  color: var(--color-ink);
+  margin: 0.75rem 0 0;
+  text-wrap: balance;
+}
+.lede em { font-style: italic; color: var(--color-accent-strong); }
+
+/* Standfirst — the briefing's leading paragraph, generous leading. */
+.standfirst {
+  font-size: 1.0625rem;
+  line-height: 1.62;
+  color: var(--color-ink-muted);
+  max-width: 38ch;
+  margin: 1.1rem 0 0;
+}
+.standfirst strong { color: var(--color-ink); font-weight: 600; }
+
+/* Deterministic evidence line — the trust element, templated from checks. */
+.evidence {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-top: 1.6rem;
+  padding: 0.85rem 1rem;
+  background: var(--color-positive-soft);
+  border: 1px solid color-mix(in oklch, var(--color-positive) 22%, transparent);
+  border-radius: 6px;
+}
+.evidence .check {
+  flex: none;
+  width: 1.15rem; height: 1.15rem;
+  margin-top: 0.05rem;
+  color: var(--color-positive);
+}
+.evidence-body { font-size: 0.8125rem; line-height: 1.5; color: var(--color-ink); }
+.evidence-body .lbl {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-positive);
+  margin-bottom: 0.15rem;
+}
+.evidence-body .src { color: var(--color-ink-muted); }
+.evidence-body .src b { color: var(--color-ink); font-weight: 600; }
+
+/* Threat vitals — a tight definition strip under the lede, no cards. */
+.vitals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 1.75rem;
+  border-top: 1px solid var(--color-line);
+}
+.vital {
+  padding: 0.95rem 1.1rem 0.95rem 0;
+  border-right: 1px solid var(--color-line);
+}
+.vital:last-child { border-right: none; padding-right: 0; }
+.vital .vk {
+  font-size: 0.625rem; font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--color-ink-faint);
+}
+.vital .vv {
+  font-family: var(--font-serif);
+  font-size: 1.5rem; font-weight: 500; line-height: 1.1;
+  margin-top: 0.35rem; color: var(--color-ink);
+  letter-spacing: -0.01em;
+}
+.vital .vv small { font-size: 0.8rem; color: var(--color-ink-muted); font-family: var(--font-sans); }
+
+/* --- Evidence rail (right column): exposure + runway ---------------------- */
+.rail { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.section-eyebrow {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 0.75rem; margin-bottom: 0.7rem;
+}
+.section-eyebrow h2 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--color-ink);
+}
+.section-eyebrow .meta { font-size: 0.6875rem; color: var(--color-ink-faint); font-variant-numeric: tabular-nums; }
+
+.panel-pad { padding: 1.15rem 1.25rem 1.25rem; }
+
+/* Exposure table: supplier / at-risk $ / runway sparkline. */
+.exposure-table td .supplier { font-weight: 600; color: var(--color-ink); }
+.exposure-table td .geo { display: block; font-size: 0.6875rem; color: var(--color-ink-faint); margin-top: 0.1rem; font-variant-numeric: tabular-nums; }
+.exposure-table .amt { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; white-space: nowrap; }
+.exposure-table thead th.amt { text-align: right; }
+
+.runway-cell { width: 40%; }
+.runway-wrap { display: flex; align-items: center; gap: 0.6rem; }
+.runway-wrap .runway-track { flex: 1; }
+.runway-wrap .days {
+  font-size: 0.75rem; font-weight: 600; font-variant-numeric: tabular-nums;
+  white-space: nowrap; min-width: 2.6rem; text-align: right;
+}
+.runway-wrap .days small { font-weight: 500; color: var(--color-ink-faint); }
+
+.exposure-foot {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-top: 0.9rem; padding-top: 0.85rem;
+  border-top: 1px solid var(--color-line-strong);
+}
+.exposure-foot .lab { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-ink-faint); }
+.exposure-foot .total { font-family: var(--font-serif); font-size: 1.5rem; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--color-ink); }
+
+/* Runway / simulation brief — horizon ladder. */
+.horizons { display: flex; flex-direction: column; gap: 0.5rem; }
+.horizon {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+.horizon .hlabel { font-size: 0.75rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-ink-muted); }
+.horizon .htrack { height: 0.4rem; border-radius: 999px; background: var(--color-sink); overflow: hidden; position: relative; }
+.horizon .hfill {
+  position: absolute; inset: 0 auto 0 0; border-radius: 999px;
+  transition: width 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.horizon .hval { font-size: 0.8125rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-ink); white-space: nowrap; }
+.horizon .hval small { font-weight: 500; color: var(--color-ink-faint); }
+.runout-note { margin-top: 0.95rem; font-size: 0.75rem; line-height: 1.5; color: var(--color-ink-muted); }
+.runout-note b { color: var(--color-sev-high); font-weight: 600; }
+
+/* --- Action bar: gatekeeper + the prominent, trustworthy APPROVE ---------- */
+.action-bar {
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--color-ink);
+  padding: 1.5rem 0 2.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2rem;
+  align-items: center;
+}
+
+.gate {
+  display: flex; flex-direction: column; gap: 0.55rem;
+}
+.gate-status {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.03em;
+  color: var(--color-positive);
+}
+.gate-status .ring {
+  width: 1.05rem; height: 1.05rem; flex: none; color: var(--color-positive);
+}
+.gate-checks {
+  display: flex; flex-wrap: wrap; gap: 0.4rem 1.1rem;
+  font-size: 0.75rem; color: var(--color-ink-muted);
+}
+.gate-checks li { list-style: none; display: inline-flex; align-items: center; gap: 0.4rem; }
+.gate-checks { padding: 0; margin: 0; }
+.gate-checks .tick { width: 0.85rem; height: 0.85rem; color: var(--color-positive); flex: none; }
+
+.approve-zone { display: flex; flex-direction: column; align-items: flex-end; gap: 0.55rem; }
+
+.btn-approve {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 0.6rem;
+  padding: 0.85rem 1.6rem;
+  border: 1px solid var(--color-accent-strong);
+  border-radius: 7px;
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  box-shadow: 0 1px 0 0 color-mix(in oklch, var(--color-accent-strong) 60%, transparent),
+              0 6px 16px -8px color-mix(in oklch, var(--color-accent-strong) 55%, transparent);
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-approve:hover { background: var(--color-accent-strong); }
+.btn-approve:active { transform: translateY(1px); box-shadow: 0 1px 4px -2px color-mix(in oklch, var(--color-accent-strong) 50%, transparent); }
+.btn-approve svg { width: 1.05rem; height: 1.05rem; }
+.btn-approve.is-approved {
+  background: var(--color-positive);
+  border-color: var(--color-positive);
+  box-shadow: none;
+  pointer-events: none;
+}
+.approve-meta { font-size: 0.6875rem; color: var(--color-ink-faint); text-align: right; max-width: 22ch; line-height: 1.4; }
+.approve-meta .audit { color: var(--color-positive); font-weight: 600; }
+
+/* --- Entry motion (reveal) ------------------------------------------------ */
+.reveal { opacity: 0; transform: translateY(8px); }
+.is-in .reveal { animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.is-in .reveal { animation-delay: calc(var(--i, 0) * 70ms); }
+@keyframes rise { to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 860px) {
+  .brief { grid-template-columns: 1fr; }
+  .action-bar { grid-template-columns: 1fr; gap: 1.25rem; }
+  .approve-zone { align-items: stretch; }
+  .btn-approve { justify-content: center; }
+  .approve-meta { text-align: left; max-width: none; }
+  .vitals { grid-template-columns: 1fr; }
+  .vital { border-right: none; border-bottom: 1px solid var(--color-line); padding: 0.85rem 0; }
+  .vital:last-child { border-bottom: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  .reveal { opacity: 1; transform: none; }
+}
+</style>
+</head>
+
+<body>
+<div class="shell">
+
+  <!-- ===================== MASTHEAD ===================== -->
+  <header class="masthead">
+    <div class="nameplate">
+      <span class="mark">RESILIX</span>
+      <span class="sub">ActionOps</span>
+    </div>
+    <div class="masthead-meta">
+      <span class="edition">Packet&nbsp;RX-2026-0617-014</span>
+      <span class="mode-badge is-recorded" title="Signals are recorded fixtures, not a live fetch. Capture date shown.">
+        <span class="pip" aria-hidden="true"></span>
+        Recorded signals · 2026-06-15
+      </span>
+    </div>
+  </header>
+
+  <!-- ===================== TAB SHELL ===================== -->
+  <nav class="tabs" role="tablist" aria-label="Decision packet sections">
+    <button class="tab" role="tab" aria-selected="false">Live Events <span class="count">3</span></button>
+    <button class="tab" role="tab" aria-selected="false">Exposure <span class="count">7</span></button>
+    <button class="tab" role="tab" aria-selected="false">Simulation</button>
+    <button class="tab" role="tab" aria-selected="true" aria-current="page">Action Packet</button>
+  </nav>
+
+  <!-- ===================== BRIEFING ===================== -->
+  <main class="brief" id="screen">
+
+    <!-- LEDE COLUMN: the threat as the story -->
+    <article class="lede-col">
+      <div class="kicker reveal" style="--i:0">
+        <span class="sev-chip crit"><span class="dot" aria-hidden="true"></span>Critical</span>
+        <span class="dateline">Strait of Hormuz · ENERGY</span>
+      </div>
+
+      <h1 class="lede reveal" style="--i:1">
+        Hormuz closure scenario threatens a <em>40% throughput cut</em> across a 14-day window.
+      </h1>
+
+      <p class="standfirst reveal" style="--i:2">
+        Recorded maritime and federal signals describe a partial closure of the Strait of Hormuz
+        with an estimated <strong>40% reduction in transit capacity</strong> and a projected
+        <strong>14-day</strong> duration. Two energy and chemicals suppliers sit directly in the
+        affected lane; one runs out of buffer inside a week.
+      </p>
+
+      <!-- Deterministic evidence line — the trust element -->
+      <div class="evidence reveal" style="--i:3" role="note" aria-label="Evidence verification">
+        <svg class="check" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="9.25" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M8.25 12.25l2.5 2.5 5-5.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="evidence-body">
+          <span class="lbl">Evidence verified</span>
+          <span class="src"><b>3 sources</b>, all &lt;48h, <b>2 independent outlets</b> — corroboration and recency checks passed deterministically.</span>
+        </div>
+      </div>
+
+      <!-- Threat vitals — definition strip, no cards -->
+      <div class="vitals reveal" style="--i:4">
+        <div class="vital">
+          <div class="vk">Throughput cut</div>
+          <div class="vv tnum"><span data-count="40" data-suffix="%">0%</span></div>
+        </div>
+        <div class="vital">
+          <div class="vk">Window</div>
+          <div class="vv tnum"><span data-count="14">0</span> <small>days</small></div>
+        </div>
+        <div class="vital">
+          <div class="vk">Suppliers exposed</div>
+          <div class="vv tnum"><span data-count="2">0</span> <small>of 7 scanned</small></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- EVIDENCE RAIL: exposure + runway/simulation -->
+    <aside class="rail">
+
+      <!-- Exposure -->
+      <section class="panel reveal" style="--i:3" aria-labelledby="exp-h">
+        <div class="panel-pad">
+          <div class="section-eyebrow">
+            <h2 id="exp-h">Exposure</h2>
+            <span class="meta">Atlas · deterministic</span>
+          </div>
+          <div class="table-scroll">
+            <table class="brief-table exposure-table">
+              <thead>
+                <tr>
+                  <th scope="col">Supplier</th>
+                  <th scope="col">Runway</th>
+                  <th scope="col" class="amt">At-risk $</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <span class="supplier">Gulf Energy Co</span>
+                    <span class="geo tnum">Bandar Abbas, IR · Energy</span>
+                  </td>
+                  <td class="runway-cell">
+                    <div class="runway-wrap">
+                      <div class="runway-track"><div class="runway-fill" data-fill="20" style="background: var(--color-sev-critical)"></div></div>
+                      <span class="days tnum">7<small>d</small></span>
+                    </div>
+                  </td>
+                  <td class="amt tnum"><span data-count="2.1" data-prefix="$" data-suffix="M" data-dec="1">$0.0M</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <span class="supplier">Chemix Ltd</span>
+                    <span class="geo tnum">Jubail, SA · Chemicals</span>
+                  </td>
+                  <td class="runway-cell">
+                    <div class="runway-wrap">
+                      <div class="runway-track"><div class="runway-fill" data-fill="44" style="background: var(--color-sev-high)"></div></div>
+                      <span class="days tnum">14<small>d</small></span>
+                    </div>
+                  </td>
+                  <td class="amt tnum"><span data-count="0.9" data-prefix="$" data-suffix="M" data-dec="1">$0.0M</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="exposure-foot">
+            <span class="lab">Total at risk</span>
+            <span class="total tnum"><span data-count="3.0" data-prefix="$" data-suffix="M" data-dec="1">$0.0M</span></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Runway / simulation brief -->
+      <section class="panel reveal" style="--i:4" aria-labelledby="sim-h">
+        <div class="panel-pad">
+          <div class="section-eyebrow">
+            <h2 id="sim-h">Runway &amp; simulation</h2>
+            <span class="meta">Tier-2 · seeded</span>
+          </div>
+          <div class="horizons" aria-label="Revenue at risk by horizon">
+            <div class="horizon">
+              <span class="hlabel">3d</span>
+              <div class="htrack"><div class="hfill" data-fill="22" style="background: var(--color-sev-low)"></div></div>
+              <span class="hval tnum"><span data-count="0.4" data-prefix="$" data-suffix="M" data-dec="1">$0.0M</span></span>
+            </div>
+            <div class="horizon">
+              <span class="hlabel">7d</span>
+              <div class="htrack"><div class="hfill" data-fill="48" style="background: var(--color-sev-medium)"></div></div>
+              <span class="hval tnum"><span data-count="1.3" data-prefix="$" data-suffix="M" data-dec="1">$0.0M</span></span>
+            </div>
+            <div class="horizon">
+              <span class="hlabel">14d</span>
+              <div class="htrack"><div class="hfill" data-fill="78" style="background: var(--color-sev-high)"></div></div>
+              <span class="hval tnum"><span data-count="3.0" data-prefix="$" data-suffix="M" data-dec="1">$0.0M</span></span>
+            </div>
+            <div class="horizon">
+              <span class="hlabel">30d</span>
+              <div class="htrack"><div class="hfill" data-fill="100" style="background: var(--color-sev-critical)"></div></div>
+              <span class="hval tnum"><span data-count="4.6" data-prefix="$" data-suffix="M" data-dec="1">$0.0M</span></span>
+            </div>
+          </div>
+          <p class="runout-note">
+            First buffer runout — <b>Gulf Energy Co on 2026-06-22</b> (day 7). Mitigation: air-freight
+            expedite recovers ~9 days at $0.18M; ranked first by cost-to-risk.
+          </p>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <!-- ===================== ACTION BAR ===================== -->
+  <footer class="action-bar reveal" style="--i:6">
+    <div class="gate" role="status">
+      <span class="gate-status">
+        <svg class="ring" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="9.25" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M8.25 12.25l2.5 2.5 5-5.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Gatekeeper: PASS — packet cleared for human review
+      </span>
+      <ul class="gate-checks">
+        <li><svg class="tick" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4 4 10-10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Every figure traces to a claim</li>
+        <li><svg class="tick" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4 4 10-10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>URLs in evidence allowlist</li>
+        <li><svg class="tick" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12.5l4 4 10-10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Entities matched to known suppliers</li>
+      </ul>
+    </div>
+
+    <div class="approve-zone">
+      <button class="btn-approve" id="approveBtn" type="button" aria-live="polite">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" id="approveIcon">
+          <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span id="approveLabel">Approve action packet</span>
+      </button>
+      <p class="approve-meta" id="approveMeta">
+        Drafts &amp; tasks dispatch on approval. Nothing sends automatically — every step is logged.
+      </p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var screen = document.getElementById("screen");
+
+  // Helper — format a count value back to its display string.
+  function fmt(el, v) {
+    var dec = parseInt(el.getAttribute("data-dec") || "0", 10);
+    var prefix = el.getAttribute("data-prefix") || "";
+    var suffix = el.getAttribute("data-suffix") || "";
+    return prefix + v.toFixed(dec) + suffix;
+  }
+
+  function setFinal() {
+    document.querySelectorAll("[data-count]").forEach(function (el) {
+      el.textContent = fmt(el, parseFloat(el.getAttribute("data-count")));
+    });
+    document.querySelectorAll("[data-fill]").forEach(function (el) {
+      el.style.width = el.getAttribute("data-fill") + "%";
+    });
+  }
+
+  function animate() {
+    // Bar fills — flip after first paint so the CSS transition runs.
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        document.querySelectorAll("[data-fill]").forEach(function (el) {
+          el.style.width = el.getAttribute("data-fill") + "%";
+        });
+      });
+    });
+    // Count-ups.
+    var D = 950;
+    document.querySelectorAll("[data-count]").forEach(function (el) {
+      var target = parseFloat(el.getAttribute("data-count"));
+      var t0 = null;
+      function step(ts) {
+        if (t0 === null) t0 = ts;
+        var p = Math.min((ts - t0) / D, 1);
+        var eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+        el.textContent = fmt(el, target * eased);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = fmt(el, target);
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  // Reveal + value reveal. Reduced motion → final state immediately.
+  if (reduce) {
+    setFinal();
+  } else {
+    requestAnimationFrame(function () {
+      screen.classList.add("is-in");
+      document.body.classList.add("is-in");
+      animate();
+    });
+  }
+  // is-in also drives the .reveal cascade on the action bar (outside #screen).
+  document.body.classList.add("is-in");
+
+  // Approve — PENDING → APPROVED state transition.
+  var btn = document.getElementById("approveBtn");
+  var label = document.getElementById("approveLabel");
+  var icon = document.getElementById("approveIcon");
+  var meta = document.getElementById("approveMeta");
+  btn.addEventListener("click", function () {
+    if (btn.classList.contains("is-approved")) return;
+    btn.classList.add("is-approved");
+    label.textContent = "Approved";
+    icon.innerHTML =
+      '<path d="M5 12.5l4 4 10-10.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>';
+    var stamp = "2026-06-17 09:42 UTC";
+    meta.innerHTML =
+      '<span class="audit">Approved &amp; recorded</span> — ' + stamp +
+      ' · packet RX-2026-0617-014 to audit trail.';
+  });
+})();
+</script>
+</body>
+</html>
