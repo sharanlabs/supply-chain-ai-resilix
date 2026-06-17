@@ -171,10 +171,24 @@ export function buildGolden(spec: GoldenSpec): GoldenScenario {
     updatedAt: now
   };
 
+  // The fetched-evidence allowlist is the run's full fetch manifest -- the threat
+  // card's evidence plus every public signal's source -- distinct from what the
+  // packet happens to render. Every url the packet shows must be in here.
+  const evidenceAllowlist = new Set<string>([
+    ...spec.threat.evidenceUrls,
+    ...(spec.signals ?? []).map((s) => s.sourceUrl)
+  ]);
+  // Pre-key the known products ARE the run's inventory (products are not seeded yet
+  // -- Phase 4/5). A runout for a product the run never declared is fabricated.
+  const knownProductIds = new Set<string>(
+    (spec.simInputs?.inventory ?? []).map((i) => i.productId)
+  );
+
   const groundTruth: ScenarioGroundTruth = {
     knownSupplierIds: KNOWN_SUPPLIER_IDS as Set<string>,
+    knownProductIds,
     expectedAffectedSupplierIds: spec.expectedAffectedSupplierIds as Set<string>,
-    evidenceAllowlist: new Set(spec.threat.evidenceUrls),
+    evidenceAllowlist,
     untrustedRawStrings: spec.untrustedRawStrings ?? [],
     offTaxonomyExpected: spec.offTaxonomyExpected,
     simInputs: spec.simInputs

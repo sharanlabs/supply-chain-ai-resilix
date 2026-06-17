@@ -5,6 +5,7 @@ import {
   ingestSupplierCsv,
   sanitizeCell
 } from "@/lib/ingest/supplier-csv";
+import { isSafeHttpUrl, MAX_SUMMARY_LEN, sanitizeText } from "@/lib/signals/sanitize";
 import { gradeInjectionQuarantine } from "@/lib/evals/graders";
 import { hormuz } from "@/evals/golden/scenarios";
 import {
@@ -16,10 +17,16 @@ import {
 // Prompt-injection eval (G-6), parameterized per channel. The PRIMARY grader is
 // deterministic structure, not an LLM read (the LLM grader is secondary and
 // key-gated). The CSV side runs against the REAL ingest, so it bites today; the
-// article side asserts the structural invariant a quarantined pipeline must hold.
+// article side asserts the structural invariant a quarantined pipeline must hold,
+// plus the real signal sanitizer/url guard over each payload.
 // ---------------------------------------------------------------------------
 
 const CANONICAL_ID = /^SUP-[0-9a-f]{16}$/;
+
+// Quote a value for a CSV cell (RFC-4180 double-quote escaping) so a payload
+// containing commas/quotes -- e.g. =HYPERLINK("http://evil","click") -- is parsed
+// as ONE field by the real papaparse path, exercising full quoted-CSV ingest.
+const csvQuote = (value: string) => `"${value.replace(/"/g, '""')}"`;
 
 describe("CSV channel: ingest neutralizes injection (teeth-now, real ingest)", () => {
   for (const payload of CSV_PAYLOADS) {
@@ -40,6 +47,21 @@ describe("CSV channel: ingest neutralizes injection (teeth-now, real ingest)", (
       const id = canonicalSupplierId(payload.raw, "US");
       expect(id).toMatch(CANONICAL_ID);
       expect(id.includes(payload.raw)).toBe(false);
+    });
+
+    it(`full quoted-CSV ingest neutralizes "${payload.label}"`, () => {
+      const csv = [
+        "name,country,region,risk_tier,standard_lead_time_days",
+        `${csvQuote(payload.raw)},US,Texas,HIGH,10`
+      ].join("\n");
+
+      const result = ingestSupplierCsv(csv);
+      expect(result.aborted).toBe(false);
+      expect(result.suppliers).toHaveLength(1);
+      const supplier = result.suppliers[0];
+      expect(supplier.id).toMatch(CANONICAL_ID);
+      expect(/^[=+\-@]/.test(supplier.name)).toBe(false);
+      if (payload.formulaTrigger) expect(supplier.name.startsWith("'")).toBe(true);
     });
   }
 
@@ -83,4 +105,23 @@ describe("article channel: structural quarantine invariant (the grader catches a
       expect(result.failures.some((f) => /raw untrusted text leaked/.test(f))).toBe(true);
     });
   }
+});
+
+describe("article channel: real signal sanitizer neutralizes the payload (teeth-now)", () => {
+  for (const payload of ARTICLE_PAYLOADS) {
+    it(`sanitizeText caps length + collapses whitespace for "${payload.label}"`, () => {
+      // The real Sentinel trust boundary (lib/signals/sanitize.ts) runs over article
+      // text before it is used: over-length input is capped and whitespace runs
+      // collapse. (Control-char stripping is covered directly in the signal-layer
+      // sanitize tests; here we exercise the boundary per injection payload.)
+      const out = sanitizeText(`${payload.raw}   padded   ${"x".repeat(1000)}`, MAX_SUMMARY_LEN);
+      expect(out.length).toBeLessThanOrEqual(MAX_SUMMARY_LEN);
+      expect(out).not.toMatch(/\s{2,}/);
+    });
+  }
+
+  it("the javascript:/data: lure is rejected by the real URL guard", () => {
+    expect(isSafeHttpUrl("javascript:alert(document.domain)")).toBe(false);
+    expect(isSafeHttpUrl("data:text/html,<script>1</script>")).toBe(false);
+  });
 });

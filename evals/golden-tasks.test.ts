@@ -2,9 +2,26 @@ import { describe, expect, it } from "vitest";
 
 import { DecisionPacketV2Schema } from "@/lib/schemas";
 import { describeFailures, runGraders } from "@/lib/evals/run-graders";
-import { GOLDEN_SCENARIOS, hormuz } from "@/evals/golden/scenarios";
+import { GOLDEN_SCENARIOS, hormuz, hurricane, redSea } from "@/evals/golden/scenarios";
 import { CORRUPTIONS } from "@/evals/golden/corruptions";
 import { HORMUZ_SUPPLIERS, HORMUZ_SUPPLIER_IDS } from "@/evals/golden/seed-ids";
+
+// Frozen, independently-computed snapshot of the 9 Hormuz supplier ids (computed
+// once via canonicalSupplierId over the seed's Gulf rows). Pinning the literals --
+// not re-deriving them through ingestSeed -- is what catches a seed/filter change
+// that silently reshapes the exposure set (Codex: "self-derived goldens catch
+// packet mutations, not wrong fixture logic").
+const GOLDEN_HORMUZ_IDS = [
+  "SUP-3fc84edef1e7aded", // Eastern Chemical Group 076 (SA)
+  "SUP-b09f39b9d9ca6ebc", // Jubail Chemical Manufacturing 077 (SA)
+  "SUP-518e5a10996d381f", // Abu Chemical Partners 078 (AE)
+  "SUP-5fd536f25142a489", // Ras Chemical Systems 079 (QA)
+  "SUP-618f1dc9c7b030d3", // Jebel Energy Group 092 (AE)
+  "SUP-9fbd398ae5be35ae", // Abu Energy Manufacturing 093 (AE)
+  "SUP-30c313786de0add0", // Eastern Energy Partners 094 (SA)
+  "SUP-739c8751e1541f8e", // Ras Energy Systems 095 (QA)
+  "SUP-40d0ceb654f7ec44" // Al Energy Solutions 096 (KW)
+];
 
 // ---------------------------------------------------------------------------
 // The hard merge-BLOCK (G-8). This file runs inside `npm test` -> `verify`, so a
@@ -136,5 +153,30 @@ describe("independent arithmetic + matching anchors (not f(x)===f(x))", () => {
       ).toBe(true);
     }
     expect(hormuz.groundTruth.expectedAffectedSupplierIds).toEqual(HORMUZ_SUPPLIER_IDS);
+  });
+
+  it("the Hormuz id set matches the frozen literal snapshot", () => {
+    expect(HORMUZ_SUPPLIER_IDS).toEqual(new Set(GOLDEN_HORMUZ_IDS));
+  });
+
+  it("Red Sea simulation matches the hand-computed values (5 IN suppliers x $8,000, 60-day cap)", () => {
+    //   7d  = 40,000 x 7  = 280,000;  30d = 40,000 x 30 = 1,200,000
+    //   90d = 40,000 x min(90,60) = 2,400,000;  runout = floor(900/30)=30d = 2026-07-17
+    const sim = redSea.packet.simulation!;
+    const at = (d: number) => sim.horizons.find((h) => h.days === d)?.revenueAtRiskUsd;
+    expect(at(7)).toBe(280_000);
+    expect(at(30)).toBe(1_200_000);
+    expect(at(90)).toBe(2_400_000);
+    expect(sim.productRunouts[0].runoutDate).toBe("2026-07-17");
+  });
+
+  it("Hurricane simulation matches the hand-computed values (1 supplier x $25,000, 14-day cap)", () => {
+    //   7d = 25,000 x 7 = 175,000;  30d = 25,000 x min(30,14) = 350,000
+    //   runout = floor(300/30)=10d = 2026-06-27
+    const sim = hurricane.packet.simulation!;
+    const at = (d: number) => sim.horizons.find((h) => h.days === d)?.revenueAtRiskUsd;
+    expect(at(7)).toBe(175_000);
+    expect(at(30)).toBe(350_000);
+    expect(sim.productRunouts[0].runoutDate).toBe("2026-06-27");
   });
 });

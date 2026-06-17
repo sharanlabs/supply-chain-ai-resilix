@@ -82,36 +82,43 @@ describe("resolveSourcePath", () => {
 // NOT (so the citation grader does not reject a correct draft over "THREAT-001").
 // ---------------------------------------------------------------------------
 describe("extractSourceableNumerals", () => {
+  const figures = (text: string) => extractSourceableNumerals(text).figures;
+
   it("catches asserted figures: currency, counts, percents, day counts", () => {
-    expect(extractSourceableNumerals("revenue at risk is $50,000 over the window")).toEqual([
-      50_000
+    expect(figures("revenue at risk is $50,000 over the window")).toEqual([50_000]);
+    expect(figures("a 7-day exposure window")).toEqual([7]);
+    expect(figures("a 40% surcharge applies")).toEqual([40]);
+    expect(figures("9 suppliers are exposed")).toEqual([9]);
+    expect(figures("we see $50,000 at 7 days and $200,000 at 30 days")).toEqual([
+      50_000, 7, 200_000, 30
     ]);
-    expect(extractSourceableNumerals("a 7-day exposure window")).toEqual([7]);
-    expect(extractSourceableNumerals("a 40% surcharge applies")).toEqual([40]);
-    expect(extractSourceableNumerals("9 suppliers are exposed")).toEqual([9]);
-    expect(
-      extractSourceableNumerals("we see $50,000 at 7 days and $200,000 at 30 days")
-    ).toEqual([50_000, 7, 200_000, 30]);
+  });
+
+  it("reads K/M/B magnitude suffixes (no silent misread of $1.2M as 1.2)", () => {
+    expect(figures("exposure of $1.2M this quarter")).toEqual([1_200_000]);
+    expect(figures("3k units affected")).toEqual([3_000]);
+    expect(figures("$2.5B at risk")).toEqual([2_500_000_000]);
   });
 
   it("does NOT flag id-internal digits (SUP-100, THREAT-001, EXP-001)", () => {
-    expect(extractSourceableNumerals("supplier SUP-100 via THREAT-001 and EXP-001")).toEqual(
-      []
-    );
-    expect(extractSourceableNumerals("see packet DP-v2-fixture line AI-001")).toEqual([]);
+    expect(figures("supplier SUP-100 via THREAT-001 and EXP-001")).toEqual([]);
+    expect(figures("see packet DP-v2-fixture line AI-001")).toEqual([]);
   });
 
-  it("does NOT flag calendar dates", () => {
-    expect(extractSourceableNumerals("projected runout 2026-07-01")).toEqual([]);
-    expect(
-      extractSourceableNumerals("captured at 2026-06-13T12:00:00.000Z by Sentinel")
-    ).toEqual([]);
+  it("does NOT flag calendar dates or slash ratios", () => {
+    expect(figures("projected runout 2026-07-01")).toEqual([]);
+    expect(figures("captured at 2026-06-13T12:00:00.000Z by Sentinel")).toEqual([]);
+    expect(figures("operating 24/7 since 6/30")).toEqual([]);
+  });
+
+  it("fails CLOSED on scientific notation rather than misreading it", () => {
+    const out = extractSourceableNumerals("risk is 1e6 dollars");
+    expect(out.figures).toEqual([]);
+    expect(out.unparseable).toEqual(["1e6"]);
   });
 
   it("reads a figure that sits next to an id or a date without bleeding into them", () => {
-    expect(
-      extractSourceableNumerals("SUP-100 carries $50,000 of risk as of 2026-07-01")
-    ).toEqual([50_000]);
+    expect(figures("SUP-100 carries $50,000 of risk as of 2026-07-01")).toEqual([50_000]);
   });
 });
 
@@ -130,10 +137,14 @@ describe("normalizeNumeral / sameFigure", () => {
   });
 
   it("guards non-string / empty input rather than throwing", () => {
-    expect(extractSourceableNumerals("")).toEqual([]);
-    expect(extractSourceableNumerals(null as unknown as string)).toEqual([]);
+    expect(extractSourceableNumerals("")).toEqual({ figures: [], unparseable: [] });
+    expect(extractSourceableNumerals(null as unknown as string)).toEqual({
+      figures: [],
+      unparseable: []
+    });
     expect(normalizeNumeral(null)).toBeNull();
     expect(normalizeNumeral({} as unknown)).toBeNull();
+    expect(normalizeNumeral("1.2M")).toBe(1_200_000);
   });
 });
 
@@ -148,6 +159,7 @@ const BASE_DATE = "2026-06-17T00:00:00.000Z";
 function groundTruth(overrides: Partial<ScenarioGroundTruth> = {}): ScenarioGroundTruth {
   return {
     knownSupplierIds: new Set(["SUP-100"]),
+    knownProductIds: new Set(["PROD-1"]),
     expectedAffectedSupplierIds: new Set(["SUP-100"]),
     evidenceAllowlist: new Set(["https://example.com/evidence-1"]),
     untrustedRawStrings: [],
