@@ -19,10 +19,12 @@ export default defineConfig({
         //   2026-06-17 (P3.1): lines 73.4 / stmts 72.7 / funcs 71.3 / branches 61.2
         //   2026-06-17 (P3.2): lines 78.3 / stmts 77.7 / funcs 75.8 / branches 66.8
         //     (signal layer reworked -- dead network fetchers removed, DI tests added)
-        lines: 77,
-        functions: 74,
-        statements: 76,
-        branches: 65
+        //   2026-06-17 (F):    lines 81.6 / stmts 81.3 / funcs 79.3 / branches 71.2
+        //     (deterministic eval graders added -- lib/evals/* at 98-100%)
+        lines: 80,
+        functions: 78,
+        statements: 80,
+        branches: 69
       }
     }
   },

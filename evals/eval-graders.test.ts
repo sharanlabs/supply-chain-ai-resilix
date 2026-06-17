@@ -6,6 +6,18 @@ import {
   normalizeNumeral,
   sameFigure
 } from "@/lib/evals/numerals";
+import {
+  gradeCitationCoverage,
+  gradeEvidence,
+  gradeExposureControl,
+  gradeOffTaxonomy,
+  gradeSimulatorArithmetic,
+  recomputeSimulation,
+  type ScenarioGroundTruth,
+  type SimInputs
+} from "@/lib/evals/graders";
+import { describeFailures, runGraders } from "@/lib/evals/run-graders";
+import { makeV2Packet } from "@/evals/fixtures/decision-packet-v2";
 
 // ---------------------------------------------------------------------------
 // sourcePath resolver -- the load-bearing parser under the citation grader. A
@@ -115,5 +127,131 @@ describe("normalizeNumeral / sameFigure", () => {
   it("treats equal figures as the same within float slack", () => {
     expect(sameFigure(50_000, 50_000)).toBe(true);
     expect(sameFigure(50_000, 50_001)).toBe(false);
+  });
+
+  it("guards non-string / empty input rather than throwing", () => {
+    expect(extractSourceableNumerals("")).toEqual([]);
+    expect(extractSourceableNumerals(null as unknown as string)).toEqual([]);
+    expect(normalizeNumeral(null)).toBeNull();
+    expect(normalizeNumeral({} as unknown)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Grader edge branches the golden corruptions do not exercise -- the failure
+// modes a future live packet can hit (a Tier-1/sim mismatch, an unresolvable
+// citation, a dangling evidence id, an unexplained OTHER_UNMAPPED, a bad score).
+// Each is asserted directly so the grader's contract is legible, not implied.
+// ---------------------------------------------------------------------------
+const BASE_DATE = "2026-06-17T00:00:00.000Z";
+
+function groundTruth(overrides: Partial<ScenarioGroundTruth> = {}): ScenarioGroundTruth {
+  return {
+    knownSupplierIds: new Set(["SUP-100"]),
+    expectedAffectedSupplierIds: new Set(["SUP-100"]),
+    evidenceAllowlist: new Set(["https://example.com/evidence-1"]),
+    untrustedRawStrings: [],
+    ...overrides
+  };
+}
+
+const SIM_INPUTS: SimInputs = {
+  baseDateIso: BASE_DATE,
+  durationDays: 30,
+  affected: [{ supplierId: "SUP-100", dailyRevenueUsd: 1_000 }],
+  horizonDays: [7],
+  inventory: [{ productId: "PROD-1", onHandUnits: 100, dailyUseUnits: 10 }]
+};
+
+describe("gradeSimulatorArithmetic edge branches", () => {
+  it("passes a Tier-1 record (no inputs, no simulation section)", () => {
+    const packet = makeV2Packet({ simulation: undefined });
+    expect(gradeSimulatorArithmetic(packet, groundTruth()).pass).toBe(true);
+  });
+
+  it("fails a Tier-1 record that nonetheless carries a simulation section", () => {
+    const packet = makeV2Packet(); // fixture includes a simulation
+    const result = gradeSimulatorArithmetic(packet, groundTruth());
+    expect(result.pass).toBe(false);
+    expect(result.failures.some((f) => /Tier-1 record carries a simulation/.test(f))).toBe(true);
+  });
+
+  it("fails when inputs exist but the packet has no simulation", () => {
+    const packet = makeV2Packet({ simulation: undefined });
+    const result = gradeSimulatorArithmetic(packet, groundTruth({ simInputs: SIM_INPUTS }));
+    expect(result.failures.some((f) => /no simulation section/.test(f))).toBe(true);
+  });
+
+  it("passes when the simulation exactly matches the recompute", () => {
+    const packet = makeV2Packet({
+      simulation: { ...recomputeSimulation(SIM_INPUTS), generatedAt: BASE_DATE }
+    });
+    expect(gradeSimulatorArithmetic(packet, groundTruth({ simInputs: SIM_INPUTS })).pass).toBe(true);
+  });
+
+  it("flags a horizon count mismatch and a missing horizon", () => {
+    const packet = makeV2Packet({
+      simulation: {
+        horizons: [
+          { days: 30, revenueAtRiskUsd: 1 },
+          { days: 90, revenueAtRiskUsd: 2 }
+        ],
+        productRunouts: [{ productId: "PROD-1", runoutDate: "2026-06-27" }],
+        generatedAt: BASE_DATE
+      }
+    });
+    const result = gradeSimulatorArithmetic(packet, groundTruth({ simInputs: SIM_INPUTS }));
+    expect(result.failures.some((f) => /horizon count 2 != expected 1/.test(f))).toBe(true);
+    expect(result.failures.some((f) => /missing 7-day horizon/.test(f))).toBe(true);
+  });
+
+  it("flags a missing product runout", () => {
+    const packet = makeV2Packet({
+      simulation: {
+        horizons: [{ days: 7, revenueAtRiskUsd: 7_000 }],
+        productRunouts: [],
+        generatedAt: BASE_DATE
+      }
+    });
+    const result = gradeSimulatorArithmetic(packet, groundTruth({ simInputs: SIM_INPUTS }));
+    expect(result.failures.some((f) => /missing runout for PROD-1/.test(f))).toBe(true);
+  });
+});
+
+describe("other grader edge branches", () => {
+  it("gradeEvidence flags an exposure citing an unknown evidence id", () => {
+    const packet = makeV2Packet();
+    packet.exposureResults[0].evidenceIds = ["NOPE"];
+    const result = gradeEvidence(packet, groundTruth());
+    expect(result.failures.some((f) => /cites unknown evidence NOPE/.test(f))).toBe(true);
+  });
+
+  it("gradeCitationCoverage flags a claim whose sourcePath does not resolve", () => {
+    const packet = makeV2Packet();
+    packet.supplierMessages[0].claims[0].sourcePath = "nowhere.in.packet";
+    const result = gradeCitationCoverage(packet);
+    expect(result.failures.some((f) => /does not resolve/.test(f))).toBe(true);
+  });
+
+  it("gradeOffTaxonomy flags OTHER_UNMAPPED with no stated reason", () => {
+    const packet = makeV2Packet();
+    packet.exposureResults[0].sector = "OTHER_UNMAPPED";
+    packet.exposureResults[0].rationale = "   ";
+    const result = gradeOffTaxonomy(packet, groundTruth());
+    expect(result.failures.some((f) => /OTHER_UNMAPPED without a stated reason/.test(f))).toBe(true);
+  });
+
+  it("gradeExposureControl flags a non-finite / negative score", () => {
+    const packet = makeV2Packet();
+    packet.exposureResults[0].exposureScore = -5;
+    const result = gradeExposureControl(packet, groundTruth());
+    expect(result.failures.some((f) => /not a finite, non-negative magnitude/.test(f))).toBe(true);
+  });
+
+  it("describeFailures prefixes each failure with its grader id", () => {
+    const packet = makeV2Packet();
+    packet.exposureResults[0].supplierId = "SUP-UNKNOWN";
+    const lines = describeFailures(runGraders(packet, groundTruth()));
+    expect(lines.some((l) => /^\[entity-ids\]/.test(l))).toBe(true);
   });
 });
