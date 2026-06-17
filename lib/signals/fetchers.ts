@@ -1,111 +1,65 @@
 import type { PublicSignal } from "@/lib/schemas";
 import { PublicSignalSchema } from "@/lib/schemas";
-import { cachedSignals } from "@/lib/signals/cached";
+import {
+  cachedSignals,
+  fixtureOnlySignals,
+  nwsCachedFixture
+} from "@/lib/signals/cached";
+import { fetchGdeltSignals } from "@/lib/signals/gdelt";
 
 const TIMEOUT_MS = 5000;
 
+// The ActionOps signal layer (P3.2). Two sources are live: GDELT DOC 2.0 -- the
+// primary disruption signal, resilient + self-degrading inside gdelt.ts -- and NWS.
+// USGS + NASA EONET are served as dated CACHED fixtures (fixture-only); Open-Meteo
+// was dropped (DNS SERVFAIL 2026-06-12). A failed live source degrades to cache,
+// labeled CACHED -- never LIVE -- so a degraded read is never mistaken for fresh.
+//
+// fetchImpl + now are injectable so the live composition (including the NWS-fail ->
+// CACHED path) is unit-testable without touching the network.
 export async function fetchPublicSignals({
-  useLive = true
+  useLive = true,
+  fetchImpl = fetch,
+  now = Date.now
 }: {
   useLive?: boolean;
+  fetchImpl?: typeof fetch;
+  now?: () => number;
 } = {}): Promise<PublicSignal[]> {
   if (!useLive) {
     return cachedSignals;
   }
 
-  const fetchers = [
-    fetchUsgsEarthquakeSignal,
-    fetchOpenMeteoSignal,
-    fetchNwsSignal,
-    fetchNasaEonetSignal
-  ];
+  // GDELT self-manages spacing/cache/backoff and never throws into the pipeline;
+  // every signal it returns is already stamped LIVE or CACHED.
+  const gdelt = await fetchGdeltSignals({ fetchImpl, now });
+  const nws = await fetchNwsOrCached(fetchImpl, now);
 
-  const settled = await Promise.allSettled(fetchers.map((fetcher) => fetcher()));
-  const liveSignals = settled.flatMap((result, index) => {
-    if (result.status === "fulfilled") {
-      return [result.value];
-    }
-    return [
-      {
-        ...cachedSignals[index % cachedSignals.length],
-        id: `${cachedSignals[index % cachedSignals.length].id}-FALLBACK`,
-        fetchedAt: new Date().toISOString(),
-        status: "FAILED" as const,
-        summary: `${cachedSignals[index % cachedSignals.length].summary} Live fetch failed: ${
-          result.reason instanceof Error ? result.reason.message : "unknown error"
-        }`
-      }
-    ];
-  });
-
-  return liveSignals.map((signal) => PublicSignalSchema.parse(signal));
+  const composed = [...gdelt.signals, nws, ...fixtureOnlySignals];
+  return composed.map((signal) => PublicSignalSchema.parse(signal));
 }
 
-export async function fetchUsgsEarthquakeSignal(): Promise<PublicSignal> {
-  const url =
-    "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson";
-  const data = await fetchJson<{
-    features: Array<{
-      id: string;
-      properties: { mag: number; place: string; time: number; url: string };
-      geometry: { coordinates: [number, number, number] };
-    }>;
-  }>(url);
-  const strongest = [...(data.features ?? [])].sort(
-    (a, b) => (b.properties.mag ?? 0) - (a.properties.mag ?? 0)
-  )[0];
-
-  if (!strongest) {
-    throw new Error("USGS returned no earthquake features");
+// Live NWS, degrading to the dated NWS fixture (CACHED, never LIVE) on any failure
+// -- so an outage shows clearly-cached data instead of throwing or faking a live read.
+async function fetchNwsOrCached(
+  fetchImpl: typeof fetch,
+  now: () => number
+): Promise<PublicSignal> {
+  try {
+    return await fetchNwsSignal(fetchImpl, now);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "unknown error";
+    return {
+      ...nwsCachedFixture,
+      summary: `${nwsCachedFixture.summary} (live NWS fetch failed: ${reason})`
+    };
   }
-
-  const magnitude = strongest.properties.mag ?? 0;
-  const fetchedAt = new Date().toISOString();
-  return {
-    id: `SIG-USGS-${strongest.id}`,
-    source: "USGS Earthquake Feed",
-    sourceUrl: strongest.properties.url || url,
-    fetchedAt,
-    eventType: "EARTHQUAKE_PROXIMITY",
-    location: {
-      lat: strongest.geometry.coordinates[1],
-      lon: strongest.geometry.coordinates[0],
-      region: strongest.properties.place
-    },
-    severity: magnitude >= 6.5 ? "HIGH" : magnitude >= 5.5 ? "MEDIUM" : "LOW",
-    summary: `Largest recent M${magnitude} earthquake reported at ${strongest.properties.place}.`,
-    freshnessMinutes: minutesSince(strongest.properties.time),
-    status: "LIVE"
-  };
 }
 
-export async function fetchOpenMeteoSignal(): Promise<PublicSignal> {
-  const url =
-    "https://api.open-meteo.com/v1/forecast?latitude=37.3382&longitude=-121.8863&current=temperature_2m,wind_speed_10m&forecast_days=1";
-  const data = await fetchJson<{
-    current: { time: string; temperature_2m: number; wind_speed_10m: number };
-  }>(url);
-  const wind = data.current.wind_speed_10m;
-  return {
-    id: "SIG-OPENMETEO-SJC",
-    source: "Open-Meteo Forecast",
-    sourceUrl: url,
-    fetchedAt: new Date().toISOString(),
-    eventType: "WEATHER_LOGISTICS",
-    location: {
-      lat: 37.3382,
-      lon: -121.8863,
-      region: "San Jose launch build center",
-      country: "United States"
-    },
-    severity: wind >= 55 ? "HIGH" : wind >= 35 ? "MEDIUM" : "LOW",
-    summary: `San Jose current weather: ${data.current.temperature_2m}C and ${wind} km/h wind.`,
-    freshnessMinutes: minutesSince(Date.parse(data.current.time)),
-    status: "LIVE"
-  };
-}
-
-export async function fetchNwsSignal(): Promise<PublicSignal> {
+export async function fetchNwsSignal(
+  fetchImpl: typeof fetch = fetch,
+  now: () => number = Date.now
+): Promise<PublicSignal> {
   const url = "https://api.weather.gov/alerts/active?area=CA";
   const data = await fetchJson<{
     features: Array<{
@@ -118,19 +72,20 @@ export async function fetchNwsSignal(): Promise<PublicSignal> {
         areaDesc: string;
       };
     }>;
-  }>(url, {
+  }>(url, fetchImpl, {
     headers: {
       "User-Agent": "resilix-actionops/0.1 portfolio-demo"
     }
   });
 
+  const fetchedAt = new Date(now()).toISOString();
   const alert = data.features?.[0];
   if (!alert) {
     return {
       id: "SIG-NWS-CA-NONE",
       source: "National Weather Service",
       sourceUrl: url,
-      fetchedAt: new Date().toISOString(),
+      fetchedAt,
       eventType: "WEATHER_ALERT",
       location: { region: "California", country: "United States" },
       severity: "LOW",
@@ -144,57 +99,25 @@ export async function fetchNwsSignal(): Promise<PublicSignal> {
     id: `SIG-NWS-${alert.id.split("/").pop() ?? "ALERT"}`,
     source: "National Weather Service",
     sourceUrl: url,
-    fetchedAt: new Date().toISOString(),
+    fetchedAt,
     eventType: "WEATHER_ALERT",
     location: { region: alert.properties.areaDesc, country: "United States" },
     severity: mapNwsSeverity(alert.properties.severity),
     summary: alert.properties.headline || alert.properties.event,
-    freshnessMinutes: minutesSince(Date.parse(alert.properties.sent)),
+    freshnessMinutes: minutesSince(Date.parse(alert.properties.sent), now),
     status: "LIVE"
   };
 }
 
-export async function fetchNasaEonetSignal(): Promise<PublicSignal> {
-  const url = "https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=5";
-  const data = await fetchJson<{
-    events: Array<{
-      id: string;
-      title: string;
-      link: string;
-      categories: Array<{ title: string }>;
-      geometry: Array<{ date: string; coordinates: [number, number] }>;
-    }>;
-  }>(url);
-
-  const event = data.events?.[0];
-  if (!event) {
-    throw new Error("NASA EONET returned no open events");
-  }
-  const geometry = event.geometry?.[0];
-
-  return {
-    id: `SIG-EONET-${event.id}`,
-    source: "NASA EONET",
-    sourceUrl: event.link || url,
-    fetchedAt: new Date().toISOString(),
-    eventType: event.categories?.[0]?.title ?? "NATURAL_EVENT",
-    location: {
-      lat: geometry?.coordinates?.[1],
-      lon: geometry?.coordinates?.[0],
-      region: event.title
-    },
-    severity: "LOW",
-    summary: `Open EONET event monitored: ${event.title}.`,
-    freshnessMinutes: geometry?.date ? minutesSince(Date.parse(geometry.date)) : 0,
-    status: "LIVE"
-  };
-}
-
-async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+async function fetchJson<T>(
+  url: string,
+  fetchImpl: typeof fetch,
+  init?: RequestInit
+): Promise<T> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const response = await fetch(url, {
+    const response = await fetchImpl(url, {
       ...init,
       signal: controller.signal,
       cache: "no-store"
@@ -208,11 +131,12 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   }
 }
 
-function minutesSince(timeMs: number) {
-  if (!Number.isFinite(timeMs)) {
+function minutesSince(timeMs: number, now: () => number) {
+  const ref = now();
+  if (!Number.isFinite(timeMs) || !Number.isFinite(ref)) {
     return 0;
   }
-  return Math.max(0, Math.round((Date.now() - timeMs) / 60000));
+  return Math.max(0, Math.round((ref - timeMs) / 60000));
 }
 
 function mapNwsSeverity(value: string): PublicSignal["severity"] {

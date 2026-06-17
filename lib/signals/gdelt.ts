@@ -88,7 +88,7 @@ export async function fetchGdeltSignals(opts: GdeltOptions = {}): Promise<GdeltR
   const maxRecords = clampInt(opts.maxRecords ?? 10, 1, MAX_RECORDS);
 
   if (opts.replayArticles) {
-    const { signals, skipped } = mapArticles(opts.replayArticles.slice(0, MAX_RECORDS), "CACHED", clock);
+    const { signals, skipped } = mapGdeltArticles(opts.replayArticles.slice(0, MAX_RECORDS), "CACHED", clock);
     return {
       signals,
       status: "CACHED",
@@ -176,7 +176,7 @@ async function liveFetch(
     clearTimeout(timer);
   }
 
-  const { signals, skipped } = mapArticles(articles.slice(0, maxRecords), "LIVE", clock);
+  const { signals, skipped } = mapGdeltArticles(articles.slice(0, maxRecords), "LIVE", clock);
   setCache(cacheKey, { at: clock(), signals });
   return {
     signals,
@@ -190,7 +190,12 @@ async function liveFetch(
 
 // --- mapping ---
 
-function mapArticles(
+// Map raw GDELT artlist articles to validated PublicSignals. Exported so the
+// replay fixtures (lib/signals/cached.ts) and any recorder go through the EXACT
+// mapping the live path uses -- a recorded fixture can never drift from the live
+// contract (the P2.6 "flow through the one core" lesson). `clock` fixes the
+// fetchedAt/freshness so a CACHED fixture is deterministic.
+export function mapGdeltArticles(
   articles: GdeltArticle[],
   status: "LIVE" | "CACHED",
   clock: () => number
