@@ -31,6 +31,8 @@ We move through fixed stages, one at a time, and **nothing advances until it's c
 5. **Build** — rebuild each part to the bar, one at a time.
 6. **Ship + look back** — make it production-ready and record the lessons.
 
+**We verify before we build.** We never build on a guess. Before writing any code, we check the current facts — how the code works today, how the live tools actually behave, what the current industry best practice is — from real sources, dated today. (Checking the *result* after we build is "the gate"; checking the *facts* before we build is this rule. Both, always.)
+
 ## 4. The two yardsticks we measure against
 
 Every piece is judged two ways at once: **(A) our own house rules** (safety, honesty, no waste, plain-spoken, quality-first) and **(B) the wider industry's best practice** for that kind of work (the published guidance from Anthropic, Google, OpenAI, Microsoft, Hugging Face, Databricks, and others — read fresh, not from memory). A piece only passes if it satisfies both.

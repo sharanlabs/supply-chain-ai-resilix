@@ -94,6 +94,8 @@ Each binds the matching surface in the Lens-B table above; each is **re-swept li
 
 **RESILIX-specific safety invariants (todo.md / Law 11):** GDELT article text + uploaded CSV are **untrusted data, never instructions**, in every agent prompt · only Sentinel sees raw article text; the **Dispatcher never does** · entities cross agent boundaries as table-validated IDs, never raw uploaded strings · **nothing sends without human approval** (drafts only) · legacy `resilix_pipeline_v2*.json` + `prompts/` quarantined as reference.
 
+**Verify before build (owner-directed 2026-06-17 — a standing, always-on principle).** Never build on an assumption. Before writing or rebuilding any component, **verify the ground truth** — the current state of the code, the live API / library / model behavior, and the current best-practice canon — across multiple sources, anchored to today's date, never from training memory (Law 2 + Fable Mindset GROUND→REASON). The research stage (§1) and the keep-vs-rebuild audit (`ALIGNMENT-AUDIT.md`) **are** this verification; execution does not begin on a surface until its inputs are verified. This *pairs* with the gate stack (§5), which verifies the output *after* build: **verify the inputs before, prove the output after.** (Concretely for RESILIX: re-probe GDELT's live throttle/shape before reworking the fetcher; re-verify the Gemini model lineup + free-tier limits before the LLM core; live-check WCAG/APG semantics before the UI; re-read the actual file before editing it.)
+
 ## 5. The gate stack (every artifact exit — the bar, not a formality)
 
 The five ordered gates (`EVAL-RUBRIC.md` §27–37; runnable as `acceptance-gate`, which **defaults to BLOCK**):
@@ -166,6 +168,20 @@ A component/stage is DONE only when, with **evidence**:
 5. both lenses are satisfied (doctrine + the named external canon for that surface);
 6. lessons were compounded; the resume pointer is current.
 At ship, additionally: the specific expansion & adoption section is present (PROJECT-CONSTRAINTS), `verify:full` green, cost reported.
+
+## 11. Self-improvement & continuous feedback (the loop runs throughout — owner-directed 2026-06-17)
+
+**Plain English.** The process improves itself as it runs. Every check that finds something — a gate failure, the rival model's critique, a blindspot, a correction from you — is a signal that feeds straight back into both the work *and* this process, and we measure whether the change actually helped. Good, safe, easily-undone improvements we just make; anything touching safety or hard-to-undo we bring to you first.
+
+**Technical.** The program runs the claude-os self-improvement loop (`~/claude-os/docs/SELF-IMPROVEMENT.md`; `NORTH-STAR.md` §2 perpetual self-betterment): **signal → propose → independent gate → apply-on-the-autonomy-axis → measure → prune** (the Ratchet Principle — a change sticks only if it measurably helps; regressions are pruned). The continuous-feedback sources, each wired to feed the next cycle:
+- every `acceptance-gate` **BLOCK** and **Codex REVISE** → fix + a one-line lesson (`tasks/lessons.md`) → the same defect class is checked-for in the next artifact (the gate gets sharper over the run);
+- every **blindspot** found (pre or post) → paired with its fix → added to the audit's failure→fix table → designed-against next time;
+- every **owner correction** → one line in lessons (same mistake twice = process failure) → the Charter/process amended in the *same* change;
+- the **no-progress breaker** (C14) + the **cost report** (C8) → re-evaluate the approach at the stage boundary (pivot-threshold, never mid-step thrash).
+
+**Bounded by the invariants.** Additive + reversible + deterministically-verified improvements are applied **autonomously** (full permissions granted for the duration); anything on a safety/irreversible surface (a Law, a gate's logic, push/deploy, the `GEMINI_API_KEY`) is **proposed and owner-gated**. Unbounded drive, bounded action.
+
+**Execution sequencing (a consequence of the loop + the owner-block).** The product's LLM core (Phases 4–7) is owner-gated on `GEMINI_API_KEY`; so the program **front-loads every deterministic, non-LLM surface** — re-derive + re-gate the data layer (Phase 2), finish the signal layer (P3.2: NWS-keep / Open-Meteo-drop / replay recorder / `verify:live`), re-gate the UI (Phase 8), scaffold the eval harness (Phase 9) — none of which needs the key, while the key is provisioned in parallel. The LLM-core rebuild (Sentinel/Verifier/Atlas/Simulator/Strategist/Dispatcher, replacing the still-present LaunchOps agents in `lib/agents/`) begins the moment the key lands.
 
 ---
 
