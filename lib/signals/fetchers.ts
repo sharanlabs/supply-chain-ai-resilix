@@ -120,7 +120,7 @@ export async function fetchNwsSignal(): Promise<PublicSignal> {
     }>;
   }>(url, {
     headers: {
-      "User-Agent": "resilix-launchops-ai/0.1 portfolio-demo"
+      "User-Agent": "resilix-actionops/0.1 portfolio-demo"
     }
   });
 

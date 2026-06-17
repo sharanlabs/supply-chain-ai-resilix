@@ -1,8 +1,8 @@
 {
-  "name": "resilix-launchops-ai",
+  "name": "resilix-actionops",
   "version": "0.1.0",
   "private": true,
-  "description": "Agentic supply-continuity decision workbench for launch-critical exceptions.",
+  "description": "Crisis-to-action supply-chain war room: a live disruption signal plus a supplier CSV becomes an evidence-cited, human-approved action packet.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
