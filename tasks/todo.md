@@ -44,8 +44,8 @@
 
 ### The 5 guidelines-monitor must-fix gaps (G1, 2026-06-17 — apply inline per phase, each gated)
 - [ ] **P7 (highest)** — enumerate the Dispatcher whitelist; NO Sentinel `event_summary`/`affected_regions` free-text laundered into drafted supplier emails; add an injection eval (OWASP LLM01/05). → **Phase 7**.
-- [ ] **P9** — judge calibration (N=20–40, TPR/TNR) + judge-error **fail-closed**. → **Phase 9**.
-- [ ] **P9** — a golden-task regression is a hard **BLOCK** at the gate. → **Phase 9**.
+- [ ] **P9** — judge calibration (N=20–40, TPR/TNR) + judge-error **fail-closed**. → **Phase 9** (G-5, key-gated; the ONE truly LLM-dependent eval, waits on `GEMINI_API_KEY`).
+- [x] **P9** — a golden-task regression is a hard **BLOCK** at the gate (G-8). ✅ DONE 2026-06-17 (component F, gated `e84b1fc`→`720ff25`): `evals/golden-tasks.test.ts` runs `runGraders` over 7 frozen golden records inside `npm test`→`verify`; 22 corrupted twins prove every grader BLOCKs. Deterministic injection eval (G-6) built alongside (`evals/injection.test.ts` + `lib/evals/graders.ts gradeInjectionQuarantine`; structural-invariant primary grader). The P7 Dispatcher-whitelist half + the LLM-judge secondary stay → Phase 7 / G-5.
 - [~] **P3** — user-visible **staleness marker**: data layer DONE; UI surfacing → **Phase 8** (the design workflow must render CACHED/stale + the degraded badge).
 - [ ] **(low)** — cost-ceiling note IF scheduled scans ever ship (Law 8). → **Phase 10 / expansion**.
 

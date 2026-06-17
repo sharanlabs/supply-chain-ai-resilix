@@ -18,7 +18,7 @@
 | C | **Signal layer** (P3) | `gdelt.ts` gated (P3.1); **P3.2 unbuilt**; `cached.ts` still LaunchOps fixtures; `verify:live` absent | **RE-GATE** (gdelt) + **BUILD-NEW** (P3.2 + verify:live) | no |
 | D | **Agent / LLM core** (P4–7) | **still the LaunchOps pipeline**; emits V1; LaunchOps gatekeeper; no cost-ledger; preview model alias | **REBUILD** + **BUILD-NEW** (gatekeeper, cost-ledger, injection eval) | **YES — `GEMINI_API_KEY`** |
 | E | **UI** (P8) | `action-packet-view` gated (calm command center, WCAG-claimed); `launchops-dashboard.tsx` still named; V1/V2 render coherence ? | **RE-GATE** (a11y + badge/staleness vs live canon) + **HARDEN** (rename, V1/V2) | no |
-| F | **Evals** (P9) | 23 test files exist; **the eval STAGE unbuilt** (judge calibration, golden-task BLOCK, injection eval); no `tasks/golden/` | **BUILD-NEW** (deterministic parts pre-key; judge parts post-key) | partial |
+| F | **Evals** (P9) | **DETERMINISTIC HALF BUILT + gated 2026-06-17** (`e84b1fc`→`720ff25`): `lib/evals/*` 7 graders + hard golden-task BLOCK + injection eval + `evals/golden/` 7 records/22 corruptions. Judge calibration (G-5) + NLI (G-7) still post-key | **DONE (deterministic, G-6/G-8)** + **DEFER** (judge G-5, NLI G-7 → `GEMINI_API_KEY`) | partial |
 | G | **Deploy / infra** (P10) | `verify`/`verify:full` present; **no `verify:live`, no `coverage`**; observability deferred; expansion section in PLAN | **BUILD-NEW** (verify:live, coverage) + **HARDEN** (CI, observability) | no |
 
 **Execution order (front-load non-LLM, per the owner-block):** A-residual + B + C + E + F(deterministic) + G — all key-free — proceed now; **D + F(judge) begin when `GEMINI_API_KEY` lands.**
