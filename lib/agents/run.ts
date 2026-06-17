@@ -16,6 +16,13 @@ import type {
 import { ExecutionDraftSchema } from "@/lib/schemas";
 import { stableHash } from "@/lib/utils";
 
+// Default GA Gemini model. gemini-3.5-flash is GA and recommended for agentic work
+// (best quality-per-cost, live-verified 2026-06-17 via ai.google.dev/gemini-api/docs
+// /models). gemini-3-flash is still Preview, so the old "gemini-3-flash-preview"
+// default broke the project's GA-default rule. gemini-3.1-flash-lite is the budget
+// floor. Override per deployment with GEMINI_MODEL (empty/whitespace falls back here).
+const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
+
 type AgentContext = {
   publicSignals: PublicSignal[];
   impactReport: ImpactReport;
@@ -268,7 +275,7 @@ async function generateStructuredOrFallback<T>({
   const startedAt = Date.now();
   try {
     const result = await generateObject({
-      model: google(process.env.GEMINI_MODEL ?? "gemini-3-flash-preview"),
+      model: google(process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL),
       schema,
       prompt
     });
@@ -435,7 +442,7 @@ function createAgentRun({
     agentName,
     model:
       mode === "LIVE_AI"
-        ? (process.env.GEMINI_MODEL ?? "gemini-3-flash-preview")
+        ? (process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL)
         : "deterministic-rules",
     mode,
     latencyMs,
