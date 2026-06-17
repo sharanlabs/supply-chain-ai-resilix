@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { DecisionPacketV2Schema } from "@/lib/schemas";
 import { describeFailures, runGraders } from "@/lib/evals/run-graders";
-import { GOLDEN_SCENARIOS } from "@/evals/golden/scenarios";
+import { GOLDEN_SCENARIOS, hormuz } from "@/evals/golden/scenarios";
 import { CORRUPTIONS } from "@/evals/golden/corruptions";
+import { HORMUZ_SUPPLIERS, HORMUZ_SUPPLIER_IDS } from "@/evals/golden/seed-ids";
 
 // ---------------------------------------------------------------------------
 // The hard merge-BLOCK (G-8). This file runs inside `npm test` -> `verify`, so a
@@ -96,5 +97,44 @@ describe("the deterministic graders BLOCK on corruption (teeth)", () => {
         true
       );
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Independent anchors -- the teeth the recompute-vs-recompute checks CANNOT give.
+// The simulator grader recomputes with the same function the record was built by,
+// so on the good record it compares the recompute to itself (f(x)===f(x)); a wrong
+// FORMULA would be baked into both sides and stay green. These pin the literal
+// hand-computed numbers, so the arithmetic itself is validated against an
+// independent source (lesson #27: real teeth = an independent golden snapshot).
+// ---------------------------------------------------------------------------
+describe("independent arithmetic + matching anchors (not f(x)===f(x))", () => {
+  it("Hormuz simulation matches the hand-computed values to the cent/day", () => {
+    // 9 Gulf suppliers x $10,000/day x min(H, 30-day duration):
+    //   7d  = 90,000 x 7  = 630,000
+    //   30d = 90,000 x 30 = 2,700,000
+    //   90d = 90,000 x 30 = 2,700,000 (capped at the 30-day disruption)
+    //   runout = floor(1,000 / 40) = 25 days from 2026-06-17 = 2026-07-12
+    const sim = hormuz.packet.simulation;
+    expect(sim).toBeDefined();
+    const at = (days: number) => sim!.horizons.find((h) => h.days === days)?.revenueAtRiskUsd;
+    expect(at(7)).toBe(630_000);
+    expect(at(30)).toBe(2_700_000);
+    expect(at(90)).toBe(2_700_000);
+    expect(sim!.productRunouts[0].runoutDate).toBe("2026-07-12");
+  });
+
+  it("the Hormuz expected-exposure set is exactly the Gulf ENERGY/CHEMICALS suppliers", () => {
+    // Pins the SET MEANING (the joint country x sector cell the demo rests on),
+    // independent of the count assertion in seed-ids.ts.
+    const gulf = new Set(["SA", "AE", "QA", "KW"]);
+    for (const supplier of HORMUZ_SUPPLIERS) {
+      expect(gulf.has(supplier.country), `${supplier.name} is not Gulf-origin`).toBe(true);
+      expect(
+        supplier.sector === "ENERGY" || supplier.sector === "CHEMICALS",
+        `${supplier.name} is ${supplier.sector}, not ENERGY/CHEMICALS`
+      ).toBe(true);
+    }
+    expect(hormuz.groundTruth.expectedAffectedSupplierIds).toEqual(HORMUZ_SUPPLIER_IDS);
   });
 });
