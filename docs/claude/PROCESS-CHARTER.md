@@ -185,4 +185,39 @@ At ship, additionally: the specific expansion & adoption section is present (PRO
 
 ---
 
+# PART C — Control hardening (the Charter's own cross-model gate, applied 2026-06-17)
+
+The Charter was put through its own cross-model gate (Codex, vendor OpenAI; maker ≠ judge). Codex returned **20 findings**; weighed primary-model-final → **19 accepted, 1 reconciled**. Full adjudication + raw verdict: `docs/claude/gates/process-charter/codex-2026-06-17.md`. This Part supersedes the weaker parts of Part B — and is itself the self-improvement loop (§11) run on the governance.
+
+- **C-H1 — Gate evidence is committed, not narrated** (fixes C2/C13 durability + independence). Every gate run writes a durable artifact under **`docs/claude/gates/<artifact>/`**: exact prompt · **maker model + judge model + vendor/family + role** · artifact hash + commit · **raw transcript** · verdict · closure. `/tmp` is scratch, never evidence-of-record. **No same-family / same-session self-review** counts as the cross-model gate.
+- **C-H2 — Criterion → control traceability** (fixes "collapsed into `npm run verify`"). Every `Success_Criteria.md` row + every load-bearing guideline binds to a **named concrete check** (the exact test / eval / log / a11y artifact) at its surface; **unmapped or skipped FAILS**. Filled per surface at build time (verify-before-build), committed as that surface's gate evidence.
+- **C-H3 — Expanded canon** (the floor was too narrow — recency + breadth; each live-verified in Stage-1, never asserted from memory): **OWASP LLM Top-10 2025 — all ten** (each → a control or explicit N/A) · **OWASP Top-10 for Agentic Applications 2026** + AIUC crosswalk (supersedes the bare "ASI06") · **OWASP ASVS** + **Web Top-10** + **NIST SSDF (SP 800-218)** (classic appsec for the Next.js uploads/auth/mutations) · **NIST AI RMF + GenAI Profile** (an AI risk register: govern/map/measure/manage) · **WCAG 2.2 AA enforced by an a11y gate** (axe + keyboard-only + focus order + 320px reflow + target-size + status-messages, evidence per route).
+- **C-H4 — Honest control taxonomy** (fixes self-reports-as-assurance). Two labeled classes: **Independent controls** (evidence + a different actor — the gate stack, Codex, verify-correctness, the a11y gate, the eval spec, dependency SCA, the deterministic anti-AI detector) vs **Operator disciplines** (self/habit — legibility C7, cost C8, recency C11, no-thrashing C14, commit/format hygiene), each given an **automatable evidence** target (cost ledger, source-fetch manifest, STATE-diff script, lintable narration) — until automated, they are disciplines, not assurance.
+- **C-H5 — Evidence-backed failure-knowledge / dependency / do-no-harm / observability.** Every blindspot row → **owner + deterministic test + negative case + residual-risk decision** (prose doesn't prove a fix). Tech-stack adds **lockfile diff + `npm audit`/SCA + license allowlist + SBOM**. Do-no-harm adds **pre-edit `git status` + scoped diff + touched-file list + post-edit diff**. Deploy adds **SLO defs + log-schema tests + audit-log assertions + health checks + rollback**.
+- **C-H6 — Definition of Done → evidence manifest** (fixes checkbox-DoD). No §10 item is "done" on a checkbox: each names a **file path + command + timestamp + actor + verdict + artifact hash**.
+- **C-H7 — Self-improvement is measured** (fixes "measurably helps" with no metric): **repeated-defect rate · gate false-negative count · escaped-defect count · cycle time · token/cost per gated artifact · rollback trigger.** A change that doesn't move them is pruned.
+- **C-H8 — Anti-AI is a dedicated, separate craft mechanism** (owner-directed; Codex #18 reconciled): **`docs/claude/ANTI-AI-CRAFT.md`** — separate from correctness/security so neither blocks the other, and deepened past surface tells to the human-vs-cliché-AI nuances.
+
+---
+
+# PART D — Full claude-os capability deployment (which capability · which stage · the appropriateness call)
+
+"Full capabilities" = the right capability at the right stage, **weight-selected** (`NORTH-STAR.md` §10) — not maximum ceremony everywhere. The map for this rework:
+
+| Capability | Deployed where | Appropriateness call (weight selector) |
+|---|---|---|
+| **Ultracode multi-agent Workflows** | Stage-1 deep research (parallel per-surface fan-out → synthesize → verdicts); large parallel audits | full fan-out for read-heavy research; **single writer** for the build (Law 6) |
+| **Specialist brigade** | `research-specialist` (research, quarantined) now; `ai-engineering`/`security`/`frontend`/`data`/`evals` specialists as builders + reviewers per phase | one specialist per surface; the reviewing specialist ≠ the maker |
+| **The council** (idea-sharpener…devils-advocate) | **NOT re-run** — idea owner-locked + Codex-gated; re-running is thrash | restraint IS the appropriate call (pivot-threshold) |
+| **Gate stack** (`acceptance-gate` + Codex) | every artifact exit; demonstrated on the Charter (`gates/process-charter/`) | mandatory on every consequential exit (Law 7 tiering) |
+| **`guidelines-monitor`** | plan + pre-ship canon-adherence; run inline / background Bash (timeout-mitigated) | the canon-floor enforcer, not the quality gate |
+| **`project-advisor`** | Stage-3 resources (toolset + methodology) | once per major stage, not per edit |
+| **KBs + source-registry** | the internal half of every research thread (paired with the live external sweep) | internal-first, then live-external (Multi-Source) |
+| **Dials** (`/autopilot` · `/goal` · `/loop` · `/schedule`) | `/autopilot` drives now; the rest are owner-toggled handoffs surfaced when a stage needs them | named + surfaced, never silently assumed |
+| **Do-no-harm + verify hooks** (`snapshot.py`, `careful`/`freeze`, loop-verify) | before destructive ops; the inner verify loop per increment | wired on for prod/destructive paths |
+
+**The assurance it's actually achieved:** the advancer names the next stage + its capability at each boundary, and the grill gate checks *capability-declared?* — a stage that skipped a warranted capability fails grill; the weight-selector is the guard against the opposite failure (capability for its own sake).
+
+---
+
 _This Charter is itself an artifact and is being put through the assurance system it defines: a cross-model Codex pass + a guidelines-monitor check (maker ≠ judge — I authored it, so an independent judge verifies it) are the immediate next action. Amend only on owner direction or a gate finding._
