@@ -96,9 +96,30 @@ What failed, and the fix:
   become a renderable XSS link. All fixed (negative-infinity init, FIFO cache cap, a
   max-serve-stale bound, an http/https-only scheme check).
 
-Status: module built and blindspot-hardened. Still ahead: the anti-AI comment pass
-(trim WHAT-comments to WHY), the full edge-case test suite, then verify ->
-acceptance-gate -> Codex -> commit.
+What the three gate rounds caught (the cross-model gate working -- each round a real
+find, documented because the failures + corrections are the point):
+- acceptance-gate round 1 -> BLOCK: the "never serve hours-old cache" bound was in
+  the failure path but NOT the spacing path -- a 90-min-stale cache the failure path
+  refuses, the spacing path 3s later would serve. And the stale-refusal + FIFO cap had
+  no test (which is why the inconsistency slipped through). Fixed: one shared
+  `serveCacheIfFresh` helper gates both paths; the two missing tests added.
+- Codex round 1 -> REVISE (9): never-throw escapes (NaN clock, lone-surrogate encode,
+  per-article throw); a malformed 200 mislabeled LIVE + cached; cached signals kept
+  LIVE status + stale freshness; no concurrent-call coalescing; bad/future dates read
+  as freshest; unbounded response volume + unsanitized sourcecountry; the http(s) guard
+  living only in this fetcher; over-historical comments. Reworked ground-up -- all fixed.
+- Codex closure -> REVISE (2): finiteClock did not try/catch now() and accepted
+  out-of-range finite timestamps (1e20 -> toISOString throws); a far-future date (2099)
+  clamped to 0 (= fresh) rather than flagged stale. Both fixed + tested.
+
+What worked: live-probing GDELT first surfaced the 429 before design; DI made every
+HTTP/timing edge deterministic; the gate caught a real cross-path inconsistency the
+tests had not -- which is exactly why the missing tests were the second BLOCK reason.
+
+Outcome (so far): `npm run verify` GREEN (171 passed/8 skipped); 33 edge-case tests;
+the schema change adds a shared `HttpUrlSchema` so every signal source inherits the
+no-javascript: guard. acceptance-gate gates 1/3/4/5 PASS (anti-slop confirmed the code
+reads human-crafted). Codex closure round 2 in flight; commit on APPROVE.
 
 ### Industry-grade gaps identified (carried, not yet closed)
 

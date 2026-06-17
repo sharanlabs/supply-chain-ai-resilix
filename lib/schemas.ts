@@ -2,6 +2,12 @@ import { z } from "zod";
 
 export const SeveritySchema = z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
 export const SignalStatusSchema = z.enum(["LIVE", "CACHED", "FAILED"]);
+// A url safe to render as a link: http/https only (no javascript:/data: link
+// injection). Shared so every signal source inherits the guard, not just GDELT.
+export const HttpUrlSchema = z
+  .string()
+  .url()
+  .refine((u) => /^https?:\/\//i.test(u), "sourceUrl must be http(s)");
 export const ApprovalStatusSchema = z.enum([
   "PENDING",
   "APPROVED",
@@ -35,7 +41,7 @@ export const RequestedModeSchema = AgentModeSchema.exclude([
 export const PublicSignalSchema = z.object({
   id: z.string(),
   source: z.string(),
-  sourceUrl: z.string().url(),
+  sourceUrl: HttpUrlSchema,
   fetchedAt: z.string().datetime(),
   eventType: z.string(),
   location: z.object({
