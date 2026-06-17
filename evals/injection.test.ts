@@ -6,6 +6,8 @@ import {
   sanitizeCell
 } from "@/lib/ingest/supplier-csv";
 import { isSafeHttpUrl, MAX_SUMMARY_LEN, sanitizeText } from "@/lib/signals/sanitize";
+import { mapGdeltArticles } from "@/lib/signals/gdelt";
+import { PublicSignalSchema } from "@/lib/schemas";
 import { gradeInjectionQuarantine } from "@/lib/evals/graders";
 import { hormuz } from "@/evals/golden/scenarios";
 import {
@@ -123,5 +125,44 @@ describe("article channel: real signal sanitizer neutralizes the payload (teeth-
   it("the javascript:/data: lure is rejected by the real URL guard", () => {
     expect(isSafeHttpUrl("javascript:alert(document.domain)")).toBe(false);
     expect(isSafeHttpUrl("data:text/html,<script>1</script>")).toBe(false);
+  });
+});
+
+describe("article channel: payloads through the REAL GDELT mapper (teeth-now, end to end)", () => {
+  const clock = () => Date.parse("2026-06-17T12:00:00Z");
+
+  for (const payload of ARTICLE_PAYLOADS) {
+    it(`mapGdeltArticles emits a schema-valid, sanitized signal for "${payload.label}"`, () => {
+      // The payload rides in the article TITLE through the real mapper -- the same
+      // path live GDELT articles take. The emitted signal must be schema-valid with
+      // a link-safe url and a capped summary (the boundary applied, not bypassed).
+      const { signals } = mapGdeltArticles(
+        [
+          {
+            url: "https://example.com/article",
+            title: payload.raw,
+            seendate: "20260617T120000Z",
+            domain: "example.com",
+            sourcecountry: "US"
+          }
+        ],
+        "CACHED",
+        clock
+      );
+      expect(signals).toHaveLength(1);
+      const signal = signals[0];
+      expect(PublicSignalSchema.safeParse(signal).success).toBe(true);
+      expect(isSafeHttpUrl(signal.sourceUrl)).toBe(true);
+      expect(signal.summary.length).toBeLessThanOrEqual(MAX_SUMMARY_LEN);
+    });
+  }
+
+  it("an article carrying a javascript: url is dropped, never emitted with an unsafe link", () => {
+    const { signals } = mapGdeltArticles(
+      [{ url: "javascript:alert(1)", title: "x", seendate: "20260617T120000Z", domain: "x" }],
+      "CACHED",
+      clock
+    );
+    expect(signals.every((s) => isSafeHttpUrl(s.sourceUrl))).toBe(true);
   });
 });

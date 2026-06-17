@@ -28,15 +28,19 @@ const SLASH_RATIO = /\b\d+\/\d+\b/g;
 const SCIENTIFIC = /\b\d+(?:\.\d+)?[eE][+-]?\d+\b/g;
 
 // Identifier token: an uppercase-prefixed, hyphenated handle (SUP-100, THREAT-001,
-// DP-v2-fixture). The uppercase prefix distinguishes an id from a hyphenated figure
-// like "7-day" (which we WANT to read as the quantity 7).
+// DP-v2-fixture). Uppercase-ONLY is deliberate, not a gap: every canonical id in
+// this system is uppercase-prefixed (canonicalSupplierId -> "SUP-", threat/exposure
+// ids -> "THR-"/"EXP-"), so this masks real ids while leaving a lowercase
+// word-hyphen-count like "top-5" (a real count to cite) extractable.
 const ID_TOKEN = /\b[A-Z][A-Z0-9]*-[A-Za-z0-9][A-Za-z0-9-]*\b/g;
 
 // A figure: optional `$`, digits with optional thousands commas, optional decimal,
-// optional K/M/B magnitude suffix, optional `%`. The lookbehind rejects a digit
-// glued to a letter/underscore/`$`/`.`/`/` (a leftover fragment) so we only read
-// free figures. Runs AFTER masking, so dates/ratios/sci/ids are already gone.
-const FIGURE = /(?<![A-Za-z0-9_$./])\$?\d[\d,]*(?:\.\d+)?[KMBkmb]?%?/g;
+// optional K/M/B magnitude suffix, optional `%`. The LEFT lookbehind rejects a digit
+// glued to a letter/underscore/`$`/`.`/`/` (a version like v2.1, a leftover fragment);
+// the RIGHT lookahead rejects a figure glued to letters (a SKU like 123ABC, or 50USD
+// -- the convention is to write a unit WORD with a space, "50 USD", or use $/%).
+// Runs AFTER masking, so dates/ratios/sci/ids are already gone.
+const FIGURE = /(?<![A-Za-z0-9_$./])\$?\d[\d,]*(?:\.\d+)?[KMBkmb]?%?(?![A-Za-z0-9_$])/g;
 
 const MAGNITUDE: Record<string, number> = { k: 1e3, m: 1e6, b: 1e9 };
 

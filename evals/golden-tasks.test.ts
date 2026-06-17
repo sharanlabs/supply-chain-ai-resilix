@@ -69,11 +69,18 @@ describe("golden records: schema-valid + pass every grader (pre-key: spec self-c
     }
   });
 
-  it("every record carries a traceability manifest (Success_Criteria fixture-traceability)", () => {
+  it("every record carries a complete traceability manifest (Success_Criteria fixture-traceability)", () => {
+    // Manifests are co-located with each golden record (one source of truth, no
+    // record/manifest file drift) rather than separate JSON artifacts. Assert EVERY
+    // required field: sources, accessed date, extracted claim, confidence, and the
+    // do-not-encode list (illustrative values never to be read as live truth).
     for (const scenario of GOLDEN_SCENARIOS) {
-      expect(scenario.manifest.sources.length, `${scenario.id} has no sources`).toBeGreaterThan(0);
-      expect(scenario.manifest.accessedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(scenario.manifest.extractedClaim.length).toBeGreaterThan(0);
+      const m = scenario.manifest;
+      expect(m.sources.length, `${scenario.id} has no sources`).toBeGreaterThan(0);
+      expect(m.accessedDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(m.extractedClaim.length).toBeGreaterThan(0);
+      expect(["LOW", "MEDIUM", "HIGH"]).toContain(m.confidence);
+      expect(Array.isArray(m.doNotEncode), `${scenario.id} doNotEncode not an array`).toBe(true);
     }
   });
 });

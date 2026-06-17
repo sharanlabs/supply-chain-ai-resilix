@@ -105,6 +105,13 @@ describe("extractSourceableNumerals", () => {
     expect(figures("see packet DP-v2-fixture line AI-001")).toEqual([]);
   });
 
+  it("rejects a number glued to letters (a SKU or version), keeps a real hyphen-count", () => {
+    expect(figures("SKU 123ABC shipped")).toEqual([]);
+    expect(figures("see release v2.1 notes")).toEqual([]);
+    expect(figures("50USD has no space")).toEqual([]); // convention: write "50 USD" or "$50"
+    expect(figures("we will contact the top-5 exposed suppliers")).toEqual([5]); // real count
+  });
+
   it("does NOT flag calendar dates or slash ratios", () => {
     expect(figures("projected runout 2026-07-01")).toEqual([]);
     expect(figures("captured at 2026-06-13T12:00:00.000Z by Sentinel")).toEqual([]);
