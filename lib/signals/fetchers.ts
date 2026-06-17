@@ -6,8 +6,16 @@ import {
   nwsCachedFixture
 } from "@/lib/signals/cached";
 import { fetchGdeltSignals } from "@/lib/signals/gdelt";
+import {
+  MAX_FIELD_LEN,
+  MAX_SUMMARY_LEN,
+  sanitizeIdToken,
+  sanitizeText
+} from "@/lib/signals/sanitize";
 
 const TIMEOUT_MS = 5000;
+// A disclosure marker carries no fresh data, so it reads as very stale, never "now".
+const SOURCE_DOWN_FRESHNESS_MIN = 7 * 24 * 60;
 
 // The ActionOps signal layer (P3.2). Two sources are live: GDELT DOC 2.0 -- the
 // primary disruption signal, resilient + self-degrading inside gdelt.ts -- and NWS.
@@ -31,12 +39,38 @@ export async function fetchPublicSignals({
   }
 
   // GDELT self-manages spacing/cache/backoff and never throws into the pipeline;
-  // every signal it returns is already stamped LIVE or CACHED.
+  // every signal it returns is already stamped LIVE or CACHED. A FAILED outage (no
+  // signals to serve) is surfaced as one disclosure marker, so a down primary source
+  // is VISIBLE -- never silently absent, which an operator could read as "all calm".
   const gdelt = await fetchGdeltSignals({ fetchImpl, now });
+  const gdeltSignals =
+    gdelt.status === "FAILED" ? [gdeltUnavailableMarker(gdelt.note, now)] : gdelt.signals;
   const nws = await fetchNwsOrCached(fetchImpl, now);
 
-  const composed = [...gdelt.signals, nws, ...fixtureOnlySignals];
+  const composed = [...gdeltSignals, nws, ...fixtureOnlySignals];
   return composed.map((signal) => PublicSignalSchema.parse(signal));
+}
+
+// A schema-valid disclosure signal for when the GDELT primary feed is unavailable
+// (429 / outage / malformed body with no warm cache). status FAILED + stale freshness
+// so the UI and gatekeeper can show "primary source down" instead of an empty, falsely
+// calm board. The note is sanitized -- it can quote an upstream error string.
+function gdeltUnavailableMarker(note: string, now: () => number): PublicSignal {
+  return {
+    id: "SIG-GDELT-UNAVAILABLE",
+    source: "GDELT DOC 2.0",
+    sourceUrl: "https://api.gdeltproject.org/api/v2/doc/doc",
+    fetchedAt: new Date(now()).toISOString(),
+    eventType: "SIGNAL_SOURCE_UNAVAILABLE",
+    location: {},
+    severity: "LOW",
+    summary: `GDELT primary disruption feed unavailable: ${sanitizeText(
+      note,
+      MAX_SUMMARY_LEN
+    )}. Showing cached / fixture context only.`,
+    freshnessMinutes: SOURCE_DOWN_FRESHNESS_MIN,
+    status: "FAILED"
+  };
 }
 
 // Live NWS, degrading to the dated NWS fixture (CACHED, never LIVE) on any failure
@@ -48,7 +82,10 @@ async function fetchNwsOrCached(
   try {
     return await fetchNwsSignal(fetchImpl, now);
   } catch (error) {
-    const reason = error instanceof Error ? error.message : "unknown error";
+    const reason = sanitizeText(
+      error instanceof Error ? error.message : "unknown error",
+      MAX_FIELD_LEN
+    );
     return {
       ...nwsCachedFixture,
       summary: `${nwsCachedFixture.summary} (live NWS fetch failed: ${reason})`
@@ -95,15 +132,23 @@ export async function fetchNwsSignal(
     };
   }
 
+  // Every field below is untrusted NWS response text: constrain the id token, cap +
+  // control-strip the region and summary, and always leave a non-empty summary (so a
+  // headline/event-less alert can't produce an invalid PublicSignal).
+  const idToken = sanitizeIdToken(alert.id.split("/").pop()) || "ALERT";
+  const region = sanitizeText(alert.properties.areaDesc, MAX_FIELD_LEN) || "California";
+  const summary =
+    sanitizeText(alert.properties.headline || alert.properties.event, MAX_SUMMARY_LEN) ||
+    "Active National Weather Service alert (no headline provided).";
   return {
-    id: `SIG-NWS-${alert.id.split("/").pop() ?? "ALERT"}`,
+    id: `SIG-NWS-${idToken}`,
     source: "National Weather Service",
     sourceUrl: url,
     fetchedAt,
     eventType: "WEATHER_ALERT",
-    location: { region: alert.properties.areaDesc, country: "United States" },
+    location: { region, country: "United States" },
     severity: mapNwsSeverity(alert.properties.severity),
-    summary: alert.properties.headline || alert.properties.event,
+    summary,
     freshnessMinutes: minutesSince(Date.parse(alert.properties.sent), now),
     status: "LIVE"
   };
@@ -139,8 +184,8 @@ function minutesSince(timeMs: number, now: () => number) {
   return Math.max(0, Math.round((ref - timeMs) / 60000));
 }
 
-function mapNwsSeverity(value: string): PublicSignal["severity"] {
-  const normalized = value.toLowerCase();
+function mapNwsSeverity(value: unknown): PublicSignal["severity"] {
+  const normalized = String(value ?? "").toLowerCase();
   if (normalized.includes("extreme")) return "CRITICAL";
   if (normalized.includes("severe")) return "HIGH";
   if (normalized.includes("moderate")) return "MEDIUM";

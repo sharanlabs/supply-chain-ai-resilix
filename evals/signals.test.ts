@@ -58,6 +58,9 @@ const NWS_ALERT = {
   ]
 };
 
+// Matches C0 (0x00-0x1f), DEL + C1 (0x7f-0x9f) control chars.
+const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/;
+
 const FIXED_NOW = 1_792_000_000_000; // fixed epoch ms (~2026-10), after the fixtures' source dates
 const now = () => FIXED_NOW;
 
@@ -130,20 +133,60 @@ describe("public signal layer", () => {
     ).toBe(false);
   });
 
-  it("still composes NWS + fixtures when GDELT is throttled (429)", async () => {
+  it("surfaces a FAILED GDELT marker (never silent) when GDELT is throttled with no cache", async () => {
     const signals = await fetchPublicSignals({
       useLive: true,
       fetchImpl: mockFetch({ gdeltStatus: 429, nws: NWS_ALERT }),
       now
     });
 
-    // GDELT degraded with no warm cache -> zero GDELT signals, but the layer still
-    // returns the rest rather than throwing.
-    expect(signals.some((signal) => signal.source === "GDELT DOC 2.0")).toBe(false);
+    // The down primary source is DISCLOSED as a FAILED marker, not silently dropped
+    // (a missing GDELT could read as "no disruptions" -- a dangerous false calm).
+    const gdelt = signals.filter((signal) => signal.source === "GDELT DOC 2.0");
+    expect(gdelt).toHaveLength(1);
+    expect(gdelt[0].status).toBe("FAILED");
+    expect(gdelt[0].id).toBe("SIG-GDELT-UNAVAILABLE");
+    expect(gdelt[0].summary.toLowerCase()).toContain("unavailable");
+    // The rest of the board still composes (never throws).
     expect(
       signals.some((signal) => signal.source === "National Weather Service" && signal.status === "LIVE")
     ).toBe(true);
     expect(signals.some((signal) => signal.source === "USGS Earthquake Feed")).toBe(true);
     expect(signals.every((signal) => /^https?:\/\//.test(signal.sourceUrl))).toBe(true);
+  });
+
+  it("sanitizes untrusted NWS alert text (control chars, length caps, id token)", async () => {
+    const ctrl = String.fromCharCode(1, 2, 7, 31); // C0 control chars in untrusted text
+    const dirtyNws = {
+      features: [
+        {
+          id: `https://api.weather.gov/alerts/urn:oid:../../etc/passwd${ctrl}<script>`,
+          properties: {
+            event: "Flood",
+            severity: "Severe",
+            headline: `Flood${ctrl} warning ${"x".repeat(2000)}`,
+            sent: "2026-06-17T07:00:00-07:00",
+            areaDesc: `Bay${ctrl} Area ${"y".repeat(500)}`
+          }
+        }
+      ]
+    };
+    const signals = await fetchPublicSignals({
+      useLive: true,
+      fetchImpl: mockFetch({ gdelt: { articles: [GDELT_ARTICLE] }, nws: dirtyNws }),
+      now
+    });
+
+    const nws = signals.find((signal) => signal.source === "National Weather Service");
+    expect(nws).toBeDefined();
+    expect(nws?.status).toBe("LIVE");
+    // No control chars survive; summary + region are length-capped; id is a safe token.
+    expect(CONTROL_CHARS.test(nws?.summary ?? "")).toBe(false);
+    expect(CONTROL_CHARS.test(nws?.location.region ?? "")).toBe(false);
+    expect((nws?.summary ?? "").length).toBeLessThanOrEqual(500);
+    expect((nws?.location.region ?? "").length).toBeLessThanOrEqual(120);
+    expect(nws?.id).toMatch(/^SIG-NWS-[A-Za-z0-9._:-]*$/);
+    expect(nws?.id).not.toContain("<");
+    expect(nws?.id).not.toContain("/");
   });
 });

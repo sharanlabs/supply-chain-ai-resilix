@@ -14,13 +14,15 @@ export default defineConfig({
       include: ["lib/**/*.ts", "app/api/**/*.ts"],
       exclude: ["lib/data/**", "**/*.d.ts"],
       thresholds: {
-        // Ratchet floor (measured baseline 2026-06-17: lines 73.4 / stmts 72.7 /
-        // funcs 71.3 / branches 61.2). Set just under so it passes today and FAILS
-        // only on a regression. Raise as the suite grows; never lower it.
-        lines: 72,
-        functions: 70,
-        statements: 71,
-        branches: 60
+        // Ratchet floor, set just under the measured baseline so it passes today and
+        // FAILS only on a regression. Raise as the suite grows; never lower it.
+        //   2026-06-17 (P3.1): lines 73.4 / stmts 72.7 / funcs 71.3 / branches 61.2
+        //   2026-06-17 (P3.2): lines 78.3 / stmts 77.7 / funcs 75.8 / branches 66.8
+        //     (signal layer reworked -- dead network fetchers removed, DI tests added)
+        lines: 77,
+        functions: 74,
+        statements: 76,
+        branches: 65
       }
     }
   },

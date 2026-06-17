@@ -19,11 +19,31 @@ const artlist = JSON.parse(
 ) as { articles: GdeltArticle[] };
 
 describe("cached signal fixtures", () => {
-  it("derives the GDELT replay set through the live mapper (no drift)", () => {
+  it("the GDELT replay set meets the mapper output contract independently (real teeth)", () => {
+    const gdeltReplay = cachedSignals.filter((signal) => signal.source === "GDELT DOC 2.0");
+    // The recorded artlist has 5 distinct-url articles -> 5 deduped signals. A raw
+    // fixture edit (add/remove/change a url) trips this independently of the mapper.
+    expect(gdeltReplay).toHaveLength(5);
+    for (const signal of gdeltReplay) {
+      expect(signal.id).toMatch(/^SIG-GDELT-[0-9a-f]{16}$/); // sha256(url)[:16]
+      expect(signal.fetchedAt).toBe("2026-06-17T12:00:00.000Z"); // the fixed capture clock
+      expect(signal.eventType).toBe("DISRUPTION_NEWS");
+      expect(signal.severity).toBe("MEDIUM");
+      expect(signal.status).toBe("CACHED");
+      expect(/^https?:\/\//.test(signal.sourceUrl)).toBe(true);
+      expect(signal.summary.length).toBeLessThanOrEqual(500);
+      expect(signal.freshnessMinutes).toBeGreaterThanOrEqual(0);
+    }
+    // dedup held: ids are unique.
+    expect(new Set(gdeltReplay.map((signal) => signal.id)).size).toBe(gdeltReplay.length);
+  });
+
+  it("derives the GDELT replay set through the live mapper (regression lock)", () => {
+    // Complements the contract test: proves cached.ts still DERIVES through the shared
+    // mapper rather than hand-authored literals -- an edit that stops using the mapper
+    // (or changes the capture clock / source file) diverges here.
     const expected = mapGdeltArticles(artlist.articles, "CACHED", () => CAPTURE_AT_MS).signals;
     const gdeltReplay = cachedSignals.filter((signal) => signal.source === "GDELT DOC 2.0");
-
-    expect(gdeltReplay.length).toBeGreaterThan(0);
     expect(gdeltReplay).toEqual(expected);
   });
 

@@ -1,0 +1,37 @@
+// Shared trust-boundary helpers for the signal layer. EVERY external source (GDELT
+// articles, NWS alerts) crosses these before its text / urls / ids reach a
+// PublicSignal -- so untrusted content can't carry control chars, unbounded length,
+// or non-http(s) link schemes downstream into agent prompts (Law 11). One copy, used
+// by both fetchers, so a new source can't quietly skip the boundary.
+
+export const MAX_SUMMARY_LEN = 500;
+export const MAX_FIELD_LEN = 120;
+
+// Strip control chars (C0/DEL/C1) to a space (a numeric codepoint scan, not a
+// control-char regex), collapse whitespace, trim, cap length. Non-strings -> "".
+export function sanitizeText(value: unknown, maxLen: number): string {
+  if (typeof value !== "string") return "";
+  let out = "";
+  for (const ch of value) {
+    const code = ch.codePointAt(0) ?? 0;
+    out += code <= 0x1f || (code >= 0x7f && code <= 0x9f) ? " " : ch;
+  }
+  return out.replace(/\s+/g, " ").trim().slice(0, maxLen);
+}
+
+// Only http/https urls are safe to render as a sourceUrl link (no javascript:/data:).
+export function isSafeHttpUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+// Constrain an externally-sourced id fragment to a safe, bounded token before it is
+// composed into a SIG- id (an upstream id can be arbitrary attacker-influenced text).
+export function sanitizeIdToken(value: unknown, maxLen = 40): string {
+  if (typeof value !== "string") return "";
+  return value.replace(/[^A-Za-z0-9._:-]/g, "").slice(0, maxLen);
+}

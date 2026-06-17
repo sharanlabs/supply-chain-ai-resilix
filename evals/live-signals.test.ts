@@ -47,6 +47,15 @@ describeLive("live signal smoke (verify:live)", () => {
     // No dropped source ever returns.
     expect(signals.some((signal) => signal.source.includes("Open-Meteo"))).toBe(false);
 
+    // NWS is the required-live anchor: a stable US-gov API with no throttle, LIVE
+    // whether or not an alert is active -- so verify:live cannot pass with ZERO working
+    // live sources. GDELT is tolerated-degraded (documented 5s throttle); requiring it
+    // LIVE would make this smoke flaky for a non-bug, and its degrade paths are covered
+    // by the deterministic DI tests instead.
+    const nws = signals.find((signal) => signal.source === "National Weather Service");
+    expect(nws?.status).toBe("LIVE");
+    expect(signals.some((signal) => signal.status === "LIVE")).toBe(true);
+
     const breakdown = signals.reduce<Record<string, number>>((acc, signal) => {
       const key = `${signal.source}:${signal.status}`;
       acc[key] = (acc[key] ?? 0) + 1;

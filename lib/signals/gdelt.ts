@@ -1,6 +1,12 @@
 import { createHash } from "node:crypto";
 import type { PublicSignal } from "@/lib/schemas";
 import { PublicSignalSchema } from "@/lib/schemas";
+import {
+  MAX_FIELD_LEN,
+  MAX_SUMMARY_LEN,
+  isSafeHttpUrl,
+  sanitizeText
+} from "@/lib/signals/sanitize";
 
 // GDELT DOC 2.0 artlist (no API key) is the core ActionOps disruption signal.
 // Two facts shape it: GDELT throttles (>=5s between requests) and an article title
@@ -17,8 +23,6 @@ const CACHE_TTL_MS = 5 * 60_000;
 const MAX_SERVE_STALE_MS = 60 * 60_000; // a failure never serves cache older than this
 const MAX_CACHE_ENTRIES = 64;
 const MAX_RECORDS = 50;
-const MAX_SUMMARY_LEN = 500;
-const MAX_FIELD_LEN = 120;
 const MAX_QUERY_LEN = 200;
 const STALE_UNKNOWN_MINUTES = 7 * 24 * 60; // an unknowable date is "very stale", never 0 (= freshest)
 const MAX_TIMESTAMP_MS = 8.64e15; // JS Date's ISO-safe range (+/-); past it toISOString() throws
@@ -268,28 +272,6 @@ function finiteClock(now: () => number): () => number {
     }
     return Number.isFinite(t) && Math.abs(t) <= MAX_TIMESTAMP_MS ? t : Date.now();
   };
-}
-
-// Strip control chars (C0/DEL/C1) to a space (a numeric codepoint scan, not a
-// control-char regex), collapse whitespace, cap length. Untrusted external text.
-function sanitizeText(value: unknown, maxLen: number): string {
-  if (typeof value !== "string") return "";
-  let out = "";
-  for (const ch of value) {
-    const code = ch.codePointAt(0) ?? 0;
-    out += code <= 0x1f || (code >= 0x7f && code <= 0x9f) ? " " : ch;
-  }
-  return out.replace(/\s+/g, " ").trim().slice(0, maxLen);
-}
-
-// Only http/https urls are safe as a renderable sourceUrl.
-function isSafeHttpUrl(url: string): boolean {
-  try {
-    const u = new URL(url);
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
 }
 
 // GDELT seendate "YYYYMMDDTHHMMSSZ" -> minutes since. A missing, malformed, or
