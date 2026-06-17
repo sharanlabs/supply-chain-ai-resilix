@@ -185,8 +185,38 @@ describe("public signal layer", () => {
     expect(CONTROL_CHARS.test(nws?.location.region ?? "")).toBe(false);
     expect((nws?.summary ?? "").length).toBeLessThanOrEqual(500);
     expect((nws?.location.region ?? "").length).toBeLessThanOrEqual(120);
-    expect(nws?.id).toMatch(/^SIG-NWS-[A-Za-z0-9._:-]*$/);
-    expect(nws?.id).not.toContain("<");
-    expect(nws?.id).not.toContain("/");
+    // The id is sha256(raw alert id)[:16] -- hex only, never raw attacker text.
+    expect(nws?.id).toMatch(/^SIG-NWS-[0-9a-f]{16}$/);
+  });
+
+  it("treats a malformed or far-future NWS sent timestamp as stale, never fresh-now", async () => {
+    const farFuture = new Date(FIXED_NOW + 90 * 24 * 60 * 60 * 1000).toISOString();
+    for (const sent of ["not-a-date", farFuture]) {
+      __resetGdeltStateForTest();
+      const signals = await fetchPublicSignals({
+        useLive: true,
+        fetchImpl: mockFetch({
+          gdelt: { articles: [GDELT_ARTICLE] },
+          nws: {
+            features: [
+              {
+                id: "https://api.weather.gov/alerts/urn:oid:Z9",
+                properties: {
+                  event: "Heat",
+                  severity: "Severe",
+                  headline: "Heat advisory",
+                  sent,
+                  areaDesc: "Inland valleys"
+                }
+              }
+            ]
+          }
+        }),
+        now
+      });
+      const nws = signals.find((signal) => signal.source === "National Weather Service");
+      // A broken/future `sent` is "very stale", never 0 (= falsely freshest).
+      expect(nws?.freshnessMinutes).toBeGreaterThan(60 * 24);
+    }
   });
 });

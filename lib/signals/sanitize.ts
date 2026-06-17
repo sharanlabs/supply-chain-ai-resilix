@@ -28,10 +28,3 @@ export function isSafeHttpUrl(url: string): boolean {
     return false;
   }
 }
-
-// Constrain an externally-sourced id fragment to a safe, bounded token before it is
-// composed into a SIG- id (an upstream id can be arbitrary attacker-influenced text).
-export function sanitizeIdToken(value: unknown, maxLen = 40): string {
-  if (typeof value !== "string") return "";
-  return value.replace(/[^A-Za-z0-9._:-]/g, "").slice(0, maxLen);
-}

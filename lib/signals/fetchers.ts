@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { PublicSignal } from "@/lib/schemas";
 import { PublicSignalSchema } from "@/lib/schemas";
 import {
@@ -6,16 +7,14 @@ import {
   nwsCachedFixture
 } from "@/lib/signals/cached";
 import { fetchGdeltSignals, finiteClock } from "@/lib/signals/gdelt";
-import {
-  MAX_FIELD_LEN,
-  MAX_SUMMARY_LEN,
-  sanitizeIdToken,
-  sanitizeText
-} from "@/lib/signals/sanitize";
+import { MAX_FIELD_LEN, MAX_SUMMARY_LEN, sanitizeText } from "@/lib/signals/sanitize";
 
 const TIMEOUT_MS = 5000;
-// A disclosure marker carries no fresh data, so it reads as very stale, never "now".
-const SOURCE_DOWN_FRESHNESS_MIN = 7 * 24 * 60;
+// An unparseable, far-future, or "source down" timestamp is bad data -> "very stale"
+// (never 0/freshest), so a broken date can't read as fresh-now. A small clock skew
+// rounds to just-now. (Mirrors gdelt.ts's date guard, shared across the layer.)
+const STALE_UNKNOWN_MINUTES = 7 * 24 * 60;
+const MAX_FUTURE_SKEW_MS = 5 * 60_000;
 
 // The ActionOps signal layer (P3.2). Two sources are live: GDELT DOC 2.0 -- the
 // primary disruption signal, resilient + self-degrading inside gdelt.ts -- and NWS.
@@ -72,7 +71,7 @@ function gdeltUnavailableMarker(note: string, now: () => number): PublicSignal {
       note,
       MAX_SUMMARY_LEN
     )}. Showing cached / fixture context only.`,
-    freshnessMinutes: SOURCE_DOWN_FRESHNESS_MIN,
+    freshnessMinutes: STALE_UNKNOWN_MINUTES,
     status: "FAILED"
   };
 }
@@ -136,10 +135,12 @@ export async function fetchNwsSignal(
     };
   }
 
-  // Every field below is untrusted NWS response text: constrain the id token, cap +
-  // control-strip the region and summary, and always leave a non-empty summary (so a
-  // headline/event-less alert can't produce an invalid PublicSignal).
-  const idToken = sanitizeIdToken(alert.id.split("/").pop()) || "ALERT";
+  // Every field below is untrusted NWS response text. Hash the raw alert id into a
+  // stable, collision-resistant, always-present token (never compose attacker-
+  // influenced text into the id -- matches GDELT's sha256 id). Cap + control-strip the
+  // region and summary, and always leave a non-empty summary (so a headline/event-less
+  // alert can't produce an invalid PublicSignal).
+  const idToken = createHash("sha256").update(String(alert.id ?? "")).digest("hex").slice(0, 16);
   const region = sanitizeText(alert.properties.areaDesc, MAX_FIELD_LEN) || "California";
   const summary =
     sanitizeText(alert.properties.headline || alert.properties.event, MAX_SUMMARY_LEN) ||
@@ -183,9 +184,13 @@ async function fetchJson<T>(
 function minutesSince(timeMs: number, now: () => number) {
   const ref = now();
   if (!Number.isFinite(timeMs) || !Number.isFinite(ref)) {
-    return 0;
+    return STALE_UNKNOWN_MINUTES; // unparseable `sent` -> very stale, never fresh-now
   }
-  return Math.max(0, Math.round((ref - timeMs) / 60000));
+  const diffMs = ref - timeMs;
+  if (diffMs < -MAX_FUTURE_SKEW_MS) {
+    return STALE_UNKNOWN_MINUTES; // a far-future timestamp is bad data, not "fresh"
+  }
+  return Math.max(0, Math.round(diffMs / 60000)); // small skew -> just-now
 }
 
 function mapNwsSeverity(value: unknown): PublicSignal["severity"] {

@@ -18,7 +18,23 @@ const artlist = JSON.parse(
   readFileSync("data/signals/gdelt-artlist-sample-20260617.json", "utf8")
 ) as { articles: GdeltArticle[] };
 
+// Golden snapshot: the sha256(url)[:16] ids of the 5 urls in the recorded fixture.
+// Pinning the exact ids catches a CONTENT swap (a different set of 5 valid urls) that
+// the shape-only contract would miss -- the urls themselves are the golden value.
+const GOLDEN_GDELT_IDS = [
+  "SIG-GDELT-d23c80918b495cf0",
+  "SIG-GDELT-b1d90eb7520223ef",
+  "SIG-GDELT-434306b7cdf13669",
+  "SIG-GDELT-d33cb42616fcfd0c",
+  "SIG-GDELT-db4c38a159514cee"
+];
+
 describe("cached signal fixtures", () => {
+  it("pins the exact GDELT replay ids (golden snapshot -> catches a fixture content swap)", () => {
+    const gdeltReplay = cachedSignals.filter((signal) => signal.source === "GDELT DOC 2.0");
+    expect(gdeltReplay.map((signal) => signal.id).sort()).toEqual([...GOLDEN_GDELT_IDS].sort());
+  });
+
   it("the GDELT replay set meets the mapper output contract independently (real teeth)", () => {
     const gdeltReplay = cachedSignals.filter((signal) => signal.source === "GDELT DOC 2.0");
     // The recorded artlist has 5 distinct-url articles -> 5 deduped signals. A raw
