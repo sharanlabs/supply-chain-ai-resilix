@@ -5,7 +5,7 @@ import {
   fixtureOnlySignals,
   nwsCachedFixture
 } from "@/lib/signals/cached";
-import { fetchGdeltSignals } from "@/lib/signals/gdelt";
+import { fetchGdeltSignals, finiteClock } from "@/lib/signals/gdelt";
 import {
   MAX_FIELD_LEN,
   MAX_SUMMARY_LEN,
@@ -38,14 +38,18 @@ export async function fetchPublicSignals({
     return cachedSignals;
   }
 
+  // One ISO-safe clock shared by every new Date(clock()).toISOString() below, so a
+  // throwing / out-of-range injected clock can never throw out of the composer.
+  const clock = finiteClock(now);
+
   // GDELT self-manages spacing/cache/backoff and never throws into the pipeline;
   // every signal it returns is already stamped LIVE or CACHED. A FAILED outage (no
   // signals to serve) is surfaced as one disclosure marker, so a down primary source
   // is VISIBLE -- never silently absent, which an operator could read as "all calm".
-  const gdelt = await fetchGdeltSignals({ fetchImpl, now });
+  const gdelt = await fetchGdeltSignals({ fetchImpl, now: clock });
   const gdeltSignals =
-    gdelt.status === "FAILED" ? [gdeltUnavailableMarker(gdelt.note, now)] : gdelt.signals;
-  const nws = await fetchNwsOrCached(fetchImpl, now);
+    gdelt.status === "FAILED" ? [gdeltUnavailableMarker(gdelt.note, clock)] : gdelt.signals;
+  const nws = await fetchNwsOrCached(fetchImpl, clock);
 
   const composed = [...gdeltSignals, nws, ...fixtureOnlySignals];
   return composed.map((signal) => PublicSignalSchema.parse(signal));

@@ -262,7 +262,8 @@ function mapArticle(
 
 // A clock that always yields an ISO-safe timestamp, so new Date(clock()).toISOString()
 // can never throw -- a throwing OR out-of-range injected clock falls back to Date.now().
-function finiteClock(now: () => number): () => number {
+// Exported so fetchers.ts shares the same guard for its own new Date(now()) calls.
+export function finiteClock(now: () => number): () => number {
   return () => {
     let t: number;
     try {
