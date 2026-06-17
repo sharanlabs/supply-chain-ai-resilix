@@ -172,6 +172,14 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
   const degraded = packet.effectiveMode === "FAILED_TO_FALLBACK";
   const { threatCard, simulation, gatekeeper } = packet;
   const honesty = signalHonesty(packet.publicSignals);
+  // WCAG 2.2 SC 4.1.3 Status Messages: the live region below announces a runtime
+  // mode change without moving focus. Empty while live; set when the packet is
+  // degraded (FAILED_TO_FALLBACK) or running on recorded/cached-only signals.
+  const modeAnnouncement = degraded
+    ? "Live AI unavailable. The action packet is running in degraded fallback mode; figures are deterministic."
+    : honesty.live === 0 && honesty.cached > 0
+      ? "Signals are recorded (cached), not live."
+      : "";
   const confidencePct = Math.round(threatCard.confidence * 100);
   const confidenceCount = useCountUp(confidencePct);
 
@@ -267,6 +275,13 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
 
   return (
     <div className="flex flex-col gap-8" data-testid="actionops-packet">
+      {/* WCAG 2.2 SC 4.1.3: a persistent, always-mounted live region -- it exists
+          empty when live, and when the packet mode flips to degraded (or recorded)
+          its text changes so assistive tech announces it without moving focus.
+          A conditionally-mounted region (the visible Badge) does NOT announce. */}
+      <div role="status" aria-live="polite" className="sr-only" data-testid="mode-status">
+        {modeAnnouncement}
+      </div>
       {/* Packet head — the briefing lede. The at-risk figure is the one accented
           word in the serif headline. */}
       <div

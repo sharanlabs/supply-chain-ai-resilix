@@ -60,4 +60,26 @@ describe("ActionOpsPacketView (V2 render)", () => {
     );
     expect(screen.getByText(/Degraded - no live AI/)).toBeInTheDocument();
   });
+
+  it("announces mode changes via a persistent live region (WCAG 2.2 SC 4.1.3)", () => {
+    const { rerender } = render(<ActionOpsPacketView packet={makeV2Packet()} />);
+
+    // Always mounted (a conditionally-mounted region never announces), with the
+    // status role + polite setting; no degraded text on a healthy packet.
+    const region = screen.getByTestId("mode-status");
+    expect(region).toHaveAttribute("role", "status");
+    expect(region).toHaveAttribute("aria-live", "polite");
+    expect(region).not.toHaveTextContent(/degraded fallback/i);
+
+    // The SAME persistent node's text changes on a degraded rerender, so AT
+    // announces it without moving focus.
+    rerender(
+      <ActionOpsPacketView
+        packet={makeV2Packet({ effectiveMode: "FAILED_TO_FALLBACK" })}
+      />
+    );
+    expect(screen.getByTestId("mode-status")).toHaveTextContent(
+      /degraded fallback mode/i
+    );
+  });
 });

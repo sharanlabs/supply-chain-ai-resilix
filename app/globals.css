@@ -92,6 +92,11 @@
 html {
   min-width: 320px;
   background: var(--color-ground);
+  /* WCAG 2.2 SC 2.4.11 Focus Not Obscured: the masthead + the decision rail are
+     sticky at top-[5.5rem], so a keyboard-focused control scrolled into view can
+     land hidden behind that chrome. Pad the scroll port past it so the focused
+     element clears the sticky band. */
+  scroll-padding-top: 6.5rem;
 }
 
 body {
