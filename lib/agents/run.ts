@@ -3,6 +3,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { buildRecoveryOptions } from "@/lib/engine/impact";
 import { validateDecisionInputs } from "@/lib/agents/gatekeeper";
+import { liveAiEnabled } from "@/lib/server/env-flags";
 import type {
   AgentMode,
   AgentRun,
@@ -299,9 +300,10 @@ async function generateStructuredOrFallback<T>({
   }
 }
 
-export function liveAiEnabled() {
-  return process.env.ENABLE_LIVE_AI === "true" && Boolean(process.env.GEMINI_API_KEY);
-}
+// liveAiEnabled now lives in the dependency-free env-flags module (shared with the
+// fail-closed auth check in lib/server/security.ts -- single source of truth, no
+// drift). Re-exported here so existing importers (run-exception, evals) stay stable.
+export { liveAiEnabled };
 
 // Derives the packet-level effective mode from the agent runs (R4-8).
 // Precedence, highest first:

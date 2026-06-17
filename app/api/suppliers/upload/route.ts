@@ -3,7 +3,7 @@ import {
   ingestSupplierCsv
 } from "@/lib/ingest/supplier-csv";
 import { apiError, noStoreJson } from "@/lib/server/http";
-import { verifyUploadAuthorization } from "@/lib/server/security";
+import { verifyApprovalToken } from "@/lib/server/security";
 import { getSupplierStore } from "@/lib/server/supplier-store";
 
 // ---------------------------------------------------------------------------
@@ -22,13 +22,9 @@ import { getSupplierStore } from "@/lib/server/supplier-store";
 export async function POST(request: Request) {
   // (1) Auth chokepoint. Currently a permissive no-op; P2.7 (R4-4) makes it
   // fail-closed. Gating on `ok` here means P2.7 needs no change at this call site.
-  const auth = verifyUploadAuthorization(request);
+  const auth = verifyApprovalToken(request);
   if (!auth.ok) {
-    return apiError(
-      "UNAUTHORIZED_UPLOAD",
-      "Supplier upload requires a valid approval token",
-      401
-    );
+    return apiError(auth.code, auth.message, auth.status);
   }
 
   // (2a) Byte cap via Content-Length FIRST: reject an over-cap upload without

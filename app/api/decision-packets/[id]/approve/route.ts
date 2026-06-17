@@ -4,6 +4,7 @@ import {
   approvalHttpStatus
 } from "@/lib/server/decision-packet-service";
 import { apiError, noStoreJson, parseJsonRequest } from "@/lib/server/http";
+import { verifyApprovalToken } from "@/lib/server/security";
 
 const ApprovalRequestSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
@@ -15,6 +16,13 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // P2.7 (R4-4): fail-closed auth on this mutation surface. Terminal packet
+  // approval was previously UNGATED -- in secure mode it now requires the token.
+  const auth = verifyApprovalToken(request);
+  if (!auth.ok) {
+    return apiError(auth.code, auth.message, auth.status);
+  }
+
   const { id } = await params;
   const parsed = await parseJsonRequest(request, ApprovalRequestSchema);
   if (!parsed.ok) {
