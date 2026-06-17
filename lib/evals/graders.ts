@@ -492,10 +492,16 @@ export function gradeInjectionQuarantine(
       where: `message ${m.id}`,
       text: `${m.subject ?? ""} ${m.body}`
     })),
+    // Atlas rationales are downstream-of-Sentinel prose too -- scanned even though
+    // Atlas is deterministic (templated), as defense-in-depth against text leaking
+    // through the exposure path.
+    ...packet.exposureResults.map((e) => ({ where: `exposure ${e.id} rationale`, text: e.rationale })),
     ...packet.playbooks.map((p) => ({
       where: `playbook ${p.id}`,
       text: `${p.summary} ${p.steps.join(" ")}`
     })),
+    // action items: the free-prose title (owner/status/dueDate are taxonomy/date
+    // controlled, not free text the model authors).
     ...packet.actionItems.map((a) => ({ where: `action item ${a.id}`, text: a.title }))
   ];
   for (const { where, text } of draftedProse) {

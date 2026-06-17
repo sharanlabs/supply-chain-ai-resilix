@@ -193,6 +193,16 @@ export const CORRUPTIONS: readonly Corruption[] = [
     expect: /playbook .* raw untrusted text leaked/
   },
   {
+    label: "prompt-injection: leak in an Atlas exposure rationale",
+    grader: "injection-quarantine",
+    base: hormuz,
+    groundTruth: { ...hormuz.groundTruth, untrustedRawStrings: [INJECTION] },
+    mutate: (p) => {
+      p.exposureResults[0].rationale += ` ${INJECTION}`;
+    },
+    expect: /exposure .* rationale: raw untrusted text leaked/
+  },
+  {
     label: "fabricated product id in a runout",
     grader: "entity-ids",
     base: hormuz,
