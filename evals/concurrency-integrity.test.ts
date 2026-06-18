@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as agentRunModule from "@/lib/agents/run";
+import * as buildPacketModule from "@/lib/pipeline/build-packet";
 import { applyApprovalDecision } from "@/lib/server/decision-packet-service";
 import { runExceptionPipeline } from "@/lib/pipeline/run-exception";
 import {
@@ -84,11 +84,13 @@ describe("data-layer concurrency integrity (memory store)", () => {
   it("runs the pipeline at most once for concurrent calls with the same idempotency key", async () => {
     const idempotencyKey = `idem-${randomUUID()}`;
 
-    // Spy on the expensive boundary (the LLM/agent fan-out). The packet-id
-    // equality below proves a fresh id was not minted, but it cannot prove the
-    // agents did not re-run on a coalesced result; this counter does. The spy
-    // wraps the real implementation so behavior is unchanged.
-    const agentSpy = vi.spyOn(agentRunModule, "runLaunchOpsAgents");
+    // Spy on the expensive boundary: buildDecisionPacket is the ActionOps agent
+    // fan-out (+ signal fetch + assembly), and runExceptionPipeline imports it
+    // directly, so the spy intercepts the real call site. The packet-id equality
+    // below proves a fresh id was not minted, but it cannot prove the assembly did
+    // not re-run on a coalesced result; this counter does. The spy wraps the real
+    // implementation so behavior is unchanged.
+    const buildSpy = vi.spyOn(buildPacketModule, "buildDecisionPacket");
 
     try {
       const [first, second] = await Promise.all([
@@ -96,9 +98,9 @@ describe("data-layer concurrency integrity (memory store)", () => {
         runExceptionPipeline({ useLiveSignals: false, idempotencyKey })
       ]);
 
-      // Two concurrent same-key calls must execute the expensive agent boundary
+      // Two concurrent same-key calls must execute the expensive assembly boundary
       // exactly once. This is the direct single-execution assertion.
-      expect(agentSpy).toHaveBeenCalledTimes(1);
+      expect(buildSpy).toHaveBeenCalledTimes(1);
 
       // Same packet id directly proves single execution: a second pipeline body
       // would mint a fresh DP-${randomUUID()} id, so equal ids => ran once.
@@ -117,17 +119,17 @@ describe("data-layer concurrency integrity (memory store)", () => {
         second.agentRuns.map((run) => run.id)
       );
     } finally {
-      agentSpy.mockRestore();
+      buildSpy.mockRestore();
     }
   });
 
-  it("control: distinct-key concurrent calls each execute the agent boundary (spy observes real calls)", async () => {
+  it("control: distinct-key concurrent calls each execute the assembly boundary (spy observes real calls)", async () => {
     // Control for the single-execution assertion above. If the spy were
     // detached and silently counting nothing, BOTH this test (expects 2) and
     // the same-key test (expects 1) could not pass; this proves the spy
     // actually observes pipeline executions rather than coincidentally reading 0
     // or 1.
-    const agentSpy = vi.spyOn(agentRunModule, "runLaunchOpsAgents");
+    const buildSpy = vi.spyOn(buildPacketModule, "buildDecisionPacket");
 
     try {
       const [first, second] = await Promise.all([
@@ -141,10 +143,10 @@ describe("data-layer concurrency integrity (memory store)", () => {
         })
       ]);
 
-      expect(agentSpy).toHaveBeenCalledTimes(2);
+      expect(buildSpy).toHaveBeenCalledTimes(2);
       expect(first.id).not.toBe(second.id);
     } finally {
-      agentSpy.mockRestore();
+      buildSpy.mockRestore();
     }
   });
 

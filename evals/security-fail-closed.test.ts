@@ -230,7 +230,7 @@ describe("P2.7 route gates (secure mode via REQUIRE_APPROVAL_TOKEN, in-memory)",
       new Request("http://localhost/api/run-exception", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ scenarioId: "SCN-LAUNCH-001" })
+        body: JSON.stringify({ scenarioId: "SCN-HORMUZ" })
       })
     );
     expect(res.status).toBe(401);

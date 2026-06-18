@@ -26,7 +26,7 @@ describe("api hardening", () => {
       new Request("http://localhost/api/run-exception", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ scenarioId: "SCN-LAUNCH-001", padding: "x".repeat(20_000) })
+        body: JSON.stringify({ scenarioId: "SCN-HORMUZ", padding: "x".repeat(20_000) })
       })
     );
     const body = await response.json();
@@ -92,7 +92,7 @@ function runRequest(idempotencyKey: string) {
       [IDEMPOTENCY_KEY_HEADER]: idempotencyKey
     },
     body: JSON.stringify({
-      scenarioId: "SCN-LAUNCH-001",
+      scenarioId: "SCN-HORMUZ",
       useLiveSignals: false
     })
   });

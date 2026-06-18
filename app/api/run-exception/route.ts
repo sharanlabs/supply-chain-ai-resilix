@@ -4,7 +4,11 @@ import { apiError, noStoreJson, parseJsonRequest } from "@/lib/server/http";
 import { IDEMPOTENCY_KEY_HEADER, verifyApprovalToken } from "@/lib/server/security";
 
 const RunRequestSchema = z.object({
-  scenarioId: z.string().default("SCN-LAUNCH-001"),
+  // No default here: an omitted scenarioId must flow to getActionOpsScenario's
+  // DEFAULT_SCENARIO_ID (the single source of default truth). Hard-coding the
+  // retired "SCN-LAUNCH-001" default would route every bare run at an unknown
+  // scenario -> a 500. Present values are still validated as a string.
+  scenarioId: z.string().optional(),
   useLiveSignals: z.boolean().default(true),
   idempotencyKey: z
     .string()

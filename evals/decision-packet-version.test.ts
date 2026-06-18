@@ -3,7 +3,6 @@ import {
   DecisionPacketSchema,
   DecisionPacketV2Schema
 } from "@/lib/schemas";
-import type { DecisionPacketV1 } from "@/lib/schemas";
 import {
   getDecisionPacket,
   parseStoredPacket,
@@ -11,21 +10,12 @@ import {
   toDecisionPacketRow,
   transitionApproval
 } from "@/lib/server/store";
-import { runExceptionPipeline } from "@/lib/pipeline/run-exception";
+import { makeV1Packet } from "./fixtures/decision-packet-v1";
 import { makeV2Packet } from "./fixtures/decision-packet-v2";
 
-// A V1 packet from the live (deterministic) pipeline, used to exercise the V1
-// arm of the union and the legacy read-compat path.
-async function buildV1Packet(): Promise<DecisionPacketV1> {
-  const packet = await runExceptionPipeline({
-    scenarioId: "SCN-LAUNCH-001",
-    useLiveSignals: false
-  });
-  if (packet.packetVersion !== 1) {
-    throw new Error("pipeline unexpectedly produced a non-V1 packet");
-  }
-  return packet;
-}
+// The live pipeline now emits V2 (D.1 cutover), so the V1 arm of the union and the
+// pre-P2.3 legacy read-compat path are exercised with the V1 fixture (the LaunchOps
+// salvage engine assembles it) rather than the pipeline output.
 
 describe("decision packet versioning (R4-7)", () => {
   const originalEnableLiveAi = process.env.ENABLE_LIVE_AI;
@@ -42,8 +32,8 @@ describe("decision packet versioning (R4-7)", () => {
     process.env.ENABLE_LIVE_AI = originalEnableLiveAi;
   });
 
-  it("accepts the live pipeline's V1 packet under the union", async () => {
-    const packet = await buildV1Packet();
+  it("accepts a V1 packet under the union", async () => {
+    const packet = await makeV1Packet();
     expect(packet.packetVersion).toBe(1);
     expect(DecisionPacketSchema.safeParse(packet).success).toBe(true);
   });
@@ -81,7 +71,7 @@ describe("decision packet versioning (R4-7)", () => {
   });
 
   it("reads a legacy (pre-P2.3) payload back as V1 with backfilled modes", async () => {
-    const packet = await buildV1Packet();
+    const packet = await makeV1Packet();
     // Simulate a payload persisted before P2.3 (and before the P2.2 mode split):
     // no packetVersion, no requested/effective mode.
     const legacy = structuredClone(packet) as Record<string, unknown>;
@@ -96,7 +86,7 @@ describe("decision packet versioning (R4-7)", () => {
   });
 
   it("remaps the retired DETERMINISTIC_FALLBACK run mode on a legacy payload", async () => {
-    const packet = await buildV1Packet();
+    const packet = await makeV1Packet();
     const legacy = structuredClone(packet) as Record<string, unknown>;
     delete legacy.packetVersion;
     delete legacy.requestedMode;
@@ -157,7 +147,7 @@ describe("decision packet versioning (R4-7)", () => {
   });
 
   it("derives the NOT NULL exception_id from the right field per version", async () => {
-    const v1 = await buildV1Packet();
+    const v1 = await makeV1Packet();
     const v2 = makeV2Packet();
     // V1 keys the column off the launch exception; V2 off the threat card. A
     // null here would fail the NOT NULL column on the Postgres insert path.

@@ -7,12 +7,12 @@ import { AxeBuilder } from "@axe-core/playwright";
 // is layer 3 (a human step -- see docs/claude/A11Y-MANUAL-SR-PASS.md).
 //
 // Scope: the live `/` route. Its DEFAULT tab is "packet" -> the V2 ActionOps
-// view (components/action-packet-view.tsx), wired into the dashboard by Phase 8
-// -- so the V2 surface renders in a REAL browser here (it is NOT jsdom-only).
-// The other three tabs (Recorded Events / Exposure / Simulation) are scanned
-// too. OUT of scope: the V1 live panel (V1LivePanel) -- it only mounts after
-// "Run live pipeline", so a default-/ scan never reaches it, and the V1 salvage
-// path is not part of component G.
+// view (components/action-packet-view.tsx). Since the D.1 cutover the dashboard
+// renders the REAL pipeline packet (buildDecisionPacket, server-rendered), not a
+// hardcoded demo -- so this scans the genuine pipeline output in a real browser
+// (it is NOT jsdom-only). The other three tabs (Recorded Events / Exposure /
+// Simulation) are scanned too. The former V1 LaunchOps "Run live pipeline" panel
+// was retired in that cutover, so there is no V1 surface left to exclude.
 //
 // Every scan/measurement first awaits settle() -- all running animations have
 // finished -- so axe and the geometric reads see the FINAL frame, never a

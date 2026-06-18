@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import path from "node:path";
 import { ingestSupplierCsv, type IngestResult } from "@/lib/ingest/supplier-csv";
 import type { SupplierUploadReport } from "@/lib/schemas";
 import type { SupplierStore } from "@/lib/server/supplier-store";
@@ -17,13 +17,18 @@ import type { SupplierStore } from "@/lib/server/supplier-store";
 // the deterministic exposure engine (Atlas, Phase 5) matches on.
 // ---------------------------------------------------------------------------
 
-// Resolved from this module's own location via import.meta.url, so the path is
-// robust to the process cwd under vitest or a plain node run. It reads the CSV from
-// the repo's data/ dir on disk; a bundled context that does not ship data/seed would
-// need the file copied alongside -- not a concern for the test + local-pg seed paths
-// P2.6 uses.
-export const SEED_CSV_PATH = fileURLToPath(
-  new URL("../../data/seed/us-suppliers.seed.csv", import.meta.url)
+// Resolved from the project root (process.cwd()) -- the working directory under
+// `next build` / `next dev` / `next start` and vitest alike, where data/seed/ lives
+// on disk. Deliberately NOT import.meta.url: a bundler (Turbopack) rewrites that to
+// the emitted CHUNK location, so a relative data path would resolve into .next/, and
+// the bundled URL also fails fileURLToPath's cross-realm `instanceof URL` check --
+// the ERR_INVALID_ARG_TYPE the `/` server-component build surfaced when this module
+// entered the page graph. A bundled deploy that does not ship data/seed would need
+// the file copied to the runtime cwd -- not a concern for the test + local-pg +
+// demo-render paths this seed serves.
+export const SEED_CSV_PATH = path.join(
+  process.cwd(),
+  "data/seed/us-suppliers.seed.csv"
 );
 
 // The seed is authored to exactly this many rows; asserting the count means a

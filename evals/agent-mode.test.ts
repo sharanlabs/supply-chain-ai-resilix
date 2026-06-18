@@ -3,6 +3,7 @@ import { computeEffectiveMode } from "@/lib/agents/run";
 import { runExceptionPipeline } from "@/lib/pipeline/run-exception";
 import { parseStoredPacket } from "@/lib/server/store";
 import { AgentModeSchema, type AgentMode, type AgentRun } from "@/lib/schemas";
+import { makeV1Packet } from "./fixtures/decision-packet-v1";
 
 // Constructs a minimal valid AgentRun carrying only the field under test (mode).
 // model follows the production rule: the model id only when LIVE_AI, else
@@ -116,13 +117,13 @@ describe("agent-mode taxonomy (R4-8)", () => {
     });
 
     it("parses an old-shape packet (no mode fields + a DETERMINISTIC_FALLBACK run)", async () => {
-      // Start from a current valid packet, then strip it back to the old shape:
-      // remove the packet-level mode fields and rewrite one run to the retired
-      // 'DETERMINISTIC_FALLBACK' value, exactly as a pre-P2.2 jsonb payload would.
-      const valid = await runExceptionPipeline({
-        scenarioId: "SCN-LAUNCH-001",
-        useLiveSignals: false
-      });
+      // A genuine pre-P2.2 payload is a LaunchOps V1 packet (V2 never existed
+      // before P2.3), so the legacy-read path is exercised with a real V1 fixture
+      // -- the live pipeline now emits V2, which would not round-trip through the
+      // V1-legacy normalizer. Strip it back to the old shape: remove the packet-
+      // level mode fields and rewrite one run to the retired 'DETERMINISTIC_
+      // FALLBACK' value, exactly as a pre-P2.2 jsonb payload would.
+      const valid = await makeV1Packet();
 
       const oldShape = JSON.parse(JSON.stringify(valid)) as Record<string, unknown>;
       // A genuine pre-P2.2 payload also predates P2.3, so it has no packetVersion.
@@ -153,10 +154,9 @@ describe("agent-mode taxonomy (R4-8)", () => {
     });
 
     it("leaves a current-shape packet unchanged", async () => {
-      const valid = await runExceptionPipeline({
-        scenarioId: "SCN-LAUNCH-001",
-        useLiveSignals: false
-      });
+      // The current pipeline output is now V2 (default Hormuz scenario); an
+      // already-versioned payload passes straight through the normalizer unchanged.
+      const valid = await runExceptionPipeline({ useLiveSignals: false });
       const roundTripped = JSON.parse(JSON.stringify(valid));
 
       const parsed = parseStoredPacket(roundTripped);

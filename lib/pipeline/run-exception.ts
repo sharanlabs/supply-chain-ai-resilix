@@ -1,34 +1,27 @@
-import { randomUUID } from "node:crypto";
-import {
-  computeEffectiveMode,
-  liveAiEnabled,
-  runLaunchOpsAgents
-} from "@/lib/agents/run";
-import { validateDecisionInputs, validateDecisionPacket } from "@/lib/agents/gatekeeper";
-import { buildExceptionEvent, calculateImpact } from "@/lib/engine/impact";
-import { getScenario } from "@/lib/data/operations";
-import { fetchPublicSignals } from "@/lib/signals/fetchers";
+import { buildDecisionPacket, type BuildPacketOptions } from "@/lib/pipeline/build-packet";
 import {
   getDecisionPacketByIdempotencyKey,
   saveDecisionPacket
 } from "@/lib/server/store";
 import type { DecisionPacket } from "@/lib/schemas";
 
+export type RunExceptionOptions = BuildPacketOptions & {
+  idempotencyKey?: string;
+};
+
 // In-process reservation of in-flight runs keyed by idempotencyKey. This
-// guarantees the expensive pipeline body (which calls the LLM agents) runs at
-// most once per key WITHIN a single Node instance. Cross-instance
-// serialization relies on the DB unique constraint on run_idempotency_keys
-// plus a future Postgres advisory lock (post-MVP).
+// guarantees the expensive pipeline body (the ActionOps agent fan-out) runs at
+// most once per key WITHIN a single Node instance. Cross-instance serialization
+// relies on the DB unique constraint on run_idempotency_keys plus a future
+// Postgres advisory lock (post-MVP).
 const inflightRuns = new Map<string, Promise<DecisionPacket>>();
 
-export async function runExceptionPipeline(options: {
-  scenarioId?: string;
-  useLiveSignals?: boolean;
-  idempotencyKey?: string;
-} = {}): Promise<DecisionPacket> {
+export async function runExceptionPipeline(
+  options: RunExceptionOptions = {}
+): Promise<DecisionPacket> {
   const { idempotencyKey } = options;
   if (!idempotencyKey) {
-    return executeExceptionPipeline(options);
+    return executeAndSave(options);
   }
 
   // get -> create promise -> set must be synchronous and contiguous (no await
@@ -45,7 +38,7 @@ export async function runExceptionPipeline(options: {
     if (existing) {
       return existing;
     }
-    return executeExceptionPipeline(options);
+    return executeAndSave(options);
   })();
   inflightRuns.set(idempotencyKey, promise);
 
@@ -56,78 +49,20 @@ export async function runExceptionPipeline(options: {
   }
 }
 
-async function executeExceptionPipeline({
-  scenarioId = "SCN-LAUNCH-001",
-  useLiveSignals = true,
-  idempotencyKey
-}: {
-  scenarioId?: string;
-  useLiveSignals?: boolean;
-  idempotencyKey?: string;
-} = {}): Promise<DecisionPacket> {
-  const scenario = getScenario(scenarioId);
-  const now = new Date().toISOString();
-  const publicSignals = await fetchPublicSignals({ useLive: useLiveSignals });
-  const exception = buildExceptionEvent({ scenarioId: scenario.id, publicSignals });
-  const impactReport = calculateImpact(exception);
-  const { options, recommendedOptionId, executionDraft, agentRuns } =
-    await runLaunchOpsAgents({
-      publicSignals,
-      impactReport
-    });
-  const gatekeeper = validateDecisionInputs({
-    publicSignals,
-    impactReport,
-    options,
-    recommendedOptionId
-  });
-
-  // requested = what this run intended; effective = what actually happened across
-  // the agent runs (R4-8). REPLAY is reserved for Phase 3 and not requested here.
-  const requestedMode = liveAiEnabled() ? "LIVE_AI" : "DETERMINISTIC_RULES";
-  const effectiveMode = computeEffectiveMode(agentRuns, requestedMode);
-
-  // P2.3: the pipeline still produces the LaunchOps V1 packet; the ActionOps
-  // (V2) producer lands when the ActionOps agents do (Phases 4-8). Stamping the
-  // discriminant keeps this a valid V1 member of the versioned union.
-  const packet: DecisionPacket = {
-    packetVersion: 1,
-    id: `DP-${randomUUID()}`,
-    exception,
-    publicSignals,
-    impactReport,
-    options,
-    recommendedOptionId,
-    gatekeeper,
-    executionDraft,
-    agentRuns,
-    requestedMode,
-    effectiveMode,
-    approvalStatus: "PENDING",
-    auditTrail: [
-      {
-        at: now,
-        actor: "system",
-        action: "SCENARIO_RUN",
-        detail: `Scenario ${scenario.name} executed with ${
-          useLiveSignals ? "live signal fetchers" : "cached signals"
-        }.`
-      },
-      {
-        at: now,
-        actor: "gatekeeper",
-        action: gatekeeper.status,
-        detail: `${gatekeeper.failures.length} failures and ${gatekeeper.warnings.length} warnings.`
-      }
-    ],
-    createdAt: now,
-    updatedAt: now
-  };
-
-  const parsed = validateDecisionPacket(packet);
-  if (!parsed.success) {
-    throw new Error(`Decision packet failed schema validation: ${parsed.error.message}`);
-  }
-
-  return saveDecisionPacket(parsed.data, { idempotencyKey });
+// D.1 V2 cutover: the pipeline ASSEMBLES via buildDecisionPacket (the pure
+// ActionOps producer -- it owns the 6-agent fan-out, schema validation, and the
+// mode taxonomy) and then PERSISTS the result. This wrapper adds ONLY the
+// idempotency mutex above + the save, so assembly stays separable from
+// persistence: the UI render path (app/page.tsx) calls buildDecisionPacket
+// directly and never writes, while the API path persists here.
+//
+// The return type stays the DecisionPacket UNION, not DecisionPacketV2: a fresh
+// run is always V2, but the idempotency double-check can return a previously
+// stored packet of either version, so the union is the type-honest contract.
+async function executeAndSave(
+  options: RunExceptionOptions
+): Promise<DecisionPacket> {
+  const { idempotencyKey, ...buildOptions } = options;
+  const packet = await buildDecisionPacket(buildOptions);
+  return saveDecisionPacket(packet, { idempotencyKey });
 }

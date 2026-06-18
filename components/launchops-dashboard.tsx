@@ -1,26 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  CheckCircle2,
-  Clock3,
-  Database,
-  Loader2,
-  Play,
-  RadioTower,
-  ShieldCheck
-} from "lucide-react";
+import { Database, RadioTower, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { ActionOpsPacketView } from "@/components/action-packet-view";
 import { PANEL_ID, TabNav, tabId, type TabKey } from "@/components/tab-nav";
 import { makeDemoPacket } from "@/lib/data/demo-packet";
-import type {
-  DecisionPacketV1,
-  DecisionPacketV2,
-  PublicSignal
-} from "@/lib/schemas";
+import type { DecisionPacketV2, PublicSignal } from "@/lib/schemas";
 import { formatCurrency } from "@/lib/utils";
 
 // Re-export so the existing eval (evals/actionops-packet-view.test.tsx) keeps
@@ -32,7 +19,7 @@ type TabDef = { key: TabKey; label: string; hint: string; pip?: string };
 
 // The signal-feed tab label must be honest about provenance: it may only claim
 // "Live Events" when at least one signal is actually LIVE. With recorded/CACHED
-// signals (the default seeded demo) it reads "Recorded Events" — no false LIVE
+// signals (the default seeded demo) it reads "Recorded Events" -- no false LIVE
 // claim. Built per render from the real signal set, not a hardcoded label.
 function buildTabs(signals: PublicSignal[]): TabDef[] {
   const hasLive = signals.some((s) => s.status === "LIVE");
@@ -53,15 +40,6 @@ function buildTabs(signals: PublicSignal[]): TabDef[] {
   ];
 }
 
-// Human-readable agent mode label for the honest provenance badges.
-function modeLabel(mode: string) {
-  if (mode === "LIVE_AI") return "Live AI";
-  if (mode === "DETERMINISTIC_RULES") return "Deterministic";
-  if (mode === "REPLAY") return "Replay";
-  if (mode === "FAILED_TO_FALLBACK") return "Failed → fallback";
-  return mode;
-}
-
 function severityTone(severity: PublicSignal["severity"]) {
   if (severity === "LOW") return "low" as const;
   if (severity === "MEDIUM") return "medium" as const;
@@ -75,97 +53,25 @@ function signalTone(status: PublicSignal["status"]) {
   return "neutral" as const;
 }
 
-export function LaunchOpsDashboard() {
-  // The seeded Hormuz demo packet drives the primary screen out of the box
-  // (the live ActionOps agents land in Phases 4-7). It is a healthy
-  // DETERMINISTIC_RULES packet, never presented as live AI.
-  const demoPacket = useMemo(() => makeDemoPacket(), []);
-  const tabs = useMemo(
-    () => buildTabs(demoPacket.publicSignals),
-    [demoPacket]
-  );
+// D.1 V2 cutover: the dashboard renders the REAL ActionOps packet assembled by the
+// pipeline (passed from the `/` server component), not a hardcoded demo. The
+// makeDemoPacket() fallback only fires if the prop is ever absent, so the surface
+// degrades to a valid reference packet rather than blanking. The V1 LaunchOps
+// "run live pipeline" panel is retired: the primary screen IS the live pipeline
+// output now, and approval lives in the packet view. (The persisted run + server
+// approve round-trip is covered by the API-level evals, not a browser path.)
+export function LaunchOpsDashboard({ packet }: { packet?: DecisionPacketV2 }) {
+  const data = useMemo(() => packet ?? makeDemoPacket(), [packet]);
+  const tabs = useMemo(() => buildTabs(data.publicSignals), [data]);
   const [active, setActive] = useState<TabKey>("packet");
 
-  // The live V1 pipeline (LaunchOps salvage) is still reachable for the live
-  // run + approve demo and the e2e. Its testids (run-scenario, decision-packet,
-  // approve-packet) and the "Live signals" / "Approval Console" affordances are
-  // preserved on the V1 surface below.
-  const [v1Packet, setV1Packet] = useState<DecisionPacketV1 | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [approving, setApproving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [useLiveSignals, setUseLiveSignals] = useState(true);
-
-  // The dated capture of the recorded signals — shown in the masthead so a
-  // viewer is never shown replay as a live fetch.
+  // The dated capture of the recorded signals -- shown in the masthead so a viewer
+  // is never shown replay as a live fetch.
   const recordedAt = useMemo(() => {
-    const captured = demoPacket.publicSignals.find(
-      (s) => s.status === "CACHED"
-    )?.fetchedAt;
+    const captured = data.publicSignals.find((s) => s.status === "CACHED")?.fetchedAt;
     if (!captured) return null;
     return new Date(captured).toLocaleDateString("en-CA", { timeZone: "UTC" }); // YYYY-MM-DD
-  }, [demoPacket]);
-
-  async function runLivePipeline() {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/run-exception", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          scenarioId: "SCN-LAUNCH-001",
-          useLiveSignals
-        })
-      });
-      const body = await response.json();
-      if (!response.ok) {
-        throw new Error(body.detail ?? body.error ?? "Pipeline failed");
-      }
-      if (body.packet?.packetVersion === 1) {
-        setV1Packet(body.packet);
-      }
-    } catch (runError) {
-      setError(runError instanceof Error ? runError.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function submitApproval(status: "APPROVED" | "REJECTED") {
-    if (!v1Packet) return;
-    setApproving(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `/api/decision-packets/${v1Packet.id}/approve`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            status,
-            reason:
-              status === "APPROVED"
-                ? "Approved for launch-critical mitigation demo."
-                : "Rejected for demo review."
-          })
-        }
-      );
-      const body = await response.json();
-      if (!response.ok) {
-        throw new Error(body.error ?? "Approval failed");
-      }
-      if (body.packet?.packetVersion === 1) {
-        setV1Packet(body.packet);
-      }
-    } catch (approvalError) {
-      setError(
-        approvalError instanceof Error ? approvalError.message : "Unknown error"
-      );
-    } finally {
-      setApproving(false);
-    }
-  }
+  }, [data]);
 
   return (
     <div className="min-h-[100dvh]">
@@ -189,10 +95,10 @@ export function LaunchOpsDashboard() {
             <span className="hidden font-mono text-[0.6875rem] tracking-[0.02em] text-ink-faint sm:inline">
               OP · RX-2614
             </span>
-            {/* Honest provenance — recorded signals, never labeled live. */}
+            {/* Honest provenance -- recorded signals, never labeled live. */}
             <span
               className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-ink-muted"
-              title="Signals served from dated recorded fixtures — not a live fetch"
+              title="Signals served from dated recorded fixtures -- not a live fetch"
             >
               <span
                 aria-hidden="true"
@@ -205,42 +111,11 @@ export function LaunchOpsDashboard() {
                 </span>
               ) : null}
             </span>
-            <label className="flex h-10 items-center gap-2 rounded-md border border-line bg-surface px-3 text-sm font-medium text-ink-muted">
-              <input
-                type="checkbox"
-                checked={useLiveSignals}
-                onChange={(event) => setUseLiveSignals(event.target.checked)}
-                className="accent-accent"
-              />
-              Live signals
-            </label>
-            <Button
-              onClick={runLivePipeline}
-              disabled={loading}
-              variant="secondary"
-              data-testid="run-scenario"
-            >
-              {loading ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <Play className="size-4" aria-hidden="true" />
-              )}
-              Run live pipeline
-            </Button>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        {error ? (
-          <div
-            role="alert"
-            className="mb-5 rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger"
-          >
-            {error}
-          </div>
-        ) : null}
-
         <div className="mb-6">
           <TabNav tabs={tabs} active={active} onChange={setActive} />
         </div>
@@ -253,31 +128,16 @@ export function LaunchOpsDashboard() {
           aria-labelledby={tabId(active)}
           tabIndex={0}
         >
-          {/* `key={active}` re-fires the calm ≤200ms tab-enter on every switch.
+          {/* `key={active}` re-fires the calm <=200ms tab-enter on every switch.
               Playwright treats opacity:0 as visible, so this never affects the
               e2e; reduced-motion shows the final frame immediately. */}
           <div key={active} className="tab-enter">
-            {active === "events" ? <LiveEventsTab packet={demoPacket} /> : null}
-            {active === "exposure" ? (
-              <ExposureTab packet={demoPacket} />
-            ) : null}
-            {active === "simulation" ? (
-              <SimulationTab packet={demoPacket} />
-            ) : null}
-            {active === "packet" ? (
-              <ActionOpsPacketView packet={demoPacket} />
-            ) : null}
+            {active === "events" ? <LiveEventsTab packet={data} /> : null}
+            {active === "exposure" ? <ExposureTab packet={data} /> : null}
+            {active === "simulation" ? <SimulationTab packet={data} /> : null}
+            {active === "packet" ? <ActionOpsPacketView packet={data} /> : null}
           </div>
         </section>
-
-        {v1Packet ? (
-          <V1LivePanel
-            packet={v1Packet}
-            approving={approving}
-            onApprove={() => submitApproval("APPROVED")}
-            onReject={() => submitApproval("REJECTED")}
-          />
-        ) : null}
       </main>
     </div>
   );
@@ -402,8 +262,10 @@ function SimulationTab({ packet }: { packet: DecisionPacketV2 }) {
     <div className="panel rounded-(--radius-card) p-5">
       <header className="mb-4 flex items-center gap-2">
         <Database className="size-4 text-accent" aria-hidden="true" />
+        {/* Derived from the packet's real horizons -- honest for any scenario,
+            never a hardcoded day list that drifts from the simulated window. */}
         <h2 className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase">
-          3 / 7 / 14 / 30-day runway
+          {simulation.horizons.map((h) => h.days).join(" / ")}-day runway
         </h2>
       </header>
       <div className="space-y-3">
@@ -433,156 +295,6 @@ function SimulationTab({ packet }: { packet: DecisionPacketV2 }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-// --- V1 live pipeline panel (deterministic salvage) ------------------------
-// Preserves the run/approve flow and the e2e testids. Restyled to the new
-// tokens; the data-testid="decision-packet" + data-testid="approve-packet" +
-// "Approval Console" affordances are intentionally kept for the live demo path.
-
-function V1LivePanel({
-  packet,
-  approving,
-  onApprove,
-  onReject
-}: {
-  packet: DecisionPacketV1;
-  approving: boolean;
-  onApprove: () => void;
-  onReject: () => void;
-}) {
-  // Honest provenance on the V1 path, parity with the V2 view: disclose the
-  // requested vs effective run mode, and surface a degraded badge ONLY when a
-  // live-AI attempt actually failed and fell back (effectiveMode ===
-  // FAILED_TO_FALLBACK). A healthy DETERMINISTIC_RULES run is never "degraded".
-  const degraded = packet.effectiveMode === "FAILED_TO_FALLBACK";
-  const modeDiverged = packet.effectiveMode !== packet.requestedMode;
-
-  return (
-    <section className="mt-8 border-t border-line-strong pt-6">
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Badge tone="info">Live pipeline result</Badge>
-        <Badge tone={modeDiverged ? "warning" : "neutral"}>
-          Mode {modeLabel(packet.requestedMode)}
-          {modeDiverged
-            ? ` → ${modeLabel(packet.effectiveMode)}`
-            : ""}
-        </Badge>
-        {degraded ? (
-          <Badge tone="critical">Degraded - no live AI</Badge>
-        ) : null}
-        <Badge tone={packet.gatekeeper.status === "PASS" ? "success" : "warning"}>
-          {packet.gatekeeper.status}
-        </Badge>
-        <Badge
-          tone={
-            packet.approvalStatus === "APPROVED"
-              ? "success"
-              : packet.approvalStatus === "REJECTED"
-                ? "critical"
-                : "warning"
-          }
-        >
-          {packet.approvalStatus}
-        </Badge>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card>
-          <CardHeader title="Ranked recovery options" />
-          <div className="space-y-3" data-testid="decision-packet">
-            {packet.options.map((option) => (
-              <div
-                key={option.id}
-                className="rounded-md border border-line p-3"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold text-ink">
-                      {option.title}
-                    </p>
-                    <p className="mt-1 text-sm leading-5 text-ink-muted">
-                      {option.summary}
-                    </p>
-                  </div>
-                  <Badge
-                    tone={
-                      option.id === packet.recommendedOptionId
-                        ? "success"
-                        : "neutral"
-                    }
-                  >
-                    Score {option.score}
-                  </Badge>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <SmallStat
-                    label="Cost"
-                    value={formatCurrency(option.estimatedCostUsd)}
-                  />
-                  <SmallStat
-                    label="Speed"
-                    value={`${option.speedGainDays}d`}
-                  />
-                  <SmallStat
-                    label="Risk cut"
-                    value={`${option.riskReductionPct}%`}
-                  />
-                  <SmallStat label="Confidence" value={option.confidence} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card>
-          <CardHeader title="Approval Console" />
-          <div className="space-y-3">
-            <p className="text-sm leading-6 text-ink-muted">
-              {packet.approvalReason ??
-                "Execution stays blocked until a human decision is recorded."}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={onApprove}
-                disabled={approving || packet.approvalStatus === "APPROVED"}
-                data-testid="approve-packet"
-              >
-                {approving ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <CheckCircle2 className="size-4" aria-hidden="true" />
-                )}
-                Approve
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={onReject}
-                disabled={approving || packet.approvalStatus === "REJECTED"}
-              >
-                Reject
-              </Button>
-            </div>
-            <div className="mt-2 flex items-center gap-2 border-t border-line pt-3 text-xs text-ink-faint">
-              <Clock3 className="size-3.5" aria-hidden="true" />
-              {packet.auditTrail.length} audit events recorded
-            </div>
-          </div>
-        </Card>
-      </div>
-    </section>
-  );
-}
-
-function SmallStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md bg-sink p-2">
-      <p className="text-[0.625rem] font-semibold tracking-wide text-ink-faint uppercase">
-        {label}
-      </p>
-      <p className="tnum mt-0.5 text-sm font-medium text-ink">{value}</p>
     </div>
   );
 }
