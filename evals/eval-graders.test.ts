@@ -247,9 +247,18 @@ describe("other grader edge branches", () => {
 
   it("gradeCitationCoverage flags a claim whose sourcePath does not resolve", () => {
     const packet = makeV2Packet();
-    packet.supplierMessages[0].claims[0].sourcePath = "nowhere.in.packet";
+    // A valid INPUT root (simulation) but an out-of-range index -> resolution fails
+    // (a non-input root would trip the earlier "cites non-input" check instead).
+    packet.supplierMessages[0].claims[0].sourcePath = "simulation.horizons[9].days";
     const result = gradeCitationCoverage(packet);
     expect(result.failures.some((f) => /does not resolve/.test(f))).toBe(true);
+  });
+
+  it("gradeCitationCoverage rejects a self-citation into the Dispatcher's own output", () => {
+    const packet = makeV2Packet();
+    packet.supplierMessages[0].claims[0].sourcePath = "supplierMessages[0].claims[0].value";
+    const result = gradeCitationCoverage(packet);
+    expect(result.failures.some((f) => /cites non-input "supplierMessages"/.test(f))).toBe(true);
   });
 
   it("gradeOffTaxonomy flags OTHER_UNMAPPED with no stated reason", () => {

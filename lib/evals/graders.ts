@@ -157,14 +157,31 @@ export function gradeEvidence(
     }
   };
 
+  // Structured url fields.
   for (const url of packet.threatCard.evidenceUrls) checkUrl(url, "threat card");
   for (const signal of packet.publicSignals) checkUrl(signal.sourceUrl, `signal ${signal.id}`);
-  // A drafted email must not smuggle a link the run never fetched (the injection
-  // vector). Scan the prose, not just the structured url fields.
-  for (const msg of packet.supplierMessages) {
-    for (const url of `${msg.subject ?? ""}\n${msg.body}`.match(URL_IN_TEXT) ?? []) {
-      checkUrl(url, `message ${msg.id} body`);
-    }
+
+  // EVERY rendered prose surface, not just message bodies -- a link smuggled into a
+  // playbook step, an exposure rationale, the threat summary, an action item, or a
+  // data-gap note is still an output URL the run must have fetched ("every URL in
+  // any output is in the fetched-evidence allowlist", Success_Criteria).
+  const renderedProse: { where: string; text: string }[] = [
+    { where: "threat summary", text: packet.threatCard.summary },
+    ...packet.publicSignals.map((s) => ({ where: `signal ${s.id} summary`, text: s.summary })),
+    ...packet.exposureResults.map((e) => ({ where: `exposure ${e.id} rationale`, text: e.rationale })),
+    ...packet.supplierMessages.map((m) => ({
+      where: `message ${m.id}`,
+      text: `${m.subject ?? ""}\n${m.body}`
+    })),
+    ...packet.playbooks.map((p) => ({
+      where: `playbook ${p.id}`,
+      text: `${p.summary}\n${p.steps.join("\n")}`
+    })),
+    ...packet.actionItems.map((a) => ({ where: `action item ${a.id}`, text: a.title })),
+    ...packet.dataGaps.map((g, i) => ({ where: `data gap ${i}`, text: g }))
+  ];
+  for (const { where, text } of renderedProse) {
+    for (const url of text.match(URL_IN_TEXT) ?? []) checkUrl(url, where);
   }
 
   // Evidence anchors an exposure may cite: the threat card and any public signal.
@@ -211,14 +228,33 @@ function leafKey(path: string): string {
   return last.replace(/\[\d+\]/g, "");
 }
 
+// A claim may only cite the Dispatcher's structured INPUTS -- the Sentinel threat
+// card, the public signals, the Atlas exposures, and the Simulator output. It may
+// NOT cite the Dispatcher's own output (supplierMessages), the Strategist
+// playbooks, action items, or run metadata: a claim that self-cites
+// `supplierMessages[0].claims[0].value` is circular self-grounding that satisfies
+// both citation directions while proving nothing ("sourcePath resolves into
+// structured INPUTS", Success_Criteria).
+const CITATION_INPUT_ROOTS = new Set([
+  "threatCard",
+  "publicSignals",
+  "exposureResults",
+  "simulation"
+]);
+
+function rootSegment(path: string): string {
+  return path.split(/[.[]/)[0];
+}
+
 // --- Numerals in drafts: zero unsourced, bidirectional (teeth-now) ----------
-// Forward (claim -> packet): every claim's sourcePath resolves into the packet;
-// a numeric claim's value equals what its path resolves to AND its stated unit
-// agrees with the cited field's unit -- so a wrong-context number (right value,
-// wrong field) fails on the value, and a same-value/wrong-field citation fails on
-// the unit. Reverse (prose -> claim): every sourceable figure the prose asserts
-// matches some claim's value; an unparseable figure form fails rather than risk a
-// silent misread.
+// Forward (claim -> packet): every claim's sourcePath must (a) cite a structured
+// INPUT root (not the Dispatcher's own output -- no circular self-citation),
+// (b) resolve into the packet, (c) match its value, and (d) carry a unit
+// consistent with the cited field. So a self-citation fails on the root, a
+// wrong-context number (right value, wrong field) fails on the value, and a
+// same-value/wrong-field citation fails on the unit. Reverse (prose -> claim):
+// every sourceable figure the prose asserts matches some claim's value; an
+// unparseable figure form fails rather than risk a silent misread.
 //
 // Deterministic boundary (disclosed, not hidden): the reverse check confirms a
 // claim of EQUAL VALUE exists; it does not bind a prose figure to one specific
@@ -232,6 +268,14 @@ export function gradeCitationCoverage(packet: DecisionPacketV2): GraderResult {
   for (const msg of packet.supplierMessages) {
     const claimValues: number[] = [];
     for (const claim of msg.claims) {
+      const root = rootSegment(claim.sourcePath);
+      if (!CITATION_INPUT_ROOTS.has(root)) {
+        failures.push(
+          `message ${msg.id}: claim sourcePath "${claim.sourcePath}" cites non-input "${root}" ` +
+            `(claims must trace to threat/signals/exposure/simulation, not Dispatcher output)`
+        );
+        continue;
+      }
       const resolution = resolveSourcePath(packet, claim.sourcePath);
       if (!resolution.resolved) {
         failures.push(`message ${msg.id}: claim sourcePath "${claim.sourcePath}" does not resolve`);

@@ -244,6 +244,26 @@ export const CORRUPTIONS: readonly Corruption[] = [
     expect: /unverifiable numeral form "1e6"/
   },
   {
+    label: "circular self-citation (claim cites the Dispatcher's own output)",
+    grader: "citation-coverage",
+    base: hormuz,
+    mutate: (p) => {
+      // The claim points back into the message's own claims array -- resolvable, but
+      // not a structured input, so it grounds nothing.
+      p.supplierMessages[0].claims[0].sourcePath = "supplierMessages[0].claims[0].value";
+    },
+    expect: /cites non-input "supplierMessages"/
+  },
+  {
+    label: "off-allowlist link planted in a playbook step (not just a message)",
+    grader: "evidence",
+    base: hormuz,
+    mutate: (p) => {
+      p.playbooks[0].steps.push("Follow up via https://evil.example/playbook-link");
+    },
+    expect: /off-allowlist URL https:\/\/evil\.example.*playbook/
+  },
+  {
     label: "off-allowlist URL on a public signal",
     grader: "evidence",
     base: hurricane,
@@ -259,6 +279,6 @@ export const CORRUPTIONS: readonly Corruption[] = [
     mutate: (p) => {
       p.supplierMessages[0].body += " See https://evil.example/payload for details.";
     },
-    expect: /off-allowlist URL https:\/\/evil\.example.* in message .* body/
+    expect: /off-allowlist URL https:\/\/evil\.example\/payload in message/
   }
 ];
