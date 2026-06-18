@@ -44,7 +44,7 @@ export const demoSignals: PublicSignal[] = [
     location: { region: "Persian Gulf", country: "IR" },
     severity: "HIGH",
     summary:
-      "Multiple independent outlets corroborate a partial closure window with elevated war-risk surcharges on Gulf-routed inbound.",
+      "Multiple outlets report a partial closure window with elevated war-risk surcharges on Gulf-routed inbound.",
     freshnessMinutes: 110,
     status: "CACHED"
   },
@@ -138,7 +138,7 @@ export function makeDemoPacket(): DecisionPacketV2 {
         chokepoint: "Strait of Hormuz"
       },
       summary:
-        "Renewed transit interference at the Strait of Hormuz raises lead-time and war-risk surcharge exposure across Gulf-routed inbound. Insurers have repriced the lane; a partial closure window is corroborated across independent outlets.",
+        "Renewed transit interference at the Strait of Hormuz raises lead-time and war-risk surcharge exposure across Gulf-routed inbound. Insurers have repriced the lane; a partial closure window is in effect.",
       evidenceUrls: [
         "https://www.gdeltproject.org/data/gkg/20260612.gkg.csv.zip",
         "https://api.gdeltproject.org/api/v2/doc/doc?query=Strait+of+Hormuz"

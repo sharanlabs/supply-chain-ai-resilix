@@ -81,7 +81,7 @@ export const HORMUZ_SCENARIO: ActionOpsScenario = {
     severity: "HIGH",
     location: { region: "Persian Gulf", country: "OM", chokepoint: "Strait of Hormuz" },
     summary:
-      "Transit through the Strait of Hormuz is disrupted, raising lead-time and war-risk surcharge exposure across Gulf-routed inbound. Insurers have repriced the lane and a partial closure window is corroborated across independent outlets.",
+      "Transit through the Strait of Hormuz is disrupted, raising lead-time and war-risk surcharge exposure across Gulf-routed inbound. Insurers have repriced the lane and a partial closure window is in effect.",
     evidenceUrls: [HORMUZ_GDELT_URL, HORMUZ_EIA_URL],
     confidence: 0.82
   },

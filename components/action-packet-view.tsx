@@ -819,7 +819,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               </h2>
               <p className="mt-2 text-[0.8125rem] leading-[1.55] text-ink-muted">
                 {approval.reason ??
-                  "Code calculates the exposure; the AI drafts the response. Approval records a local review decision in the audit trail below and releases the drafts, tasks, and one-pager for execution -- and even then, nothing sends automatically."}
+                  "Code calculates the exposure; the AI drafts the response. Approval records a local review decision in the audit trail below and releases the drafts, tasks, and one-pager for execution. Even then, nothing sends automatically."}
               </p>
 
               {/* Gatekeeper PASS — the trust anchor next to APPROVE, bound to
