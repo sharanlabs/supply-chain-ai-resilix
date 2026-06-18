@@ -29,6 +29,30 @@
 
 ---
 
+## Component D — the ActionOps agent core (Phases 4–7) — Wave-2 (autopilot, started 2026-06-18)
+
+> **The heart of the rework.** REBUILD `runLaunchOpsAgents` (emits V1) → the 6-agent ActionOps pipeline emitting **V2**; BUILD-NEW the `claims[]` gatekeeper, the cost ledger (R4-10), and the injection quarantine. **The executable contract = the 7 frozen F graders** (`lib/evals/run-graders.ts`; built + gated `e84b1fc`→`720ff25`) — `runGraders(packetV2, groundTruth)` runs unchanged over D's live output. The complete V2 shape reference is `lib/data/demo-packet.ts` (`makeDemoPacket()`, real seed suppliers).
+>
+> **Owner decisions (2026-06-18):** autopilot drives **D.1–D.8 (pre-key, deterministic, key-OFF) to full gated completion, then STOPS at D.9** (the live-AI showcase — owner-gated: external paid calls + secure-mode auth). The Gemini key is treated **UNCONFIRMED** (anomalous format) — no live call until the owner confirms/replaces it ("I will give the key"). `ENABLE_LIVE_AI=false` throughout the spine.
+>
+> **Plain English.** Right now the app's pretty screen shows a *canned* example packet, and the real engine still produces the old LaunchOps format. Component D rebuilds the engine as six specialists — one reads the news (Sentinel), one checks it (Verifier), one maps which of *your* suppliers are exposed (Atlas), one does the runway math (Simulator), one writes the plan (Strategist), one drafts the emails with every number traceable (Dispatcher) — and wires the real engine's output into that screen. We build and prove the whole deterministic spine with the AI turned OFF first, gate each step, and only turn the paid AI on at the very end, which is your call.
+
+**Each increment (invariant):** maker → independent `npm run verify` → `acceptance-gate` (subagent) → **Codex cross-model** (`~/claude-os/bin/codex-guarded`, `-resilix`-namespaced, `< /dev/null`) → local commit. Push HELD. Evidence to `docs/claude/gates/agent-core/`. Mirror Phase 2's P2.1–P2.7 discipline.
+
+| # | Increment | Key? | Maps to / contract |
+|---|---|---|---|
+| D.1 | **V2 cutover skeleton (keystone)** — `runExceptionPipeline` emits a schema-valid V2 via a deterministic `runActionOpsAgents` (placeholder-but-valid threatCard/exposure/sim/playbooks/messages/actionItems + 6 populated `agentRuns`); migrate `/api/run-exception`, the dashboard render path (replace the `makeDemoPacket` default with the real pipeline packet), and the ~8 V1-asserting test files to V2; `runGraders` green end-to-end key-OFF | OFF | R4-7; emits `DecisionPacketV2`; preserves mode taxonomy + `computeEffectiveMode` |
+| D.2 | **Atlas** (deterministic exposure scoring → `exposureResults`) | OFF | `gradeExposureControl` + zero-exposure + off-taxonomy SECTOR; hand-computed fixtures; **deliberate-misclassification Atlas-rejection assert** (F-deferred) |
+| D.3 | **Simulator** (deterministic exact arithmetic → `simulation`; Tier-1→`dataGaps`) | OFF | `gradeSimulatorArithmetic`; **product-master allowlist** swap (F-deferred) |
+| D.4 | **Verifier** (DISTINCT deterministic agent + own `AgentRun`) + **ActionOps gatekeeper** (`claims[]` bidirectional numeral↔sourcePath; replaces the LaunchOps `validateDecisionInputs`) | OFF | `gradeCitationCoverage`; wrong-context-number FAILS; "healthy never mislabeled" keeps Verifier/Atlas/Sim/gatekeeper as separate `DETERMINISTIC_RULES` runs |
+| D.5 | **Sentinel** (LLM #1 → `threatCard`; closed vocab + `OTHER_UNMAPPED`; ONLY agent that sees raw text; names→validated ID; evidence ∈ fetched set) — built with deterministic fallback, tested vs fixtures, run key-OFF | OFF (live at D.9) | `gradeEntityIds`/`gradeEvidence`/`gradeOffTaxonomy`/`gradeInjectionQuarantine` |
+| D.6 | **Strategist** (LLM #2 → `playbooks`; every number from Atlas/Sim; zero independent estimates) — fallback + fixtures, key-OFF | OFF (live at D.9) | **playbook-step numeral grading** (F-deferred) |
+| D.7 | **Dispatcher** (LLM #3 → `supplierMessages`+`claims[]`+`actionItems`; NEVER sees raw text; top-5+tail; whitelist only) — fallback + fixtures, key-OFF | OFF (live at D.9) | P7 dispatcher-whitelist + injection eval; `gradeInjectionQuarantine` |
+| D.8 | **Cost ledger (R4-10)** — input/output/total tokens, finish reason, retry/error class, pricing-table version, computed `costUsd` (replaces `length/4`); `verify:live` wiring; runGraders as the live-output gate; finalize F-deferred items | OFF (verified at D.9) | Success_Criteria cost/usage row; ≤$5 ledger |
+| **D.9** | **LIVE-AI SHOWCASE — OWNER-GATED** — confirmed key + `ENABLE_LIVE_AI`+`APPROVAL_TOKEN`; judge calibration (G-5); ≤3 live passes; `LIVE_AI`-asserting eval; <5 min wall-clock + ≤$5 spend | **ON** | owner runs this; autopilot STOPS here |
+
+**Verify-before-build owed before D.5 (spine-independent; kick lean/async at D.4→D.5):** re-verify **as of 2026-06-18** the Gemini lineup + GA best-value alias (code defaults `gemini-3.5-flash`) + free-tier RPM/RPD + the matching **price-table row** (the ledger `costUsd` is wrong if the pinned price ≠ the alias); constrained-decoding force-fit vs parse-fail (settles the `OTHER_UNMAPPED` firewall); current OWASP LLM Top-10 2025 + Agentic Top-10 2026 names + Willison lethal-trifecta + Meta Rule-of-Two. **NLI faithfulness (G-7) is research-derived, NOT a Success_Criteria gate → deferred HARDEN** (the real bar is `claims[]`↔`sourcePath`, which F already gates); decide explicitly before adding the DeBERTa-class local-model dependency.
+
 ## Carried backlog — durable, nothing lost (thread-swept 2026-06-17)
 
 > Everything surfaced in-session that is NOT yet done, captured here so a cap-cut loses nothing. State · where it binds. (Closes the "lost in chat" risk the owner flagged 2026-06-17.)
