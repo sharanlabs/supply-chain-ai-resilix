@@ -22,8 +22,11 @@ export function runActionOpsAgents(ctx: ActionOpsContext): ActionOpsResult {
 
   const { threatCard, agentRun: sentinelRun } = runSentinel(ctx);
   const { agentRun: verifierRun } = runVerifier(ctx, threatCard);
-  const { exposureResults, agentRun: atlasRun } = runAtlas(ctx, threatCard);
-  const { simulation, dataGaps, agentRun: simulatorRun } = runSimulator(ctx, exposureResults);
+  const { exposureResults, dataGaps: atlasDataGaps, agentRun: atlasRun } = runAtlas(ctx, threatCard);
+  const { simulation, dataGaps: simulatorDataGaps, agentRun: simulatorRun } = runSimulator(ctx, exposureResults);
+  // Atlas's gaps (a rejected/misclassified handoff) come first, then the Simulator's
+  // (Tier-1 no-inventory note). The packet's dataGaps is the union.
+  const dataGaps = [...atlasDataGaps, ...simulatorDataGaps];
   const { playbooks, agentRun: strategistRun } = runStrategist(ctx, exposureResults);
   const {
     supplierMessages,

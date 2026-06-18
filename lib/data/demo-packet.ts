@@ -64,7 +64,11 @@ export const demoSignals: PublicSignal[] = [
 ];
 
 // Exposure rows are real seed suppliers from the Gulf / ENERGY / CHEMICALS
-// subset, ranked by exposure score. Names and IDs are the seed labels.
+// subset, ranked by exposure score. Names and IDs are the seed labels. The
+// exposureScore figures here are an ILLUSTRATIVE hand-authored reference (this
+// packet is only the defensive fallback) and are internally consistent with the
+// claims below; the live pipeline emits the D.2 Atlas model's tier + lead-time
+// scores, not these.
 export const demoExposure: DecisionPacketV2["exposureResults"] = [
   {
     id: "EXP-078",
