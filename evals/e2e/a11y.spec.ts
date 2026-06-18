@@ -85,6 +85,49 @@ async function settle(page: Page): Promise<void> {
   });
 }
 
+type AxeResult = Awaited<ReturnType<AxeBuilder["analyze"]>>;
+type AxeNode = AxeResult["violations"][number]["nodes"][number];
+
+function axeTargets(nodes: AxeNode[]): string[] {
+  return nodes.map((n) => n.target.join(" ")).slice(0, 5);
+}
+
+// One clean-check used by EVERY axe scan. It asserts `violations` is empty and
+// triages `incomplete` per node -- NOT by a blind rule-id allow-list (which
+// would let a real, uncovered node pass). `incomplete` means "axe could not
+// DECIDE": here the only legitimate cause is text over a CSS gradient (the
+// approve-rail glow), which axe cannot composite to a single bg color. So:
+//   - any incomplete rule OTHER than color-contrast is a genuine undecided gap
+//     -> fail loud (with id + target);
+//   - the residual color-contrast incompletes are exactly that gradient text,
+//     and are GROUND-TRUTH covered by the dedicated "rail gradient text clears
+//     AA" spec below (the design's gradients only ever run accent-soft ->
+//     transparent over the white panel, both of which the ink tokens clear).
+// Contrast axe CAN resolve lands in `violations` and is asserted above.
+function assertAxeClean(results: AxeResult, label: string): void {
+  expect(
+    results.violations,
+    `[${label}] axe violations: ${JSON.stringify(
+      results.violations.map((v) => ({
+        id: v.id,
+        impact: v.impact,
+        targets: axeTargets(v.nodes)
+      })),
+      null,
+      2
+    )}`
+  ).toEqual([]);
+  const undecided = results.incomplete.filter((r) => r.id !== "color-contrast");
+  expect(
+    undecided,
+    `[${label}] axe UNDECIDED (non-contrast incomplete -- needs a real fix or a dedicated assertion): ${JSON.stringify(
+      undecided.map((r) => ({ id: r.id, targets: axeTargets(r.nodes) })),
+      null,
+      2
+    )}`
+  ).toEqual([]);
+}
+
 // ===========================================================================
 // Layer 1 -- axe-core WCAG 2.2 AA over every tab.
 // ===========================================================================
@@ -99,38 +142,7 @@ test.describe("a11y / layer 1 -- axe WCAG 2.2 AA", () => {
       const results = await new AxeBuilder({ page })
         .withTags([...WCAG_AA_TAGS])
         .analyze();
-
-      expect(
-        results.violations,
-        `axe violations: ${JSON.stringify(
-          results.violations.map((v) => ({
-            id: v.id,
-            impact: v.impact,
-            nodes: v.nodes.length
-          })),
-          null,
-          2
-        )}`
-      ).toEqual([]);
-
-      // Non-vacuous incomplete triage. OKLCH defeats axe's color-contrast and
-      // target-size resolution, so THOSE legitimately land in `incomplete` and
-      // are verified by the dedicated specs below. Any OTHER incomplete rule is
-      // a real "axe could not decide" gap that must be surfaced, not ignored.
-      const allowedIncomplete = new Set([
-        "color-contrast",
-        "color-contrast-enhanced",
-        "target-size"
-      ]);
-      const unexpected = results.incomplete.filter(
-        (r) => !allowedIncomplete.has(r.id)
-      );
-      expect(
-        unexpected,
-        `unexpected axe incomplete (triage required): ${unexpected
-          .map((r) => r.id)
-          .join(", ")}`
-      ).toEqual([]);
+      assertAxeClean(results, `${tab.key} tab`);
     });
   }
 
@@ -147,14 +159,67 @@ test.describe("a11y / layer 1 -- axe WCAG 2.2 AA", () => {
     const results = await new AxeBuilder({ page })
       .withTags([...WCAG_AA_TAGS])
       .analyze();
+    assertAxeClean(results, "approved state");
+  });
+});
+
+// ===========================================================================
+// Ground-truth coverage for the color-contrast nodes axe leaves `incomplete`.
+// axe cannot composite text over a CSS gradient, so the approve-rail glow's
+// small text lands in incomplete (allowed in assertAxeClean). This proves those
+// nodes actually pass AA against the gradient's DARKEST effective background.
+// ===========================================================================
+test.describe("a11y / rail gradient text contrast (covers axe-incomplete)", () => {
+  test("each axe-incomplete contrast node clears its WCAG threshold by ground truth", async ({
+    page
+  }) => {
+    await page.goto("/");
+    await settle(page);
+
+    // The rail gradient runs from-accent-soft/60 -> transparent over the white
+    // panel; its DARKEST effective background is accent-soft at 60% composited
+    // over the surface. Only text WITHOUT its own opaque background sits on it,
+    // which is exactly what axe leaves `incomplete` (a control with its own bg
+    // -- the Approve button, the status pill -- axe resolves, so it is not here).
+    const accentSoft = await resolveSrgb(page, "var(--color-accent-soft)");
+    const surface = await resolveSrgb(page, "var(--color-surface)");
+    const darkestBg = accentSoft.map((c, i) =>
+      Math.round(0.6 * c + 0.4 * surface[i])
+    );
+
+    const results = await new AxeBuilder({ page })
+      .withTags([...WCAG_AA_TAGS])
+      .analyze();
+    const nodes =
+      results.incomplete.find((r) => r.id === "color-contrast")?.nodes ?? [];
     expect(
-      results.violations,
-      `axe violations (approved state): ${JSON.stringify(
-        results.violations.map((v) => ({ id: v.id, nodes: v.nodes.length })),
-        null,
-        2
-      )}`
-    ).toEqual([]);
+      nodes.length,
+      "expected the rail gradient text to be the axe-incomplete contrast set"
+    ).toBeGreaterThan(0);
+
+    for (const node of nodes) {
+      const selector = node.target[node.target.length - 1] as string;
+      const info = await page
+        .locator(selector)
+        .first()
+        .evaluate((el) => {
+          const s = getComputedStyle(el);
+          return {
+            color: s.color,
+            fontPx: parseFloat(s.fontSize),
+            weight: parseInt(s.fontWeight, 10) || 400
+          };
+        });
+      // WCAG large-text threshold: >=24px, or >=18.66px bold -> 3:1, else 4.5:1.
+      const large =
+        info.fontPx >= 24 || (info.fontPx >= 18.66 && info.weight >= 700);
+      const need = large ? 3 : 4.5;
+      const ratio = contrastRatio(await resolveSrgb(page, info.color), darkestBg);
+      expect(
+        ratio,
+        `axe-incomplete node "${selector}" (${info.fontPx}px) vs darkest stop = ${ratio.toFixed(2)}:1 < ${need}`
+      ).toBeGreaterThanOrEqual(need);
+    }
   });
 });
 
@@ -256,21 +321,32 @@ test.describe("a11y / SC 2.4.11 focus not obscured", () => {
       `scroll-padding-top ${scrollPadTop} < masthead ${mastheadBottom}`
     ).toBeGreaterThanOrEqual(mastheadBottom);
 
-    // Behavioral proof with a REAL scroll: push the evidence links out of view,
-    // then focus the first one; the focus-scroll must bring it back BELOW the
-    // masthead (honoring scroll-padding-top), never under it.
+    // Behavioral proof, made non-vacuous: scroll the link fully out of view,
+    // CONFIRM it is obscured (above the masthead band) before focus, then focus
+    // and confirm (a) the focus drove a real corrective scroll and (b) the link
+    // lands BELOW the masthead, never behind it.
     const link = page.getByTestId("actionops-packet").getByRole("link").first();
     await expect(link).toBeVisible();
 
-    await page.evaluate(() => window.scrollTo(0, 1600));
-    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const scrollBefore = await page.evaluate(() => window.scrollY);
+    expect(scrollBefore).toBeGreaterThan(0);
+    const yBefore = await link.evaluate((el) => el.getBoundingClientRect().top);
+    expect(
+      yBefore,
+      `pre-focus link top ${yBefore} should be above the masthead (${mastheadBottom}) -- i.e. obscured`
+    ).toBeLessThan(mastheadBottom);
 
     await link.focus();
-    const box = await link.boundingBox();
-    expect(box).not.toBeNull();
+    const scrollAfter = await page.evaluate(() => window.scrollY);
+    const yAfter = await link.evaluate((el) => el.getBoundingClientRect().top);
     expect(
-      box!.y,
-      `focused link top ${box!.y} is under masthead bottom ${mastheadBottom}`
+      scrollAfter,
+      "focusing the obscured link did not move the scroll position"
+    ).not.toBe(scrollBefore);
+    expect(
+      yAfter,
+      `focused link top ${yAfter} is under masthead bottom ${mastheadBottom}`
     ).toBeGreaterThanOrEqual(mastheadBottom - 1);
   });
 });
@@ -327,52 +403,76 @@ test.describe("a11y / SC 2.5.8 target size (G-3)", () => {
 // G-4 -- SC 1.4.11 Non-text Contrast for the runway/exposure bars.
 // ===========================================================================
 test.describe("a11y / SC 1.4.11 non-text contrast (G-4)", () => {
-  test("each runway bar has a >=3:1 boundary against its track", async ({
+  test("every runway bar on every tab clears >=3:1 against its own track", async ({
     page
   }) => {
+    // The bar conveys magnitude by LENGTH; to read the length the filled extent
+    // must stay distinguishable from the track. The numeric label beside each bar
+    // already covers SC 1.4.1 (use of color) -- this checks the graphical object.
+    const sink = await resolveSrgb(page, "var(--color-sink)");
+
+    // Document WHY the hue-independent edge is needed: the lighter severity fills
+    // fall below 3:1 against the near-white track on their own.
     await page.goto("/");
     await settle(page);
-
-    // The bar conveys magnitude by LENGTH; to read the length the filled extent
-    // must be distinguishable from the track. The numeric label beside each bar
-    // already covers SC 1.4.1 (use of color) -- this checks the bar itself.
-    const track = await resolveSrgb(page, "var(--color-sink)");
-
-    // (a) Fill-vs-track at each gradient's LIGHTEST endpoint (worst case). This
-    // documents WHY the hue-independent edge is needed: the lighter severities
-    // fall below 3:1 against the near-white track on their own.
-    const fills: Record<string, string> = {
+    const fillReport: Record<string, number> = {};
+    for (const [sev, color] of Object.entries({
       low: "var(--color-sev-low-soft)",
       medium: "var(--color-sev-medium)",
       high: "var(--color-sev-high)",
       critical: "var(--color-sev-critical)"
-    };
-    const fillReport: Record<string, number> = {};
-    for (const [sev, color] of Object.entries(fills)) {
+    })) {
       fillReport[sev] = Number(
-        contrastRatio(await resolveSrgb(page, color), track).toFixed(2)
+        contrastRatio(await resolveSrgb(page, color), sink).toFixed(2)
       );
     }
 
-    // (b) The safeguard: every rendered .runway-fill carries a >=1px edge whose
-    // color clears 3:1 against the track, so the bar's boundary is perceivable
-    // regardless of fill hue. Read it from a real rendered bar.
-    const fill = page.locator(".runway-fill").first();
-    await expect(fill).toBeVisible();
-    const edge = await fill.evaluate((el) => {
-      const s = getComputedStyle(el);
-      return { color: s.borderTopColor, width: parseFloat(s.borderTopWidth) };
-    });
-    expect(
-      edge.width,
-      "runway-fill has no >=1px boundary"
-    ).toBeGreaterThanOrEqual(1);
-    const edgeVsTrack = contrastRatio(await resolveSrgb(page, edge.color), track);
-    expect(
-      edgeVsTrack,
-      `runway-fill edge vs track ${edgeVsTrack.toFixed(
-        2
-      )}:1 < 3 (fill-vs-track ratios: ${JSON.stringify(fillReport)})`
-    ).toBeGreaterThanOrEqual(3);
+    // Check EVERY rendered bar on EVERY tab that draws bars -- the packet view
+    // (gradient fills) AND the dashboard exposure/simulation tabs (solid fills).
+    // Each .runway-fill must carry a >=1px edge clearing 3:1 against ITS OWN
+    // track background (read per-element, not assumed).
+    const barTabs = [
+      { key: "exposure", name: /Exposure/ },
+      { key: "simulation", name: /Simulation/ },
+      { key: "packet", name: /Action Packet/ }
+    ];
+    let totalBars = 0;
+    for (const tab of barTabs) {
+      await page.goto("/");
+      await page.getByRole("tab", { name: tab.name }).click();
+      await settle(page);
+      const fills = page.locator(".runway-fill");
+      const n = await fills.count();
+      expect(n, `no runway bars on the ${tab.key} tab`).toBeGreaterThan(0);
+      for (let i = 0; i < n; i++) {
+        const data = await fills.nth(i).evaluate((el) => {
+          const s = getComputedStyle(el);
+          const track = el.closest(".runway-track");
+          return {
+            edgeColor: s.borderTopColor,
+            edgeWidth: parseFloat(s.borderTopWidth),
+            trackBg: track ? getComputedStyle(track).backgroundColor : ""
+          };
+        });
+        expect(
+          data.edgeWidth,
+          `${tab.key} bar #${i} has no >=1px boundary`
+        ).toBeGreaterThanOrEqual(1);
+        const trackRgb = data.trackBg
+          ? await resolveSrgb(page, data.trackBg)
+          : sink;
+        const ratio = contrastRatio(
+          await resolveSrgb(page, data.edgeColor),
+          trackRgb
+        );
+        expect(
+          ratio,
+          `${tab.key} bar #${i} edge vs its track = ${ratio.toFixed(2)}:1 < 3 (fills vs sink: ${JSON.stringify(fillReport)})`
+        ).toBeGreaterThanOrEqual(3);
+        totalBars++;
+      }
+    }
+    // Sanity: this exercised many bars across tabs, not a single representative.
+    expect(totalBars).toBeGreaterThanOrEqual(5);
   });
 });

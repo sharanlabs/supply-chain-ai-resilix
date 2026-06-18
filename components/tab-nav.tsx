@@ -63,7 +63,7 @@ export function TabNav({
           >
             <span
               aria-hidden="true"
-              className="font-mono text-[0.625rem] text-ink-faint opacity-70"
+              className="font-mono text-[0.625rem] text-ink-faint"
             >
               {String(index + 1).padStart(2, "0")}
             </span>
