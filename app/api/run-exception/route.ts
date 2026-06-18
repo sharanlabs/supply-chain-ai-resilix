@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { runExceptionPipeline } from "@/lib/pipeline/run-exception";
+import { hasActionOpsScenario } from "@/lib/data/actionops-scenarios";
 import { apiError, noStoreJson, parseJsonRequest } from "@/lib/server/http";
 import { IDEMPOTENCY_KEY_HEADER, verifyApprovalToken } from "@/lib/server/security";
 
@@ -31,6 +32,18 @@ export async function POST(request: Request) {
   const parsed = await parseJsonRequest(request, RunRequestSchema);
   if (!parsed.ok) {
     return parsed.response;
+  }
+
+  // An unknown scenario id is a client error (400), not a pipeline failure (500):
+  // getActionOpsScenario throws on an unknown id, so validate at the boundary and
+  // return a precise 400 rather than letting it surface as PIPELINE_FAILED. An
+  // omitted scenarioId flows to the pipeline's DEFAULT_SCENARIO_ID.
+  if (parsed.data.scenarioId && !hasActionOpsScenario(parsed.data.scenarioId)) {
+    return apiError(
+      "INVALID_SCENARIO_ID",
+      `Unknown scenario ${parsed.data.scenarioId}`,
+      400
+    );
   }
 
   const headerIdempotencyKey = request.headers.get(IDEMPOTENCY_KEY_HEADER)?.trim();

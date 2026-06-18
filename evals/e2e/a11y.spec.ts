@@ -177,6 +177,22 @@ async function assertAxeClean(
 }
 
 // ===========================================================================
+// Provenance guard -- the scans below claim to cover the REAL pipeline packet.
+// app/page.tsx catches a buildDecisionPacket failure and renders makeDemoPacket()
+// (id DP-DEMO-HORMUZ). Assert the surface under test is genuine pipeline output
+// (id DP-<uuid>) so a silently fallen-back demo can never pass the suite while the
+// suite claims to scan pipeline output.
+// ===========================================================================
+test("the `/` surface renders the real pipeline packet, not the demo fallback", async ({
+  page
+}) => {
+  await page.goto("/");
+  const packetView = page.getByTestId("actionops-packet");
+  await expect(packetView).toBeVisible();
+  await expect(packetView).not.toContainText("DP-DEMO-HORMUZ");
+});
+
+// ===========================================================================
 // Layer 1 -- axe-core WCAG 2.2 AA over every tab.
 // ===========================================================================
 test.describe("a11y / layer 1 -- axe WCAG 2.2 AA", () => {

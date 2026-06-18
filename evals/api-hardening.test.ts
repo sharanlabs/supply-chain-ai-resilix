@@ -35,6 +35,23 @@ describe("api hardening", () => {
     expect(body.error).toBe("REQUEST_TOO_LARGE");
   });
 
+  it("rejects an unknown scenario id with a 400, not a pipeline 500", async () => {
+    const response = await runException(
+      new Request("http://localhost/api/run-exception", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          scenarioId: "SCN-DOES-NOT-EXIST",
+          useLiveSignals: false
+        })
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("INVALID_SCENARIO_ID");
+  });
+
   it("returns the same packet for repeated run requests with the same idempotency key", async () => {
     const idempotencyKey = `test-run-${Date.now()}`;
     const first = await runException(runRequest(idempotencyKey));

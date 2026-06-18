@@ -112,3 +112,10 @@ export function getActionOpsScenario(id: string = DEFAULT_SCENARIO_ID): ActionOp
   }
   return scenario;
 }
+
+// Non-throwing existence check for the API boundary: an unknown scenario id from a
+// client is a 400 (bad request), not a 500 (server fault). getActionOpsScenario
+// stays fail-loud for internal callers that should never pass an unknown id.
+export function hasActionOpsScenario(id: string): boolean {
+  return Object.prototype.hasOwnProperty.call(SCENARIOS, id);
+}

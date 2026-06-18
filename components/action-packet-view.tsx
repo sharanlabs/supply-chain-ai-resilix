@@ -402,11 +402,15 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                 <CheckCircle2 className="size-3.5" />
               </span>
               <div className="text-[0.8125rem] leading-[1.45] text-accent-strong">
+                {/* A descriptive count of the recorded signal feed -- NOT a
+                    relevance-verified corroboration claim. The deterministic D.1
+                    Verifier does not yet confirm each source supports the threat
+                    (D.4 owns that); the evidence-allowlist line below IS computed. */}
                 <span className="font-semibold">
-                  Corroborated across {honesty.cached + honesty.live} sources
+                  Across {honesty.cached + honesty.live} recorded sources
                 </span>
                 {capturedAt
-                  ? `, recorded ${shortDate(capturedAt)}.`
+                  ? `, captured ${shortDate(capturedAt)}.`
                   : "."}{" "}
                 {honesty.live > 0
                   ? `${honesty.live} live / ${honesty.cached} recorded.`
@@ -815,7 +819,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               </h2>
               <p className="mt-2 text-[0.8125rem] leading-[1.55] text-ink-muted">
                 {approval.reason ??
-                  "Code calculates the exposure; the AI drafts the response. Approval releases the drafts, tasks, and one-pager for execution and writes an audit entry — and even then, nothing sends automatically."}
+                  "Code calculates the exposure; the AI drafts the response. Approval records a local review decision in the audit trail below and releases the drafts, tasks, and one-pager for execution -- and even then, nothing sends automatically."}
               </p>
 
               {/* Gatekeeper PASS — the trust anchor next to APPROVE, bound to
@@ -901,7 +905,8 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                 Return for revision
               </Button>
               <p className="mt-3 text-center text-[0.6875rem] leading-[1.5] text-ink-faint">
-                This action is logged and reversible until execution.
+                This decision is recorded in the audit trail and reversible until
+                execution.
               </p>
             </div>
           </section>
