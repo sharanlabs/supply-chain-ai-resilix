@@ -98,13 +98,20 @@ function axeTargets(nodes: AxeNode[]): string[] {
 // DECIDE": here the only legitimate cause is text over a CSS gradient (the
 // approve-rail glow), which axe cannot composite to a single bg color. So:
 //   - any incomplete rule OTHER than color-contrast is a genuine undecided gap
-//     -> fail loud (with id + target);
-//   - the residual color-contrast incompletes are exactly that gradient text,
-//     and are GROUND-TRUTH covered by the dedicated "rail gradient text clears
-//     AA" spec below (the design's gradients only ever run accent-soft ->
-//     transparent over the white panel, both of which the ink tokens clear).
+//     -> fail loud;
+//   - each residual color-contrast incomplete MUST be text inside the known
+//     approve-rail CSS gradient (the only background axe cannot composite here)
+//     AND must clear its WCAG threshold by GROUND TRUTH against that gradient's
+//     darkest effective stop (accent-soft/60 over the surface). A contrast
+//     incomplete NOT on the rail gradient -- or that fails the ratio -- fails
+//     loud. This runs INSIDE every scan, so no tab/state's incomplete is left
+//     unmeasured, and the background is verified per node, never assumed.
 // Contrast axe CAN resolve lands in `violations` and is asserted above.
-function assertAxeClean(results: AxeResult, label: string): void {
+async function assertAxeClean(
+  page: Page,
+  results: AxeResult,
+  label: string
+): Promise<void> {
   expect(
     results.violations,
     `[${label}] axe violations: ${JSON.stringify(
@@ -117,15 +124,56 @@ function assertAxeClean(results: AxeResult, label: string): void {
       2
     )}`
   ).toEqual([]);
+
   const undecided = results.incomplete.filter((r) => r.id !== "color-contrast");
   expect(
     undecided,
-    `[${label}] axe UNDECIDED (non-contrast incomplete -- needs a real fix or a dedicated assertion): ${JSON.stringify(
+    `[${label}] axe UNDECIDED (non-contrast incomplete -- needs a real fix or dedicated coverage): ${JSON.stringify(
       undecided.map((r) => ({ id: r.id, targets: axeTargets(r.nodes) })),
       null,
       2
     )}`
   ).toEqual([]);
+
+  const ccNodes =
+    results.incomplete.find((r) => r.id === "color-contrast")?.nodes ?? [];
+  if (ccNodes.length === 0) return;
+
+  // The rail gradient's darkest effective bg = accent-soft at 60% over surface.
+  const accentSoft = await resolveSrgb(page, "var(--color-accent-soft)");
+  const surface = await resolveSrgb(page, "var(--color-surface)");
+  const darkestBg = accentSoft.map((c, i) =>
+    Math.round(0.6 * c + 0.4 * surface[i])
+  );
+
+  for (const node of ccNodes) {
+    const selector = node.target[node.target.length - 1] as string;
+    const info = await page
+      .locator(selector)
+      .first()
+      .evaluate((el) => {
+        const s = getComputedStyle(el);
+        return {
+          color: s.color,
+          fontPx: parseFloat(s.fontSize),
+          weight: parseInt(s.fontWeight, 10) || 400,
+          onRailGradient: el.closest(".bg-gradient-to-b") !== null
+        };
+      });
+    expect(
+      info.onRailGradient,
+      `[${label}] color-contrast incomplete "${selector}" is NOT inside the known rail gradient -- it needs a real fix or its own dedicated coverage, not a blanket pass`
+    ).toBe(true);
+    // WCAG large-text threshold: >=24px, or >=18.66px bold -> 3:1, else 4.5:1.
+    const large =
+      info.fontPx >= 24 || (info.fontPx >= 18.66 && info.weight >= 700);
+    const need = large ? 3 : 4.5;
+    const ratio = contrastRatio(await resolveSrgb(page, info.color), darkestBg);
+    expect(
+      ratio,
+      `[${label}] incomplete "${selector}" (${info.fontPx}px) vs darkest rail stop = ${ratio.toFixed(2)}:1 < ${need}`
+    ).toBeGreaterThanOrEqual(need);
+  }
 }
 
 // ===========================================================================
@@ -142,7 +190,7 @@ test.describe("a11y / layer 1 -- axe WCAG 2.2 AA", () => {
       const results = await new AxeBuilder({ page })
         .withTags([...WCAG_AA_TAGS])
         .analyze();
-      assertAxeClean(results, `${tab.key} tab`);
+      await assertAxeClean(page, results, `${tab.key} tab`);
     });
   }
 
@@ -159,67 +207,7 @@ test.describe("a11y / layer 1 -- axe WCAG 2.2 AA", () => {
     const results = await new AxeBuilder({ page })
       .withTags([...WCAG_AA_TAGS])
       .analyze();
-    assertAxeClean(results, "approved state");
-  });
-});
-
-// ===========================================================================
-// Ground-truth coverage for the color-contrast nodes axe leaves `incomplete`.
-// axe cannot composite text over a CSS gradient, so the approve-rail glow's
-// small text lands in incomplete (allowed in assertAxeClean). This proves those
-// nodes actually pass AA against the gradient's DARKEST effective background.
-// ===========================================================================
-test.describe("a11y / rail gradient text contrast (covers axe-incomplete)", () => {
-  test("each axe-incomplete contrast node clears its WCAG threshold by ground truth", async ({
-    page
-  }) => {
-    await page.goto("/");
-    await settle(page);
-
-    // The rail gradient runs from-accent-soft/60 -> transparent over the white
-    // panel; its DARKEST effective background is accent-soft at 60% composited
-    // over the surface. Only text WITHOUT its own opaque background sits on it,
-    // which is exactly what axe leaves `incomplete` (a control with its own bg
-    // -- the Approve button, the status pill -- axe resolves, so it is not here).
-    const accentSoft = await resolveSrgb(page, "var(--color-accent-soft)");
-    const surface = await resolveSrgb(page, "var(--color-surface)");
-    const darkestBg = accentSoft.map((c, i) =>
-      Math.round(0.6 * c + 0.4 * surface[i])
-    );
-
-    const results = await new AxeBuilder({ page })
-      .withTags([...WCAG_AA_TAGS])
-      .analyze();
-    const nodes =
-      results.incomplete.find((r) => r.id === "color-contrast")?.nodes ?? [];
-    expect(
-      nodes.length,
-      "expected the rail gradient text to be the axe-incomplete contrast set"
-    ).toBeGreaterThan(0);
-
-    for (const node of nodes) {
-      const selector = node.target[node.target.length - 1] as string;
-      const info = await page
-        .locator(selector)
-        .first()
-        .evaluate((el) => {
-          const s = getComputedStyle(el);
-          return {
-            color: s.color,
-            fontPx: parseFloat(s.fontSize),
-            weight: parseInt(s.fontWeight, 10) || 400
-          };
-        });
-      // WCAG large-text threshold: >=24px, or >=18.66px bold -> 3:1, else 4.5:1.
-      const large =
-        info.fontPx >= 24 || (info.fontPx >= 18.66 && info.weight >= 700);
-      const need = large ? 3 : 4.5;
-      const ratio = contrastRatio(await resolveSrgb(page, info.color), darkestBg);
-      expect(
-        ratio,
-        `axe-incomplete node "${selector}" (${info.fontPx}px) vs darkest stop = ${ratio.toFixed(2)}:1 < ${need}`
-      ).toBeGreaterThanOrEqual(need);
-    }
+    await assertAxeClean(page, results, "approved state");
   });
 });
 
