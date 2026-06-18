@@ -1,5 +1,5 @@
 import type { AgentRun, ExposureResult, Simulation } from "@/lib/schemas";
-import { recomputeSimulation } from "@/lib/evals/graders";
+import { recomputeSimulation } from "@/lib/pipeline/simulation-math";
 import { makeAgentRun } from "@/lib/agents/actionops/agent-run";
 import type { ActionOpsContext } from "@/lib/agents/actionops/types";
 
@@ -8,12 +8,11 @@ import type { ActionOpsContext } from "@/lib/agents/actionops/types";
 // and records why in dataGaps. It fans the scenario's per-supplier daily revenue
 // across the matched (Atlas) supplier ids, then runs the canonical arithmetic.
 //
-// NOTE (D.3): the arithmetic reuses recomputeSimulation -- the SAME function the
-// grader checks against -- so producer and grader share one definition and a
-// correct run matches by construction. For genuine producer/grader independence
-// (defeat f(x) === f(x)), D.3 should OWN the canonical math here, have the grader
-// import it, and pin independent hand-computed values; D.1 reuses it as a correct
-// placeholder, and the golden corruptions already prove the grader bites.
+// D.3: the producer now OWNS the canonical math via @/lib/pipeline/simulation-math
+// and no longer borrows it from the grader. Producer and grader share that one
+// source of truth, but their independence is proven elsewhere -- the grader checks
+// against gt.simInputs, and evals/actionops-simulator.test.ts pins HAND-DERIVED
+// values and asserts this live producer matches them (the f(x) === f(x) defeat).
 export function runSimulator(
   ctx: ActionOpsContext,
   exposureResults: ExposureResult[]

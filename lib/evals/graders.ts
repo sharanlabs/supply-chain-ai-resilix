@@ -27,6 +27,14 @@ import {
   sameFigure
 } from "@/lib/evals/numerals";
 import { resolveSourcePath } from "@/lib/evals/source-path";
+// The canonical Simulator arithmetic now lives in the PRODUCER-owned shared module
+// (D.3), not here -- the grader checks the producer, so it must not also define the
+// math the producer runs. Re-exported below so existing importers of SimInputs /
+// recomputeSimulation from this module keep resolving (no wide ripple).
+import { recomputeSimulation, type SimInputs } from "@/lib/pipeline/simulation-math";
+
+export { recomputeSimulation };
+export type { SimInputs };
 
 export type GraderId =
   | "entity-ids"
@@ -49,22 +57,8 @@ export type GraderResult = {
   failures: string[];
 };
 
-// Primitive inputs to the Simulator's deterministic arithmetic. The Simulator
-// (Phase 6) is deterministic TS; its math is fully defined NOW (unlike Atlas's
-// scoring model, which Phase 5 owns), so the eval recomputes it exactly rather
-// than inventing a model. Absent on Tier-1 records (no inventory -> no simulation).
-export type SimInputs = {
-  // The run's "as of" instant (UTC); runout dates are measured from here.
-  baseDateIso: string;
-  // How long the disruption lasts -- caps the revenue-at-risk per horizon.
-  durationDays: number;
-  // Per-affected-supplier daily revenue flowing through the disrupted lane.
-  affected: { supplierId: string; dailyRevenueUsd: number }[];
-  // Horizons to project (days).
-  horizonDays: number[];
-  // Inventory positions for runout projection.
-  inventory: { productId: string; onHandUnits: number; dailyUseUnits: number }[];
-};
+// SimInputs is defined and owned in @/lib/pipeline/simulation-math and re-exported
+// above -- the grader consumes it, the producer produces against it.
 
 // The ground truth a packet is graded against. For a seeded scenario the id sets
 // are DERIVED from the real ingest (ingestSeed / canonicalSupplierId), never
@@ -394,35 +388,10 @@ export function gradeExposureControl(
   return ok("exposure-control", "regression-lock", failures);
 }
 
-// Add whole days to a UTC instant, returning a YYYY-MM-DD date. UTC-pinned so the
-// runout date is deterministic regardless of the runner's local zone (the P8
-// calendar-shift lesson). Day count is floored: a partial day of cover does not
-// buy an extra whole day of runway.
-function addDaysUtc(baseIso: string, days: number): string {
-  return new Date(new Date(baseIso).getTime() + days * 86_400_000).toISOString().slice(0, 10);
-}
-
-// The Simulator's deterministic arithmetic, recomputed from primitive inputs.
-// revenueAtRisk(H) = sum over affected suppliers of dailyRevenue x min(H, duration)
-// runout(product)  = baseDate + floor(onHand / dailyUse) days
-export function recomputeSimulation(inputs: SimInputs): {
-  horizons: { days: number; revenueAtRiskUsd: number }[];
-  productRunouts: { productId: string; runoutDate: string }[];
-} {
-  return {
-    horizons: inputs.horizonDays.map((days) => ({
-      days,
-      revenueAtRiskUsd: inputs.affected.reduce(
-        (sum, a) => sum + a.dailyRevenueUsd * Math.min(days, inputs.durationDays),
-        0
-      )
-    })),
-    productRunouts: inputs.inventory.map((inv) => ({
-      productId: inv.productId,
-      runoutDate: addDaysUtc(inputs.baseDateIso, Math.floor(inv.onHandUnits / inv.dailyUseUnits))
-    }))
-  };
-}
+// The canonical arithmetic (recomputeSimulation + addDaysUtc) now lives in
+// @/lib/pipeline/simulation-math and is imported at the top of this file. The
+// grader recomputes from gt.simInputs with it (the oracle); independence from the
+// producer is enforced by the hand-pinned test, not by code identity.
 
 // --- Simulator arithmetic: exact to the cent/day (regression-lock) ----------
 // Recompute the simulation from primitive inputs and require the packet to match
