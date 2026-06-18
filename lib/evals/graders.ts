@@ -29,7 +29,7 @@ import { resolveSourcePath } from "@/lib/evals/source-path";
 // definition, so a packet the gatekeeper clears provably satisfies what the grader
 // gates on -- no divergence. gradeCitationCoverage below just wraps it for the
 // GraderResult shape.
-import { collectCitationFailures } from "@/lib/pipeline/citation-check";
+import { collectCitationFailures, collectPlaybookNumeralFailures } from "@/lib/pipeline/citation-check";
 // The canonical Simulator arithmetic now lives in the PRODUCER-owned shared module
 // (D.3), not here -- the grader checks the producer, so it must not also define the
 // math the producer runs. Re-exported below so existing importers of SimInputs /
@@ -215,11 +215,23 @@ export function gradeEvidence(
 // collectCitationFailures in lib/pipeline/citation-check.ts -- the SINGLE
 // definition the gatekeeper also runs. Kept out of here on purpose: a second copy
 // would be the doc-level divergence this shared-module increment exists to kill.
+//
+// D.6 adds the PLAYBOOK-step numeral check alongside the message check. Messages
+// ground figures via inline claims[] (the bidirectional check); playbooks ground via
+// groundedClaimIds, so a sourceable numeral in a playbook STEP is ungrounded and
+// fails (collectPlaybookNumeralFailures, same shared module). Both checks live in
+// citation-check.ts so the Strategist firewall (producer) and this grader share one
+// definition. The message-side call is BYTE-IDENTICAL to D.4 -- the playbook failures
+// are simply appended, so the existing message corruptions/goldens are unaffected.
 export function gradeCitationCoverage(packet: DecisionPacketV2): GraderResult {
-  // Delegate to the PRODUCER-shared check (D.4). A full DecisionPacketV2 satisfies
-  // CitationCheckRoot, so the SAME function runs here at grade-time and in the
-  // gatekeeper at produce-time -- byte-identical failure strings, no divergence.
-  return ok("citation-coverage", "teeth-now", collectCitationFailures(packet));
+  // Delegate to the PRODUCER-shared checks. A full DecisionPacketV2 satisfies
+  // CitationCheckRoot, so the SAME functions run here at grade-time and at
+  // produce-time (the gatekeeper for messages, the Strategist firewall for playbooks)
+  // -- byte-identical failure strings, no divergence.
+  return ok("citation-coverage", "teeth-now", [
+    ...collectCitationFailures(packet),
+    ...collectPlaybookNumeralFailures(packet.playbooks)
+  ]);
 }
 
 // --- Off-taxonomy control: OTHER_UNMAPPED, never force-fit (teeth-now) -------

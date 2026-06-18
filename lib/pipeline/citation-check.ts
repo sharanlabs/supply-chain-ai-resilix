@@ -21,7 +21,7 @@
 
 import { extractSourceableNumerals, normalizeNumeral, sameFigure } from "@/lib/evals/numerals";
 import { resolveSourcePath } from "@/lib/evals/source-path";
-import type { ExposureResult, PublicSignal, Simulation, SupplierMessageDraft, ThreatCard } from "@/lib/schemas";
+import type { ExposureResult, Playbook, PublicSignal, Simulation, SupplierMessageDraft, ThreatCard } from "@/lib/schemas";
 
 // A claim may only cite the Dispatcher's structured INPUTS -- the Sentinel threat
 // card, the public signals, the Atlas exposures, and the Simulator output. It may
@@ -134,6 +134,69 @@ export function collectCitationFailures(root: CitationCheckRoot): string[] {
     }
     for (const form of unparseable) {
       failures.push(`message ${msg.id}: unverifiable numeral form "${form}" (use a plain figure)`);
+    }
+  }
+
+  return failures;
+}
+
+// The PLAYBOOK-numeral contract (D.6, the F-deferred sibling of the message check
+// above). Supplier messages ground figures via an inline claims[] array; PLAYBOOKS
+// ground via groundedClaimIds (exposure ids), NOT inline claims. So the contract for
+// a playbook is the strict one that keeps it trivially honest: a playbook STEP must
+// be NUMERAL-FREE of sourceable quantities. Every figure a war-room plan surfaces is
+// an Atlas exposure score or a Simulator figure that belongs in the structured
+// packet the step references -- never a bare number the model wrote into prose with
+// nothing backing it ("zero independent estimates", D.6 Goal).
+//
+// Why option (A) and not inline playbook claims (B): every playbook already shipped
+// in this system -- the D.1 deterministic Strategist, the golden scenarios, the v2
+// fixture -- is numeral-free by design, and the D.1 Strategist comment explicitly
+// hands this contract to D.6. Numeral-free steps make "non-fabricable" mean exactly
+// "carries no sourceable numeral", which a deterministic extractor decides with no
+// claims-array surface to add. The schema stays unchanged.
+//
+// SCOPE: this scans every MODEL-AUTHORED prose surface of a playbook -- the `summary`
+// AND each `steps[]` entry -- because the hard rule is that every figure a playbook
+// SURFACES traces to a structured input, and a fabricated figure in the summary
+// surfaces just as a step's does. This also keeps the numeral check consistent with
+// the two sibling playbook graders (gradeEvidence, gradeInjectionQuarantine), which
+// both scan `summary + steps`. It does NOT scan the run's audit metadata
+// (agentRun.summary, "N playbook(s)...") -- that is system-generated, not the model's
+// prose. Uses the SAME fail-closed extractor the message check uses, so a
+// scientific-notation form a surface might smuggle ("1e6") is reported as
+// unverifiable, never silently misread.
+//
+// One definition, two callers (the D.4 shared-module pattern, applied to D.6's
+// agent): the Strategist's output-validation firewall (PRODUCE-time) and
+// gradeCitationCoverage (GRADE-time) both call this -- so a playbook the firewall
+// clears provably satisfies what the grader gates on. The gatekeeper is correctly
+// NOT a caller: it never receives playbooks (it consumes supplierMessages only), so
+// playbook grounding is the Strategist firewall's produce-time job, not the
+// gatekeeper's -- no D.4 regression, just the right producer for this leaf.
+export function collectPlaybookNumeralFailures(playbooks: Playbook[]): string[] {
+  const failures: string[] = [];
+
+  for (const pb of playbooks) {
+    // Each model-authored prose surface, labelled so a failure names exactly where the
+    // figure was smuggled (the summary, or a 0-based step index).
+    const surfaces: { where: string; text: string }[] = [
+      { where: "summary", text: pb.summary },
+      ...pb.steps.map((step, i) => ({ where: `step ${i}`, text: step }))
+    ];
+    for (const { where, text } of surfaces) {
+      const { figures, unparseable } = extractSourceableNumerals(text);
+      for (const numeral of figures) {
+        failures.push(
+          `playbook ${pb.id} ${where}: ungrounded numeral ${numeral} in playbook prose ` +
+            `(playbooks ground via groundedClaimIds, not inline figures -- keep prose numeral-free)`
+        );
+      }
+      for (const form of unparseable) {
+        failures.push(
+          `playbook ${pb.id} ${where}: unverifiable numeral form "${form}" (keep prose numeral-free)`
+        );
+      }
     }
   }
 

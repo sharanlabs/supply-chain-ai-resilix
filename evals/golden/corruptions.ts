@@ -264,6 +264,19 @@ export const CORRUPTIONS: readonly Corruption[] = [
     expect: /off-allowlist URL https:\/\/evil\.example.*playbook/
   },
   {
+    // D.6: playbooks ground via groundedClaimIds, not inline figures, so a sourceable
+    // numeral in a playbook step is an INVENTED estimate -- the zero-independent-
+    // estimates rule. gradeCitationCoverage (the same definition the Strategist
+    // firewall enforces at produce-time) must catch it.
+    label: "fabricated numeral planted in a playbook step",
+    grader: "citation-coverage",
+    base: hormuz,
+    mutate: (p) => {
+      p.playbooks[0].steps.push("Reserve 12000 units of backup inventory immediately.");
+    },
+    expect: /ungrounded numeral 12000/
+  },
+  {
     label: "off-allowlist URL on a public signal",
     grader: "evidence",
     base: hurricane,
