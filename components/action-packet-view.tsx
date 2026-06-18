@@ -312,7 +312,10 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             )}
           </h1>
         </div>
-        <dl className="tnum shrink-0 text-sm text-ink-faint sm:text-right">
+        {/* Presentational packet meta (label-value lines), not a definition
+            list -- a <dl> here trips axe's definition-list rule because the
+            divs hold text+span, not dt/dd. A plain <div> is the honest semantic. */}
+        <div className="tnum shrink-0 text-sm text-ink-faint sm:text-right">
           <div className="leading-7">
             Packet{" "}
             <span className="font-mono font-medium text-ink">{packet.id}</span>
@@ -328,7 +331,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             Reviewer{" "}
             <span className="font-medium text-ink">procurement desk</span>
           </div>
-        </dl>
+        </div>
       </div>
 
       {/* The editorial 2-column command-center grid: main briefing + sticky
@@ -408,7 +411,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                 {honesty.live > 0
                   ? `${honesty.live} live / ${honesty.cached} recorded.`
                   : "Recorded replay — no live AI claimed."}
-                <span className="mt-1 block font-mono text-[0.625rem] tracking-[0.02em] opacity-80">
+                <span className="mt-1 block font-mono text-[0.625rem] tracking-[0.02em]">
                   VERIFIER · {packet.effectiveMode} ·{" "}
                   {evidenceAllowlistPassed
                     ? "evidence allowlist passed"
@@ -418,14 +421,18 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             </div>
 
             {/* Source links. */}
-            <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-faint">
+            {/* min-h-6 makes every source link a >=24px WCAG 2.2 SC 2.5.8
+                target (these are a link list, not a sentence, so the inline
+                exception does not apply); the wider gap-y keeps wrapped rows
+                from crowding the enlarged targets. */}
+            <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-ink-faint">
               {allowedEvidenceUrls.map((url) => (
                 <li key={url}>
                   <a
                     href={safeHref(url)}
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="inline-flex items-center gap-1 underline-offset-2 hover:text-accent-strong hover:underline"
+                    className="inline-flex min-h-6 items-center gap-1 underline-offset-2 hover:text-accent-strong hover:underline"
                   >
                     {hostname(url)}
                     <ArrowUpRight className="size-3" aria-hidden="true" />
@@ -778,7 +785,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                       ? "bg-positive-soft text-positive"
                       : approval.status === "REJECTED"
                         ? "bg-danger-soft text-danger"
-                        : "bg-caution-soft text-caution"
+                        : "bg-caution-soft text-caution-ink"
                   }`}
                 >
                   <span

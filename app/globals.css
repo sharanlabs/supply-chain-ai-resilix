@@ -76,6 +76,18 @@
   --color-danger: oklch(0.53 0.16 28);
   --color-danger-soft: oklch(0.955 0.035 28);
 
+  /* Runway/exposure bar outline. WCAG 2.2 SC 1.4.11 (Non-text Contrast): a bar
+     conveys magnitude by its filled LENGTH, so the filled extent must stay
+     distinguishable from the track. The fill colors alone do NOT all clear 3:1
+     against the near-white --color-sink track -- measured fill-vs-track: low
+     1.02, medium 3.31, high 3.45, critical 5.21 (the low gradient START is
+     near-white, so a low bar would be effectively invisible on its own). This
+     hue-independent 1px edge draws the bar boundary in one dark token that
+     clears 3:1 for EVERY severity -- measured 4.37:1 vs --color-sink in
+     evals/e2e/a11y.spec.ts. The numeric label beside each bar separately
+     satisfies SC 1.4.1 (use of color). */
+  --color-runway-edge: oklch(0.55 0.018 168);
+
   --radius-card: 0.5rem;
 }
 
@@ -158,9 +170,14 @@ select {
   font: inherit;
 }
 
-/* Every interactive element gets a visible, accent-keyed focus ring. */
+/* Every interactive element gets a visible, accent-keyed focus ring -- form
+   controls (the "Live signals" checkbox) included, so the keyboard focus
+   indicator is consistent across the whole app, not just links/buttons/tabs. */
 button:focus-visible,
 a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
 [role="tab"]:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--color-accent);
@@ -262,6 +279,9 @@ a:focus-visible,
   position: absolute;
   inset: 0 auto 0 0;
   border-radius: 999px;
+  /* The 1px hue-independent boundary (SC 1.4.11) -- box-sizing:border-box keeps
+     the inline width % exact, so the right edge stays at the true data point. */
+  border: 1px solid var(--color-runway-edge);
   /* A calm grow-in: bars animate their width on mount (one transition, not a
      loop). The inline `width` is set after first paint so the bar fills from 0
      — JS that drives it is reduced-motion-guarded. */
