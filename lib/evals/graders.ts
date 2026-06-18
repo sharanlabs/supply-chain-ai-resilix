@@ -21,12 +21,15 @@
 
 import { SectorSchema, type DecisionPacketV2 } from "@/lib/schemas";
 import { isSafeHttpUrl } from "@/lib/signals/sanitize";
-import {
-  extractSourceableNumerals,
-  normalizeNumeral,
-  sameFigure
-} from "@/lib/evals/numerals";
+import { sameFigure } from "@/lib/evals/numerals";
 import { resolveSourcePath } from "@/lib/evals/source-path";
+// The bidirectional citation check is now the PRODUCER-shared module (D.4), the same
+// extraction pattern D.3 applied to the Simulator math: the gatekeeper enforces this
+// contract at produce-time and the grader checks it at grade-time through ONE
+// definition, so a packet the gatekeeper clears provably satisfies what the grader
+// gates on -- no divergence. gradeCitationCoverage below just wraps it for the
+// GraderResult shape.
+import { collectCitationFailures } from "@/lib/pipeline/citation-check";
 // The canonical Simulator arithmetic now lives in the PRODUCER-owned shared module
 // (D.3), not here -- the grader checks the producer, so it must not also define the
 // math the producer runs. Re-exported below so existing importers of SimInputs /
@@ -206,108 +209,17 @@ export function gradeEvidence(
   return ok("evidence", "teeth-now", failures);
 }
 
-// The unit a structured leaf field carries, keyed by the leaf name a sourcePath
-// ends in. A claim's stated `unit` must agree with the field it cites, so a
-// same-VALUE wrong-FIELD citation (e.g. a "days" claim pointed at a USD field that
-// happens to share the number) is caught on the unit even when the value matches.
-const FIELD_UNITS: Record<string, string> = {
-  revenueAtRiskUsd: "USD",
-  days: "days",
-  exposureScore: "score",
-  confidence: "ratio"
-};
-
-function leafKey(path: string): string {
-  const last = path.split(".").pop() ?? path;
-  return last.replace(/\[\d+\]/g, "");
-}
-
-// A claim may only cite the Dispatcher's structured INPUTS -- the Sentinel threat
-// card, the public signals, the Atlas exposures, and the Simulator output. It may
-// NOT cite the Dispatcher's own output (supplierMessages), the Strategist
-// playbooks, action items, or run metadata: a claim that self-cites
-// `supplierMessages[0].claims[0].value` is circular self-grounding that satisfies
-// both citation directions while proving nothing ("sourcePath resolves into
-// structured INPUTS", Success_Criteria).
-const CITATION_INPUT_ROOTS = new Set([
-  "threatCard",
-  "publicSignals",
-  "exposureResults",
-  "simulation"
-]);
-
-function rootSegment(path: string): string {
-  return path.split(/[.[]/)[0];
-}
-
 // --- Numerals in drafts: zero unsourced, bidirectional (teeth-now) ----------
-// Forward (claim -> packet): every claim's sourcePath must (a) cite a structured
-// INPUT root (not the Dispatcher's own output -- no circular self-citation),
-// (b) resolve into the packet, (c) match its value, and (d) carry a unit
-// consistent with the cited field. So a self-citation fails on the root, a
-// wrong-context number (right value, wrong field) fails on the value, and a
-// same-value/wrong-field citation fails on the unit. Reverse (prose -> claim):
-// every sourceable figure the prose asserts matches some claim's value; an
-// unparseable figure form fails rather than risk a silent misread.
-//
-// Deterministic boundary (disclosed, not hidden): the reverse check confirms a
-// claim of EQUAL VALUE exists; it does not bind a prose figure to one specific
-// claim span. So a prose figure that value-collides with an unrelated same-unit
-// claim would pass here -- that residual semantic binding is the key-gated LLM
-// judge's job (G-5) and the runtime gatekeeper's structured-input cross-check, not
-// this deterministic grader's.
+// The full bidirectional contract (forward claim->packet + reverse prose->claim,
+// and the disclosed deterministic boundary) is documented once, at
+// collectCitationFailures in lib/pipeline/citation-check.ts -- the SINGLE
+// definition the gatekeeper also runs. Kept out of here on purpose: a second copy
+// would be the doc-level divergence this shared-module increment exists to kill.
 export function gradeCitationCoverage(packet: DecisionPacketV2): GraderResult {
-  const failures: string[] = [];
-
-  for (const msg of packet.supplierMessages) {
-    const claimValues: number[] = [];
-    for (const claim of msg.claims) {
-      const root = rootSegment(claim.sourcePath);
-      if (!CITATION_INPUT_ROOTS.has(root)) {
-        failures.push(
-          `message ${msg.id}: claim sourcePath "${claim.sourcePath}" cites non-input "${root}" ` +
-            `(claims must trace to threat/signals/exposure/simulation, not Dispatcher output)`
-        );
-        continue;
-      }
-      const resolution = resolveSourcePath(packet, claim.sourcePath);
-      if (!resolution.resolved) {
-        failures.push(`message ${msg.id}: claim sourcePath "${claim.sourcePath}" does not resolve`);
-        continue;
-      }
-      const claimNumber = normalizeNumeral(claim.value);
-      if (claimNumber !== null) {
-        claimValues.push(claimNumber);
-        const resolved = normalizeNumeral(resolution.value);
-        if (resolved === null || !sameFigure(resolved, claimNumber)) {
-          failures.push(
-            `message ${msg.id}: wrong-context number -- claim value ${claim.value} ` +
-              `resolves to ${String(resolution.value)} at "${claim.sourcePath}"`
-          );
-        }
-      }
-      const expectedUnit = FIELD_UNITS[leafKey(claim.sourcePath)];
-      if (expectedUnit && claim.unit.toLowerCase() !== expectedUnit.toLowerCase()) {
-        failures.push(
-          `message ${msg.id}: unit mismatch -- claim unit "${claim.unit}" cites a ` +
-            `${expectedUnit} field at "${claim.sourcePath}"`
-        );
-      }
-    }
-
-    const prose = `${msg.subject ?? ""}\n${msg.body}`;
-    const { figures, unparseable } = extractSourceableNumerals(prose);
-    for (const numeral of figures) {
-      if (!claimValues.some((value) => sameFigure(value, numeral))) {
-        failures.push(`message ${msg.id}: unsourced numeral ${numeral} in prose (no backing claim)`);
-      }
-    }
-    for (const form of unparseable) {
-      failures.push(`message ${msg.id}: unverifiable numeral form "${form}" (use a plain figure)`);
-    }
-  }
-
-  return ok("citation-coverage", "teeth-now", failures);
+  // Delegate to the PRODUCER-shared check (D.4). A full DecisionPacketV2 satisfies
+  // CitationCheckRoot, so the SAME function runs here at grade-time and in the
+  // gatekeeper at produce-time -- byte-identical failure strings, no divergence.
+  return ok("citation-coverage", "teeth-now", collectCitationFailures(packet));
 }
 
 // --- Off-taxonomy control: OTHER_UNMAPPED, never force-fit (teeth-now) -------

@@ -44,7 +44,13 @@ export function runActionOpsAgents(ctx: ActionOpsContext): ActionOpsResult {
     exposureResults,
     supplierMessages,
     agentRuns,
-    checkedAt: baseDateIso
+    checkedAt: baseDateIso,
+    // The resolvable input slices the D.4 citation check needs: claims cite
+    // `simulation.horizons[0].days` and `exposureResults[i].exposureScore`, so the
+    // gatekeeper must see both to walk the paths (signals included for completeness
+    // -- a claim may legitimately cite publicSignals).
+    publicSignals: signals,
+    simulation
   });
 
   return {

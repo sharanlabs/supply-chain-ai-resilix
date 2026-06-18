@@ -2,21 +2,38 @@ import type {
   AgentRun,
   ExposureResult,
   GatekeeperReport,
+  PublicSignal,
+  Simulation,
   Supplier,
   SupplierMessageDraft,
   ThreatCard
 } from "@/lib/schemas";
+import { collectCitationFailures } from "@/lib/pipeline/citation-check";
 
-// ActionOps gatekeeper (D.1: minimal but non-vacuous). Validates the assembled V2
-// is internally consistent before it can reach human review: every exposure and
-// every drafted message references a known supplier id, every claim carries a
-// sourcePath, and the threat cites evidence. These checks BITE if the deterministic
-// assembly is wrong, so it is not theatre -- but it is deliberately small.
+// ActionOps gatekeeper (D.4: full bidirectional citation enforcement at
+// produce-time). Validates the assembled V2 is internally consistent before it can
+// reach human review: every exposure and every drafted message references a known
+// supplier id, the threat cites evidence, no upstream agent reported a validation
+// failure, AND every claim satisfies the full claims[] <-> numeral <-> sourcePath
+// contract (collectCitationFailures). These checks BITE if the deterministic
+// assembly is wrong, so it is not theatre.
 //
-// D.4 replaces this with the full bidirectional numeral <-> sourcePath check: every
-// numeral in prose must resolve to a claim whose sourcePath resolves into the
-// structured inputs, and the reverse, with a right-value/wrong-context number
-// FAILING loudly. That contract is D.4's to own, not a half-built version here.
+// WHY the full citation check moved here in D.4: before this, the gatekeeper only
+// checked each claim's sourcePath was non-empty, while the grader (grade-time)
+// enforced the full contract -- so a packet could clear the gatekeeper for human
+// review yet still violate the citation coverage the grader gates on. Now the
+// gatekeeper calls the SAME collectCitationFailures the grader calls (one
+// definition, no divergence), so a packet cleared for human review provably
+// satisfies the citation-coverage contract.
+//
+// The wrinkle this signature solves: collectCitationFailures resolves sourcePaths
+// (e.g. `simulation.horizons[0].days`) against a packet-shaped root, but the
+// gatekeeper runs on SLICES before the packet object exists. So it receives the
+// resolvable input slices it needs (exposureResults + threatCard it already had,
+// plus publicSignals + simulation) and assembles the minimal CitationCheckRoot
+// itself -- no packet object, no V2 schema change. publicSignals/simulation are
+// optional so the empty-messages caller (the Atlas rejection test) still compiles;
+// with zero messages the citation check does zero work.
 export function runActionOpsGatekeeper(parts: {
   suppliers: Supplier[];
   threatCard: ThreatCard;
@@ -24,8 +41,19 @@ export function runActionOpsGatekeeper(parts: {
   supplierMessages: SupplierMessageDraft[];
   agentRuns: AgentRun[];
   checkedAt: string;
+  publicSignals?: PublicSignal[];
+  simulation?: Simulation;
 }): GatekeeperReport {
-  const { suppliers, threatCard, exposureResults, supplierMessages, agentRuns, checkedAt } = parts;
+  const {
+    suppliers,
+    threatCard,
+    exposureResults,
+    supplierMessages,
+    agentRuns,
+    checkedAt,
+    publicSignals,
+    simulation
+  } = parts;
   const failures: string[] = [];
   const warnings: string[] = [];
 
@@ -54,12 +82,24 @@ export function runActionOpsGatekeeper(parts: {
     if (!exposureSupplierIds.has(m.supplierId)) {
       failures.push(`Message ${m.id} drafts to a non-exposed supplier ${m.supplierId}`);
     }
-    for (const c of m.claims) {
-      if (!c.sourcePath || c.sourcePath.trim().length === 0) {
-        failures.push(`Message ${m.id} carries a claim with no sourcePath`);
-      }
-    }
   }
+
+  // The full bidirectional citation check, enforced at produce-time through the
+  // SAME function the grader runs. Any citation failure -- a claim citing a
+  // non-input root, a sourcePath that does not resolve, a wrong-context number
+  // (right value, wrong field), a unit mismatch, or an unsourced/unparseable prose
+  // numeral -- holds the packet (BLOCKED, not approvable). The root is assembled
+  // from the slices the gatekeeper holds: a structural subset of the eventual
+  // packet, sufficient for resolveSourcePath to walk the cited paths.
+  failures.push(
+    ...collectCitationFailures({
+      supplierMessages,
+      threatCard,
+      publicSignals,
+      exposureResults,
+      simulation
+    })
+  );
 
   if (threatCard.evidenceUrls.length === 0) {
     warnings.push("Threat card cites no evidence urls");
