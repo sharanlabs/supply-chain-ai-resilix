@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { runActionOpsAgents } from "@/lib/agents/actionops";
 import { runAtlas } from "@/lib/agents/actionops/atlas";
+import { runActionOpsGatekeeper } from "@/lib/agents/actionops/gatekeeper";
 import { runSentinel } from "@/lib/agents/actionops/sentinel";
 import { getActionOpsScenario, type ActionOpsScenario } from "@/lib/data/actionops-scenarios";
 import { ingestSeed } from "@/lib/ingest/seed-suppliers";
+import { fetchPublicSignals } from "@/lib/signals/fetchers";
 import type { ActionOpsContext } from "@/lib/agents/actionops/types";
 import type { Supplier } from "@/lib/schemas";
 
@@ -136,5 +139,84 @@ describe("Atlas exposure model (D.2, deterministic, key-OFF)", () => {
 
     expect(exposureResults).toEqual([]);
     expect(dataGaps.join(" ")).toMatch(/no direct exposure/i);
+  });
+
+  it("fails the packet CLOSED on a rejected handoff: the gatekeeper BLOCKS, not just a flag", () => {
+    const ctx = hormuzContext();
+    const { threatCard, agentRun: sentinelRun } = runSentinel(ctx);
+    const misclassified = {
+      ...threatCard,
+      location: { ...threatCard.location, chokepoint: "Strait of Malacca" }
+    };
+    const { exposureResults, agentRun: atlasRun } = runAtlas(ctx, misclassified);
+    expect(atlasRun.validationStatus).toBe("FAIL");
+
+    // The teeth of the firewall: without the gatekeeper acting on the FAIL, the
+    // rejection would be cosmetic and the packet still approvable. A FAILED agent
+    // must hold the packet (do-no-harm).
+    const gatekeeper = runActionOpsGatekeeper({
+      suppliers: ctx.suppliers,
+      threatCard: misclassified,
+      exposureResults,
+      supplierMessages: [],
+      agentRuns: [sentinelRun, atlasRun],
+      checkedAt: ctx.baseDateIso
+    });
+    expect(gatekeeper.status).toBe("BLOCKED");
+    expect(gatekeeper.approvedForHumanReview).toBe(false);
+  });
+
+  it("matches the chokepoint scope case- and whitespace-insensitively", () => {
+    const ctx = hormuzContext();
+    const { threatCard } = runSentinel(ctx);
+    // Whitespace/casing drift must NOT skip the firewall: a padded/recased Hormuz still
+    // resolves to the Gulf scope, so the Gulf match validates and yields nine exposures.
+    const padded = {
+      ...threatCard,
+      location: { ...threatCard.location, chokepoint: "  Strait of HORMUZ  " }
+    };
+    const { exposureResults, agentRun } = runAtlas(ctx, padded);
+    expect(exposureResults).toHaveLength(9);
+    expect(agentRun.validationStatus).toBe("PASS");
+  });
+
+  it("fails closed when the threat claims a chokepoint with no known scope", () => {
+    const ctx = hormuzContext();
+    const { threatCard } = runSentinel(ctx);
+    // An unmapped chokepoint cannot be validated; emitting exposures on an
+    // unverifiable threat would be the silent-bypass hole, so Atlas fails closed.
+    const unmapped = {
+      ...threatCard,
+      location: { ...threatCard.location, chokepoint: "Bab el-Mandeb" }
+    };
+    const { exposureResults, dataGaps, agentRun } = runAtlas(ctx, unmapped);
+    expect(exposureResults).toEqual([]);
+    expect(dataGaps.join(" ")).toMatch(/no known affected scope/i);
+    expect(agentRun.validationStatus).toBe("FAIL");
+  });
+
+  it("drives the empty-exposure cascade through the full agent run without throwing", async () => {
+    const base = hormuzContext();
+    const emptyScenario: ActionOpsScenario = {
+      ...base.scenario,
+      id: "SCN-EMPTY-E2E",
+      match: { countries: ["ZZ"] }
+    };
+    // Real cached signals so the Verifier corroborates -- a 0-signal run is a genuine
+    // verification FAIL that WOULD block (the do-no-harm gate working, asserted via the
+    // rejection test above). This isolates the empty-EXPOSURE cascade: a no-match flows
+    // through Simulator/Strategist/Dispatcher/gatekeeper with empty exposures and must
+    // not throw. It is an HONEST zero-exposure packet (not a failure), so every agent
+    // stays PASS and the gatekeeper does NOT block it -- distinct from the rejected
+    // (FAIL) handoff above.
+    const signals = await fetchPublicSignals({ useLive: false });
+    const result = runActionOpsAgents({ ...base, scenario: emptyScenario, signals });
+    expect(result.exposureResults).toEqual([]);
+    expect(result.dataGaps.join(" ")).toMatch(/no direct exposure/i);
+    expect(result.playbooks).toEqual([]);
+    expect(result.supplierMessages).toEqual([]);
+    expect(result.actionItems).toEqual([]);
+    expect(result.gatekeeper.status).not.toBe("BLOCKED");
+    expect(result.agentRuns.every((r) => r.validationStatus === "PASS")).toBe(true);
   });
 });

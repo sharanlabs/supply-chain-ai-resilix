@@ -269,7 +269,7 @@ export function makeDemoPacket(): DecisionPacketV2 {
         actor: "system",
         action: "PACKET_ASSEMBLED",
         detail:
-          "Seeded Hormuz demo packet assembled from recorded signals (2026-06-12) and the US-suppliers Gulf subset."
+          "Illustrative reference packet (defensive fallback only): the exposure figures are hand-authored examples, not live D.2 Atlas model output. Assembled from recorded signals (2026-06-12) and the US-suppliers Gulf subset."
       }
     ],
     createdAt: now,

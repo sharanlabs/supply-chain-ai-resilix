@@ -34,11 +34,16 @@ export function runActionOpsAgents(ctx: ActionOpsContext): ActionOpsResult {
     agentRun: dispatcherRun
   } = runDispatcher(ctx, exposureResults, simulation);
 
+  // Assemble the runs BEFORE the gatekeeper so it can fail closed on any agent that
+  // reported a validation failure (e.g. an Atlas-rejected misclassified handoff).
+  const agentRuns = [sentinelRun, verifierRun, atlasRun, simulatorRun, strategistRun, dispatcherRun];
+
   const gatekeeper = runActionOpsGatekeeper({
     suppliers: ctx.suppliers,
     threatCard,
     exposureResults,
     supplierMessages,
+    agentRuns,
     checkedAt: baseDateIso
   });
 
@@ -52,6 +57,6 @@ export function runActionOpsAgents(ctx: ActionOpsContext): ActionOpsResult {
     supplierMessages,
     actionItems,
     gatekeeper,
-    agentRuns: [sentinelRun, verifierRun, atlasRun, simulatorRun, strategistRun, dispatcherRun]
+    agentRuns
   };
 }

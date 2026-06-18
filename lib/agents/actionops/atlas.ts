@@ -14,8 +14,11 @@ import type { ScenarioMatch } from "@/lib/data/actionops-scenarios";
 // an invented match.
 
 // Risk-tier base weight. CRITICAL suppliers carry the most exposure for the same
-// disruption; the gaps are deliberate and even (~13-15) so the tier dominates and
-// lead time modulates within a tier. Hand-derive any fixture from THESE numbers.
+// disruption; the gaps (13-15) keep the tiers separated across the seed's 39-49 day
+// lead range, where lead time only modulates within a tier. (In the general case the
+// +30 lead cap exceeds a single tier gap, so a very long lead CAN cross one tier --
+// that is intended: a LOW supplier on a two-month lane is a real exposure.) Hand-
+// derive any fixture from THESE numbers.
 const RISK_TIER_BASE: Record<Supplier["riskTier"], number> = {
   CRITICAL: 55,
   HIGH: 40,
@@ -38,24 +41,44 @@ function leadComponent(standardLeadTimeDays: number): number {
 // The disruption's geographic AFFECTED SCOPE keyed by the threat's chokepoint -- the
 // countries whose inbound maritime trade transits it. This is the firewall's source
 // of truth: Atlas trusts the SCENARIO for WHO to match, but checks the matched set
-// against the scope of the THREAT it was actually handed. A chokepoint absent here is
-// "scope unknown" -> Atlas cannot validate and passes through (it must not reject a
-// legitimate scenario it lacks scope data for). Real domain data, extended per added
-// chokepoint scenario.
+// against the scope of the THREAT it was actually handed. Real domain data, one entry
+// per chokepoint the core can reason about (grows as scenarios are added): Hormuz
+// backs the live scenario; Malacca is the distinct, real out-of-scope chokepoint the
+// misclassification firewall test rejects against (a Gulf match is not within it).
 const CHOKEPOINT_AFFECTED_COUNTRIES: Record<string, readonly string[]> = {
   "Strait of Hormuz": ["SA", "AE", "QA", "KW", "BH", "IQ", "IR", "OM"],
-  "Strait of Malacca": ["SG", "MY", "ID", "TH", "VN"],
-  "Panama Canal": ["US", "PA", "CO", "EC", "CL", "PE"]
+  "Strait of Malacca": ["SG", "MY", "ID", "TH", "VN"]
 };
 
-// Derive the affected-country scope from the THREAT (not the scenario match). null =
-// "scope unknown" (the chokepoint is unmapped), which means Atlas cannot validate.
-function deriveAffectedScope(threatCard: ThreatCard): Set<string> | null {
-  const chokepoint = threatCard.location.chokepoint;
-  if (chokepoint && CHOKEPOINT_AFFECTED_COUNTRIES[chokepoint]) {
-    return new Set(CHOKEPOINT_AFFECTED_COUNTRIES[chokepoint]);
+// Match chokepoint names case- and whitespace-insensitively, so a handoff that drifts
+// to "Strait of Hormuz " or "strait of hormuz" cannot silently skip the firewall (the
+// D.5 LLM Sentinel is exactly where such drift would arise).
+function canonicalChokepoint(value: string): string {
+  return value.trim().toLowerCase();
+}
+const NORMALIZED_SCOPE = new Map<string, Set<string>>(
+  Object.entries(CHOKEPOINT_AFFECTED_COUNTRIES).map(([name, countries]) => [
+    canonicalChokepoint(name),
+    new Set(countries)
+  ])
+);
+
+// Read the threat's affected scope. `claimed` = the handoff asserts a chokepoint at
+// all; `scope` = the known affected countries, or null when the claimed chokepoint is
+// not in the table (scope unknown). A non-chokepoint threat (region/country only) is
+// `claimed:false` and is not scope-validated here.
+function deriveAffectedScope(threatCard: ThreatCard): {
+  claimed: boolean;
+  scope: Set<string> | null;
+} {
+  const chokepoint = threatCard.location.chokepoint?.trim();
+  if (!chokepoint) {
+    return { claimed: false, scope: null };
   }
-  return null;
+  return {
+    claimed: true,
+    scope: NORMALIZED_SCOPE.get(canonicalChokepoint(chokepoint)) ?? null
+  };
 }
 
 export function runAtlas(
@@ -85,31 +108,44 @@ export function runAtlas(
   }
 
   // FIREWALL (the deliberate-misclassification control): validate the matched set
-  // against the scope of the handed-in threat. If a matched supplier sits OUTSIDE
-  // the threat's affected scope, the Sentinel output and the match disagree about
-  // what the disruption is -- a misclassification -- so Atlas FAILS CLOSED (zero
-  // exposures + a stated data gap) rather than emit exposures it cannot stand behind.
-  // When the scope is unknown (unmapped chokepoint) it cannot check and passes
-  // through. D.5's LLM Sentinel is the real misclassification source this guards.
-  const scope = deriveAffectedScope(threatCard);
+  // against the scope of the handed-in threat. Atlas FAILS CLOSED (zero exposures + a
+  // stated data gap + a FAILED agent run the gatekeeper blocks on) rather than emit
+  // exposures it cannot stand behind, in two cases: (a) the threat claims a chokepoint
+  // Atlas has no scope for -> it cannot validate which suppliers the threat reaches;
+  // (b) a matched supplier sits OUTSIDE a known scope -> the Sentinel output and the
+  // match disagree about what the disruption is (a misclassification). A non-chokepoint
+  // threat is not scope-validated. D.5's LLM Sentinel is the real source this guards.
+  const failClosed = (dataGap: string, debug: Record<string, unknown>) => {
+    const rejectionRun = makeAgentRun({
+      id: "RUN-ATLAS",
+      agentName: "Atlas",
+      input: { match: scenario.match, chokepoint: threatCard.location.chokepoint },
+      output: { rejected: true, ...debug },
+      summary: "Rejected: threat handoff failed scope validation.",
+      createdAt: baseDateIso,
+      validationStatus: "FAIL" as const
+    });
+    return { exposureResults: [], dataGaps: [dataGap], agentRun: rejectionRun };
+  };
+
+  const { claimed, scope } = deriveAffectedScope(threatCard);
+  if (claimed && !scope) {
+    return failClosed(
+      `Atlas rejected the threat handoff: the claimed chokepoint "${threatCard.location.chokepoint}" ` +
+        `has no known affected scope, so exposure cannot be validated -- no direct exposure is asserted.`,
+      { reason: "unmapped-chokepoint", chokepoint: threatCard.location.chokepoint }
+    );
+  }
   if (scope) {
     const outOfScope = matched.filter((s) => !scope.has(s.country));
     if (outOfScope.length > 0) {
       const offenders = outOfScope.map((s) => `${s.id}(${s.country})`).join(", ");
-      const dataGap =
+      return failClosed(
         `Atlas rejected the threat handoff: ${outOfScope.length} matched supplier(s) ` +
-        `[${offenders}] fall outside the affected scope of "${threatCard.location.chokepoint}" ` +
-        `-- possible threat misclassification, so no direct exposure is asserted.`;
-      const rejectionRun = makeAgentRun({
-        id: "RUN-ATLAS",
-        agentName: "Atlas",
-        input: { match: scenario.match, chokepoint: threatCard.location.chokepoint },
-        output: { rejected: true, outOfScope: outOfScope.map((s) => s.id) },
-        summary: `Rejected: ${outOfScope.length} matched supplier(s) outside the threat scope.`,
-        createdAt: baseDateIso,
-        validationStatus: "FAIL"
-      });
-      return { exposureResults: [], dataGaps: [dataGap], agentRun: rejectionRun };
+          `[${offenders}] fall outside the affected scope of "${threatCard.location.chokepoint}" ` +
+          `-- possible threat misclassification, so no direct exposure is asserted.`,
+        { reason: "out-of-scope", outOfScope: outOfScope.map((s) => s.id) }
+      );
     }
   }
 

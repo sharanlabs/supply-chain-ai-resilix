@@ -1,4 +1,5 @@
 import type {
+  AgentRun,
   ExposureResult,
   GatekeeperReport,
   Supplier,
@@ -21,11 +22,24 @@ export function runActionOpsGatekeeper(parts: {
   threatCard: ThreatCard;
   exposureResults: ExposureResult[];
   supplierMessages: SupplierMessageDraft[];
+  agentRuns: AgentRun[];
   checkedAt: string;
 }): GatekeeperReport {
-  const { suppliers, threatCard, exposureResults, supplierMessages, checkedAt } = parts;
+  const { suppliers, threatCard, exposureResults, supplierMessages, agentRuns, checkedAt } = parts;
   const failures: string[] = [];
   const warnings: string[] = [];
+
+  // Fail CLOSED on any agent that reported a validation failure (e.g. Atlas
+  // rejecting a misclassified Sentinel handoff). Without this the FAIL flag would be
+  // cosmetic: a rejected packet would still pass the gatekeeper and be approvable,
+  // breaking do-no-harm. An upstream agent failure blocks human approval.
+  for (const run of agentRuns) {
+    if (run.validationStatus === "FAIL") {
+      failures.push(
+        `Agent ${run.agentName} (${run.id}) reported a validation failure -- the packet is held and cannot be approved.`
+      );
+    }
+  }
 
   const knownSupplierIds = new Set(suppliers.map((s) => s.id));
   const exposureSupplierIds = new Set(exposureResults.map((e) => e.supplierId));
