@@ -55,7 +55,7 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Playwright flagship scenario
+      - name: Playwright e2e + accessibility (axe / keyboard / WCAG 2.2)
         run: npm run test:e2e
 
   postgres:

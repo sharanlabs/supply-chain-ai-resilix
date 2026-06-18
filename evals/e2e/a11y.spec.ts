@@ -279,25 +279,46 @@ test.describe("a11y / SC 2.4.11 focus not obscured", () => {
 // G-3 -- SC 2.5.8 Target Size (Minimum) 24x24 CSS px (new in WCAG 2.2).
 // ===========================================================================
 test.describe("a11y / SC 2.5.8 target size (G-3)", () => {
-  test("evidence/source links are at least 24x24 CSS px", async ({ page }) => {
+  test("every author-styled interactive target is at least 24x24 CSS px", async ({
+    page
+  }) => {
     await page.goto("/");
     await settle(page);
-    // The evidence links are a <ul> of links, NOT a sentence, so the SC 2.5.8
-    // "inline" exception does not apply -- each must meet the 24px minimum.
-    const links = page.getByTestId("actionops-packet").getByRole("link");
-    const count = await links.count();
+    // SC 2.5.8 (AA, 24px). Scope is EVERY author-styled control on the rendered
+    // surface -- not just the evidence links -- so a small target can't slip the
+    // gate. The native "Live signals" checkbox (measured 13x13) is deliberately
+    // excluded: it is the UA-control exception (size set by the user agent, not
+    // the author). The evidence links are a list, not a sentence, so they get no
+    // inline exception and were the genuine fix (16px -> padded to 24px).
+    const targets = page.locator('a[href], button, [role="tab"]');
+    const count = await targets.count();
     expect(count).toBeGreaterThan(0);
+    const undersized: string[] = [];
     for (let i = 0; i < count; i++) {
+      const el = targets.nth(i);
+      if (!(await el.isVisible())) continue;
+      const box = await el.boundingBox();
+      if (!box) continue;
+      if (box.height < 24 || box.width < 24) {
+        const label = ((await el.textContent()) ?? "").trim().slice(0, 30);
+        undersized.push(
+          `"${label}" ${Math.round(box.width)}x${Math.round(box.height)}`
+        );
+      }
+    }
+    expect(
+      undersized,
+      `author-styled targets under 24px: ${undersized.join(" | ")}`
+    ).toEqual([]);
+
+    // Pin the specific G-3 fix target: the evidence links exist and are >=24px.
+    const links = page.getByTestId("actionops-packet").getByRole("link");
+    const linkCount = await links.count();
+    expect(linkCount).toBeGreaterThan(0);
+    for (let i = 0; i < linkCount; i++) {
       const box = await links.nth(i).boundingBox();
-      expect(box).not.toBeNull();
-      expect(
-        box!.height,
-        `evidence link #${i} height ${box!.height}px < 24`
-      ).toBeGreaterThanOrEqual(24);
-      expect(
-        box!.width,
-        `evidence link #${i} width ${box!.width}px < 24`
-      ).toBeGreaterThanOrEqual(24);
+      expect(box!.height).toBeGreaterThanOrEqual(24);
+      expect(box!.width).toBeGreaterThanOrEqual(24);
     }
   });
 });
