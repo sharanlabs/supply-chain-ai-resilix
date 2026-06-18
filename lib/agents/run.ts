@@ -16,12 +16,63 @@ import type {
 import { ExecutionDraftSchema } from "@/lib/schemas";
 import { stableHash } from "@/lib/utils";
 
-// Default GA Gemini model. gemini-3.5-flash is GA and recommended for agentic work
-// (best quality-per-cost, live-verified 2026-06-17 via ai.google.dev/gemini-api/docs
-// /models). gemini-3-flash is still Preview, so the old "gemini-3-flash-preview"
-// default broke the project's GA-default rule. gemini-3.1-flash-lite is the budget
-// floor. Override per deployment with GEMINI_MODEL (empty/whitespace falls back here).
-const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
+// Default GA Gemini model. gemini-2.5-flash is the GA best-value model ON THE KEY
+// -- a live ListModels against this project's key (2026-06-18) tops out at the 2.5
+// lineup; no 3.x is enabled, so the prior "gemini-3.5-flash" default would 404 at
+// the first live call. 2.5-flash is the quality-per-cost pick for agentic work;
+// gemini-2.5-flash-lite is the budget floor. Override per deployment with
+// GEMINI_MODEL (empty/whitespace falls back here). The preflight check below turns
+// a future Google retirement of this id into a one-line config bump, not a silent
+// mid-run fallback.
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+
+// The configured model id, resolved once: an explicit GEMINI_MODEL override (trimmed)
+// wins, else the GA default. Single source so the preflight check, the live call, and
+// the AgentRun model field all name the SAME model -- no drift.
+export function resolvedGeminiModel(): string {
+  return process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
+}
+
+// Google's ListModels returns ids as "models/gemini-2.5-flash"; the AI-SDK + our
+// config use the bare "gemini-2.5-flash". Normalize both sides to the bare id before
+// comparing so a present model is never falsely reported retired (a "models/" prefix
+// mismatch would be a false retirement alarm -- the opposite of this check's intent).
+function bareModelId(id: string): string {
+  return id.replace(/^models\//, "").trim();
+}
+
+// Preflight: at live-AI startup ONLY, assert the configured model is actually
+// available on the key, and FAIL LOUD (listing what IS available) if not. WHY: a
+// Google retirement otherwise surfaces as a silent mid-run 404 -> deterministic
+// fallback, mislabeling a config defect as a healthy run. Failing loud at startup
+// makes it a one-line GEMINI_MODEL bump instead. Guarded by liveAiEnabled() so it
+// NEVER runs (or fetches) key-OFF. listModels is injected so a fixture proves both
+// the pass and the fail-loud path with no network call.
+export async function assertConfiguredModelAvailable({
+  listModels,
+  enabled = liveAiEnabled,
+  model = resolvedGeminiModel
+}: {
+  listModels: () => Promise<string[]>;
+  enabled?: () => boolean;
+  model?: () => string;
+}): Promise<void> {
+  if (!enabled()) {
+    // Live AI disabled by config -> the live path never runs, so there is nothing to
+    // preflight. Skip entirely (no fetch), preserving the key-OFF no-network contract.
+    return;
+  }
+
+  const wanted = bareModelId(model());
+  const available = (await listModels()).map(bareModelId);
+  if (!available.includes(wanted)) {
+    throw new Error(
+      `Configured Gemini model "${wanted}" is not available on this key. ` +
+        `Available models: ${available.join(", ") || "(none returned)"}. ` +
+        `Set GEMINI_MODEL to one of these or update DEFAULT_GEMINI_MODEL.`
+    );
+  }
+}
 
 type AgentContext = {
   publicSignals: PublicSignal[];
@@ -275,7 +326,7 @@ async function generateStructuredOrFallback<T>({
   const startedAt = Date.now();
   try {
     const result = await generateObject({
-      model: google(process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL),
+      model: google(resolvedGeminiModel()),
       schema,
       prompt
     });
@@ -440,10 +491,7 @@ function createAgentRun({
   return {
     id,
     agentName,
-    model:
-      mode === "LIVE_AI"
-        ? (process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL)
-        : "deterministic-rules",
+    model: mode === "LIVE_AI" ? resolvedGeminiModel() : "deterministic-rules",
     mode,
     latencyMs,
     tokenEstimate: estimateTokens(input) + estimateTokens(output),

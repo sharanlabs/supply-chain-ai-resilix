@@ -230,9 +230,38 @@ export const CountryCodeSchema = z
   .string()
   .regex(/^[A-Z]{2}$/, "ISO-3166 alpha-2 code");
 
-// Sentinel output (Phase 4). Phase 4 replaces the open eventType string with the
-// closed ISO/chokepoint/sector/event vocabulary + an `OTHER_UNMAPPED` escape
-// hatch -- an enum here now would actively fight that, so it stays a string.
+// The CLOSED threat-event vocabulary the Sentinel (D.5) classifies into. Grounded
+// in the ActionOps threat categories the signal sources actually surface:
+//   CHOKEPOINT_CLOSURE   - a maritime/land chokepoint disrupted (the Hormuz flagship).
+//   PORT_DISRUPTION      - a specific port closed/congested (strike, outage, blockade).
+//   NATURAL_DISASTER     - earthquake/flood/storm hitting a supplier corridor (USGS/EONET).
+//   SEVERE_WEATHER       - a weather alert with logistics impact (NWS).
+//   GEOPOLITICAL_CONFLICT- conflict/sanctions/closure of a trade lane (GDELT geopolitics).
+//   LABOR_DISRUPTION     - strike/work stoppage at a supplier or carrier.
+//   CYBER_DISRUPTION     - a cyber incident degrading a supplier/logistics operator.
+//   OTHER_UNMAPPED       - the escape hatch: a real but unclassified event. NEVER
+//                          force-fit a named type; an honest OTHER_UNMAPPED beats a
+//                          confident wrong label (mirrors SectorSchema's escape hatch).
+// This is ADDITIVE: ThreatCardSchema.eventType stays an open string for back-compat
+// (the persisted DisruptionEvent contract and replay fixtures predate this vocab).
+// The Sentinel VALIDATES its LLM classification against this set and maps any unknown
+// value -> OTHER_UNMAPPED before it ever reaches a ThreatCard -- enforcement lives at
+// the Sentinel boundary, exactly as the closed Sector vocab is enforced at Atlas.
+export const ThreatEventTypeSchema = z.enum([
+  "CHOKEPOINT_CLOSURE",
+  "PORT_DISRUPTION",
+  "NATURAL_DISASTER",
+  "SEVERE_WEATHER",
+  "GEOPOLITICAL_CONFLICT",
+  "LABOR_DISRUPTION",
+  "CYBER_DISRUPTION",
+  "OTHER_UNMAPPED"
+]);
+
+// Sentinel output (Phase 4). eventType stays an OPEN string at the schema (back-compat
+// with the persisted DisruptionEvent + replay fixtures); the closed ThreatEventTypeSchema
+// above is enforced at the Sentinel boundary, where any off-vocab value maps to
+// OTHER_UNMAPPED rather than being narrowed here (which would break those older shapes).
 export const ThreatCardSchema = z.object({
   id: z.string(),
   eventType: z.string(),
@@ -559,6 +588,7 @@ export type ExecutionDraft = z.infer<typeof ExecutionDraftSchema>;
 export type AgentRun = z.infer<typeof AgentRunSchema>;
 export type AuditTrailEntry = z.infer<typeof AuditTrailEntrySchema>;
 // V2 (ActionOps) section types.
+export type ThreatEventType = z.infer<typeof ThreatEventTypeSchema>;
 export type ThreatCard = z.infer<typeof ThreatCardSchema>;
 export type ExposureResult = z.infer<typeof ExposureResultSchema>;
 export type Simulation = z.infer<typeof SimulationSchema>;
