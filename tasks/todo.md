@@ -36,7 +36,8 @@
 ### Industry-grade hardening (the craft baseline a top shop ships)
 - [x] **H2 — `.editorconfig` + `.nvmrc`** ✅ DONE (`ca70781`).
 - [x] **gdelt.ts anti-AI comment pass** ✅ DONE — WHY-not-WHAT, ASCII `--`, no prose tells (verified 2026-06-17).
-- [ ] **H3 — test coverage tooling** — `@vitest/coverage-v8` + a `coverage` script + a starting threshold. Cheap craft → closing now.
+- [x] **H3 — test coverage tooling** ✅ DONE — `@vitest/coverage-v8` + `npm run coverage` + a ratcheted floor (now 82.18/72.07/80.37/82.43; gated in F + component G).
+- [x] **Component G — 3-layer a11y CI + G-3/G-4 + SCA** ✅ DONE 2026-06-18 (gated, `c676f46`→`61f7099`). `@axe-core/playwright` axe WCAG 2.2 AA over all 4 tabs + approved state, APG keyboard + SC 2.4.11, SC 2.5.8 target-size, SC 1.4.11 bar contrast (ground-truth sRGB via in-browser canvas) — pointed at the REAL `/` surface (HANDOFF "add a demo route" note was STALE; Phase 8 already wired V2 in). Caught 3 real AA fails Phase 8's self-claim missed. Manual SR pass = owner action (`docs/claude/A11Y-MANUAL-SR-PASS.md`). SCA cleared the 4 HIGH npm-audit findings (non-breaking). Gate: verify 297/10 + e2e 11 (V1+10 a11y) + coverage floor + audit-high 0 + acceptance-gate(inline, subagent infra-died) + Codex REVISE(6)→fix→closure REVISE(3)→fix→round-3-confirm. Evidence: `docs/claude/gates/a11y/G-2026-06-18.md`. **DEFERRED (tracked, not silent): vite→esbuild `npm ls` ELSPROBLEMS (pre-existing, `npm ci`-passing) → a dedicated deps-hygiene increment.**
 - [ ] **H4 — Prettier** — config matched to the existing 2-space style + a `format` script. DEFER the mass-reformat (huge diff; its own increment).
 - [ ] **Pre-commit hooks** — husky + lint-staged. Nice-to-have (CI + the baton partly cover). Post-MVP.
 - [ ] **Observability** — structured logging (pino/winston); the fetchers/pipeline log via `note` fields only today. EXPANSION-PATH (prod).
