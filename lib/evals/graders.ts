@@ -20,6 +20,7 @@
 //                        the corrupted golden records.
 
 import { SectorSchema, type DecisionPacketV2 } from "@/lib/schemas";
+import { findLinks } from "@/lib/pipeline/url-detect";
 import { isSafeHttpUrl } from "@/lib/signals/sanitize";
 import { sameFigure } from "@/lib/evals/numerals";
 import { resolveSourcePath } from "@/lib/evals/source-path";
@@ -129,11 +130,6 @@ export function gradeEntityIds(
   return ok("entity-ids", "teeth-now", failures);
 }
 
-// Any link-bearing scheme worth checking in free text -- http(s) plus the unsafe
-// schemes an injection would try (javascript:/data:), so a planted link in a draft
-// is caught, not skipped because it is not http.
-const URL_IN_TEXT = /\b(?:https?|javascript|data):[^\s)"']+/gi;
-
 // --- Evidence references: zero fabricated (teeth-now) -----------------------
 // EVERY url the packet renders -- the threat card, each public signal's sourceUrl,
 // and any link that appears inside a drafted message body -- must be link-safe
@@ -177,8 +173,16 @@ export function gradeEvidence(
     ...packet.actionItems.map((a) => ({ where: `action item ${a.id}`, text: a.title })),
     ...packet.dataGaps.map((g, i) => ({ where: `data gap ${i}`, text: g }))
   ];
+  // Scan each prose surface with the SHARED findLinks -- the same definition the
+  // Dispatcher firewall and the Sentinel summary scan use, so a non-scheme link form
+  // (a bare domain, a markdown link, an href= attribute, a protocol-relative or
+  // entity-encoded url) is caught here too, not skipped because it lacks a leading
+  // "https:". Each returned token is checked the SAME way a structured url is: a
+  // scheme-valid, allowlisted http(s) url passes (a legitimately-cited evidence url may
+  // appear in prose); a wrapper form (findLinks returns "[t](url)" / 'href="..."' for
+  // those) is not a scheme-valid url, so isSafeHttpUrl fails it -> reported as unsafe.
   for (const { where, text } of renderedProse) {
-    for (const url of text.match(URL_IN_TEXT) ?? []) checkUrl(url, where);
+    for (const link of findLinks(text)) checkUrl(link, where);
   }
 
   // Evidence anchors an exposure may cite: the threat card and any public signal.

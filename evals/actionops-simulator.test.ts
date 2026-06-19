@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildDecisionPacket } from "@/lib/pipeline/build-packet";
 import { runSimulator } from "@/lib/agents/actionops/simulator";
+import { recomputeSimulation, type SimInputs } from "@/lib/pipeline/simulation-math";
 import { getActionOpsScenario } from "@/lib/data/actionops-scenarios";
 import { ingestSeed } from "@/lib/ingest/seed-suppliers";
 import type { ActionOpsContext } from "@/lib/agents/actionops/types";
@@ -83,6 +84,46 @@ describe("Simulator arithmetic (D.3, hand-pinned, independent of producer math)"
     // producer's date arithmetic, not a copy of it.
     const expectedRunoutDate = addDaysUtcByCalendar(sim.generatedAt, EXPECTED_RUNOUT_DAYS);
     expect(runout.runoutDate).toBe(expectedRunoutDate);
+  });
+});
+
+// Runout FLOOR semantics: every existing runout fixture uses an exact-integer
+// quotient (onHand / dailyUse is whole), where floor == round == ceil -- so the floor
+// rule (a partial day of cover buys NO extra whole day of runway) was never actually
+// tested. This pins a NON-integer quotient that DISCRIMINATES floor from round/ceil:
+//   1030 / 40 = 25.75  ->  floor = 25, round = 26, ceil = 26.
+// If the producer ever rounded or ceiled instead of floored, the runout date would be
+// a day late and THIS test catches it (the exact-integer fixtures cannot). The
+// expected date is built by the SAME independent calendar path the Hormuz test uses
+// (Date.UTC component addition), not the producer's addDaysUtc, so the date arithmetic
+// is checked against a different code path, not a clone of the function under test.
+describe("Simulator runout floor semantics (non-integer quotient)", () => {
+  it("floors a fractional runway (1030/40 = 25.75 -> 25 days, NOT 26)", () => {
+    const baseIso = "2026-06-18T12:00:00.000Z";
+    const inputs: SimInputs = {
+      baseDateIso: baseIso,
+      durationDays: 30,
+      affected: [{ supplierId: "SUP-FLOOR", dailyRevenueUsd: 1_000 }],
+      horizonDays: [7],
+      // 1030 / 40 = 25.75 -- the fractional part (> 0.5) is what makes floor (25)
+      // differ from round/ceil (26), so this fixture proves FLOOR specifically.
+      inventory: [{ productId: "PROD-FLOOR", onHandUnits: 1_030, dailyUseUnits: 40 }]
+    };
+
+    const FLOORED_RUNOUT_DAYS = 25; // floor(25.75); round/ceil would be 26
+    const sim = recomputeSimulation(inputs);
+
+    expect(sim.productRunouts).toHaveLength(1);
+    const runout = sim.productRunouts[0];
+    expect(runout.productId).toBe("PROD-FLOOR");
+
+    // The floored date, via the independent calendar path -- proves the producer
+    // floored (25 days out), not rounded/ceiled (which would land a day later).
+    const expectedFloored = addDaysUtcByCalendar(baseIso, FLOORED_RUNOUT_DAYS);
+    expect(runout.runoutDate).toBe(expectedFloored);
+    // And explicitly NOT the round/ceil date -- the discriminating assertion.
+    const rounded = addDaysUtcByCalendar(baseIso, FLOORED_RUNOUT_DAYS + 1);
+    expect(runout.runoutDate).not.toBe(rounded);
   });
 });
 

@@ -52,6 +52,17 @@ export function leafKey(path: string): string {
   return last.replace(/\[\d+\]/g, "");
 }
 
+// For an exposure-score citation `exposureResults[n].exposureScore`, return the
+// SIBLING supplierId path `exposureResults[n].supplierId` -- the same n -- so the
+// resolver can confirm the cited score belongs to THIS message's supplier. Returns
+// null if the path is not an indexed exposureResults score (the binding check only
+// applies to that exact shape). The replace swaps the trailing leaf for `supplierId`
+// while preserving the `[n]` index.
+function exposureSupplierIdSiblingPath(path: string): string | null {
+  const match = /^exposureResults\[(\d+)\]\.exposureScore$/.exec(path);
+  return match ? `exposureResults[${match[1]}].supplierId` : null;
+}
+
 // The minimal shape collectCitationFailures resolves against. It is a structural
 // SUBSET of DecisionPacketV2 (a full packet satisfies it), so the GRADE side passes
 // the whole packet and the PRODUCE side (the gatekeeper) assembles exactly these
@@ -105,6 +116,28 @@ export function collectCitationFailures(root: CitationCheckRoot): string[] {
         failures.push(`message ${msg.id}: claim sourcePath "${claim.sourcePath}" does not resolve`);
         continue;
       }
+
+      // SUPPLIER BINDING (the equal-value cross-supplier gap): an exposure-score claim
+      // must cite THIS message's supplier's score, not another supplier's score that
+      // happens to share the same value. The forward value/unit checks alone cannot
+      // catch this -- two suppliers with an equal exposureScore make
+      // `exposureResults[A].exposureScore` resolve + value-match for a message to
+      // supplier B, so a draft could (mis)attribute B's risk to A's score. Bind the
+      // cited index's supplierId to the message's supplierId: if they differ, the claim
+      // is citing the wrong supplier's row even though the number matches. Only applies
+      // to the exact `exposureResults[n].exposureScore` shape (resolved above).
+      const siblingPath = exposureSupplierIdSiblingPath(claim.sourcePath);
+      if (siblingPath) {
+        const sibling = resolveSourcePath(root, siblingPath);
+        if (!sibling.resolved || sibling.value !== msg.supplierId) {
+          failures.push(
+            `message ${msg.id}: exposure-score claim cites "${claim.sourcePath}" whose supplier ` +
+              `${String(sibling.value)} is not this message's supplier ${msg.supplierId} ` +
+              `(cite THIS supplier's score, not another's equal-value one)`
+          );
+        }
+      }
+
       const claimNumber = normalizeNumeral(claim.value);
       if (claimNumber !== null) {
         claimValues.push(claimNumber);

@@ -124,6 +124,41 @@ describe("extractSourceableNumerals", () => {
     expect(out.unparseable).toEqual(["1e6"]);
   });
 
+  // Fix #3: a quantity written as a NUMBER-WORD next to a unit ("within seven days",
+  // "five thousand units") bypasses the ASCII FIGURE regex. It must be flagged as
+  // unparseable (fail-closed -- a draft asserts figures in plain ASCII with a backing
+  // claim), and it BITES: the citation grader fails on an unparseable form.
+  it("flags spelled-out quantities adjacent to a unit (the word-number bypass)", () => {
+    const a = extractSourceableNumerals("We will confirm within seven days of review.");
+    expect(a.figures).toEqual([]);
+    expect(a.unparseable).toContain("seven days");
+
+    const b = extractSourceableNumerals("We are reserving five thousand units for you.");
+    expect(b.figures).toEqual([]);
+    expect(b.unparseable).toContain("five thousand units");
+  });
+
+  // Fix #3: a bare number-WORD with no unit is ordinary prose, not a figure -- and a
+  // word that merely CONTAINS a number-word ("components" has "one") must NOT fire.
+  it("does NOT flag a bare number-word or a word that merely contains one", () => {
+    expect(extractSourceableNumerals("one of the affected lanes").unparseable).toEqual([]);
+    expect(extractSourceableNumerals("Secure alternate routing for Gulf-exposed components.").unparseable).toEqual([]);
+    expect(extractSourceableNumerals("the tenant and the billboard").unparseable).toEqual([]);
+  });
+
+  // Fix #3: a quantity written in a NON-ASCII digit script (Arabic-Indic, fullwidth)
+  // never reaches the ASCII FIGURE regex, so it is flagged unparseable rather than
+  // silently dropped (Number("٨") is NaN -> would vanish without a backing claim).
+  it("flags non-ASCII digits rather than silently dropping them", () => {
+    const arabicIndic = extractSourceableNumerals("Your exposure score is ٨٨."); // ٨٨
+    expect(arabicIndic.figures).toEqual([]);
+    expect(arabicIndic.unparseable).toContain("٨٨");
+
+    const fullwidth = extractSourceableNumerals("Reserve ５０００ units now."); // ５０００
+    expect(fullwidth.figures).toEqual([]);
+    expect(fullwidth.unparseable.length).toBeGreaterThan(0);
+  });
+
   it("reads a figure that sits next to an id or a date without bleeding into them", () => {
     expect(figures("SUP-100 carries $50,000 of risk as of 2026-07-01")).toEqual([50_000]);
   });
@@ -259,6 +294,43 @@ describe("other grader edge branches", () => {
     packet.supplierMessages[0].claims[0].sourcePath = "supplierMessages[0].claims[0].value";
     const result = gradeCitationCoverage(packet);
     expect(result.failures.some((f) => /cites non-input "supplierMessages"/.test(f))).toBe(true);
+  });
+
+  // Fix #2: a supplier-message claim citing exposureResults[n].exposureScore must cite
+  // THIS message's supplier's row. With two suppliers sharing an EQUAL score, a message
+  // to supplier B citing A's index value-matches + unit-matches (the old checks pass),
+  // so only the new supplier-binding check catches it. The grade-time side shares the
+  // SAME collectCitationFailures the gatekeeper + firewall run, so this proves the gate.
+  it("gradeCitationCoverage binds an exposure-score claim to the message's supplier", () => {
+    const packet = makeV2Packet();
+    // A second exposure with the SAME score as the first (SUP-100, score 72).
+    packet.exposureResults.push({
+      id: "EXP-002",
+      supplierId: "SUP-200",
+      supplierName: "Delta Co",
+      country: "SA",
+      sector: "ENERGY",
+      exposureScore: 72, // equal to exposureResults[0].exposureScore
+      rationale: "Inbound lanes transit the affected route.",
+      evidenceIds: ["THREAT-001"]
+    });
+    // The message to SUP-200 cites SUP-100's score path (index 0) -- equal value (72),
+    // matching unit ("score"), but the WRONG supplier's row.
+    packet.supplierMessages[0].supplierId = "SUP-200";
+    packet.supplierMessages[0].body = "Your exposure score for this event is 72.";
+    packet.supplierMessages[0].claims = [
+      { value: 72, unit: "score", sourcePath: "exposureResults[0].exposureScore" }
+    ];
+    const result = gradeCitationCoverage(packet);
+    expect(result.failures.some((f) => /is not this message's supplier SUP-200/.test(f))).toBe(true);
+
+    // CONTROL: point the same equal-value claim at the CORRECT index (1 -> SUP-200) and
+    // it passes -- the reject is the wrong supplier, not the equal value.
+    packet.supplierMessages[0].claims = [
+      { value: 72, unit: "score", sourcePath: "exposureResults[1].exposureScore" }
+    ];
+    const control = gradeCitationCoverage(packet);
+    expect(control.failures.some((f) => /is not this message's supplier/.test(f))).toBe(false);
   });
 
   it("gradeOffTaxonomy flags OTHER_UNMAPPED with no stated reason", () => {

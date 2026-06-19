@@ -21,6 +21,7 @@ import {
   isSafeHttpUrl,
   sanitizeText
 } from "@/lib/signals/sanitize";
+import { findLinks } from "@/lib/pipeline/url-detect";
 
 // Sentinel (D.5: the first LLM agent). It is the prompt-injection FIREWALL -- the
 // ONLY agent that touches raw signal text -- and it is the trust boundary that keeps
@@ -173,15 +174,22 @@ export function applyThreatFirewall(
     return { ok: false, reason: "Sentinel firewall: no allowlisted evidence URL -- ungrounded." };
   }
 
-  // summary: sanitize, then assert no link is smuggled into the prose. gradeEvidence
-  // scans threatCard.summary for urls, so a planted link there would cross if only the
-  // array were cleaned -- an unallowlisted url anywhere in the summary is a reject.
+  // summary: sanitize, then assert no NON-ALLOWLISTED link is smuggled into the prose.
+  // gradeEvidence scans threatCard.summary for links, so a planted link there would
+  // cross if only the array were cleaned. Link detection is the SHARED findLinks (same
+  // definition the Dispatcher and gradeEvidence use), so a non-scheme form (bare domain,
+  // markdown, href=, protocol-relative, entity-encoded) is caught here too -- not just a
+  // bare https:// the old scheme-only scan looked for. A returned token that is a
+  // scheme-valid http(s) url AND on the allowlist is permitted (a legitimately-cited
+  // evidence url may appear in the summary prose); anything else -- a wrapper form, an
+  // unsafe scheme, an off-allowlist url -- is a reject (findLinks returns the WRAPPER for
+  // markdown/href, which is not a scheme-valid url, so isSafeHttpUrl fails it).
   const summary = sanitizeText(raw.summary, MAX_SUMMARY_LEN);
-  for (const url of summary.match(/\b(?:https?|javascript|data):[^\s)"']+/gi) ?? []) {
-    if (!isSafeHttpUrl(url) || !allowlist.has(url)) {
+  for (const link of findLinks(summary)) {
+    if (!isSafeHttpUrl(link) || !allowlist.has(link)) {
       return {
         ok: false,
-        reason: `Sentinel firewall: URL "${url}" smuggled into the threat summary prose.`
+        reason: `Sentinel firewall: link "${link}" smuggled into the threat summary prose.`
       };
     }
   }

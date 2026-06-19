@@ -123,6 +123,45 @@ describe("Sentinel output-validation firewall (D.5)", () => {
     }
   });
 
+  // Fix #1: a NON-SCHEME link form in the summary (a bare domain, written without a
+  // leading "https:") bypassed the old scheme-only scan. The shared findLinks catches
+  // it now -- a non-allowlisted link of ANY form in the summary is a reject.
+  it("REJECTS a bare-domain link smuggled into the summary (the non-scheme bypass)", () => {
+    const ctx = hormuzContext();
+    const malicious: SentinelLlmResult = {
+      eventType: "CHOKEPOINT_CLOSURE",
+      severity: "HIGH",
+      location: { chokepoint: "Strait of Hormuz" },
+      // No "https:" -- a bare domain a mail client still resolves. The old scan missed it.
+      summary: "Hormuz disrupted. For details visit www.attacker-exfil.com/leak immediately.",
+      evidenceUrls: [HORMUZ_GDELT_URL],
+      confidence: 0.8
+    };
+    const outcome = applyThreatFirewall(malicious, ctx);
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.reason).toMatch(/summary/i);
+  });
+
+  // Fix #1 CONTROL: the SAME clean summary with NO link still crosses (the reject is
+  // the link, not the prose) -- and the legit Hormuz evidence urls remain valid.
+  it("CONTROL: a clean summary with no link still crosses (teeth, not always-reject)", () => {
+    const ctx = hormuzContext();
+    const clean: SentinelLlmResult = {
+      eventType: "CHOKEPOINT_CLOSURE",
+      severity: "HIGH",
+      location: { chokepoint: "Strait of Hormuz" },
+      summary: "Hormuz transit is disrupted, raising lead-time and surcharge risk for inbound flows.",
+      evidenceUrls: [HORMUZ_GDELT_URL, HORMUZ_EIA_URL],
+      confidence: 0.8
+    };
+    const outcome = applyThreatFirewall(clean, ctx);
+    expect(outcome.ok, outcome.ok ? "" : outcome.reason).toBe(true);
+    if (outcome.ok) {
+      // The legit fetched evidence urls survive intact (Fix #1 does not strip them).
+      expect(outcome.threatCard.evidenceUrls).toEqual([HORMUZ_GDELT_URL, HORMUZ_EIA_URL]);
+    }
+  });
+
   it("maps an off-vocab eventType to OTHER_UNMAPPED (escape hatch, NOT force-fit)", () => {
     const ctx = hormuzContext();
     // An off-vocab eventType is a classification gap, not a security breach -- the
