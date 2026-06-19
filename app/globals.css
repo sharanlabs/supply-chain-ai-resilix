@@ -39,12 +39,15 @@
   --color-ink-muted: oklch(0.46 0.02 262);
   --color-ink-faint: oklch(0.515 0.02 262);
 
-  /* One confident accent -- a calm steel-blue (hue ~245), clearly off the AI
-     purple (~290) and off the dropped teal/green (~152-184). */
-  --color-accent: oklch(0.5 0.09 245);
-  --color-accent-strong: oklch(0.44 0.1 245);
-  --color-accent-soft: oklch(0.955 0.022 245);
-  --color-accent-ink: oklch(0.99 0.004 245);
+  /* One confident accent -- a deep graphite/ink (hue ~265, near-zero chroma).
+     Deliberately near-MONOCHROME, not a hued accent: with the accent desaturated,
+     the only saturated color on the page is the amber->red severity ramp, so color
+     reads as pure meaning (risk), and the decision UI carries calm authority by
+     restraint. Off blue/green/purple/pink entirely (owner direction). */
+  --color-accent: oklch(0.42 0.015 265);
+  --color-accent-strong: oklch(0.33 0.018 265);
+  --color-accent-soft: oklch(0.955 0.004 265);
+  --color-accent-ink: oklch(0.99 0.002 265);
 
   /* Semantic severity -- a single perceptual ramp, calm -> alarm. The -edge
      value is a touch deeper/brighter for the trailing end of a runway gradient
@@ -79,8 +82,8 @@
      -- the gatekeeper, claim ticks, and the approved pill read as quiet evidence
      in the one accent, never as celebratory chrome. (Token name kept so existing
      callers stay valid; the meaning is "validated", rendered in the accent.) */
-  --color-positive: oklch(0.46 0.094 245);
-  --color-positive-soft: oklch(0.955 0.022 245);
+  --color-positive: oklch(0.42 0.015 265);
+  --color-positive-soft: oklch(0.955 0.004 265);
   --color-caution: oklch(0.6 0.12 75);
   --color-caution-soft: oklch(0.96 0.04 75);
   /* Caution badge text on caution-soft is 3.55 (< AA); a dedicated ink token
@@ -152,7 +155,7 @@ body::before {
   pointer-events: none;
   background: radial-gradient(
     130% 60% at 50% -10%,
-    oklch(0.965 0.008 245 / 0.5),
+    oklch(0.965 0.004 265 / 0.5),
     transparent 60%
   );
 }
