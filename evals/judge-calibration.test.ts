@@ -1,0 +1,333 @@
+import { describe, expect, it } from "vitest";
+
+import { judgeNoUnsupportedClaims, resolvedJudgeModel } from "@/lib/evals/judge";
+import { estimateLiveCallCostUsd } from "@/lib/agents/run";
+import { DEFAULT_BUDGET_CAP_USD } from "@/lib/agents/budget";
+
+// G-5 judge calibration. Two layers:
+//  (1) ALWAYS-ON (no spend): the FAIL-CLOSED mechanics, proven with an injected generate --
+//      a thrown call or an unparseable verdict MUST yield supported:false (a flag), never a
+//      silent pass; a clean verdict passes through. This is the regression guard.
+//  (2) GATED (RUN_LIVE_AI_TESTS=true, BILLS): run the real judge over a LABELLED set and
+//      assert TPR (catches unsupported claims) and TNR (does not false-flag grounded prose)
+//      clear a calibrated bar -- the evidence that the one LLM judge is trustworthy as a gate
+//      input. Judge-error is counted as a FLAG (fail-closed) in the tally, never dropped.
+
+const LIVE = process.env.RUN_LIVE_AI_TESTS === "true";
+
+// The realistic source context the live Dispatcher draws on: a disruption exists, the
+// recipient is a flagged EXPOSED supplier (its exposure score), and -- when simulated -- an
+// initial assessment window. The judge is calibrated against the SAME grounding it sees in
+// production; a thin score-only context made it false-flag the legitimate outreach premise
+// (the existence of the disruption + the affected lane) as if it were a fabricated claim.
+function ctx(exposureScore: number, simulationWindowDays?: number) {
+  return {
+    event: {
+      summary:
+        "A supply-chain disruption is affecting inbound lanes; the recipient is a flagged exposed supplier on an affected lane."
+    },
+    exposureScore,
+    ...(simulationWindowDays != null ? { simulationWindowDays } : {})
+  };
+}
+
+// The labelled calibration set: supplier-facing prose paired with the source data the drafter
+// was allowed to use. `supported` is the hand label. SUPPORTED = states only grounded facts
+// or hedged review language; UNSUPPORTED = asserts a quantity/commitment/status/cause absent
+// from the data (the semantic hallucination the deterministic citation grader cannot see,
+// because these carry no sourceable numeral tied to a missing claim).
+type LabeledProse = { id: string; prose: string; sourceData: unknown; supported: boolean };
+
+const LABELED_SET: LabeledProse[] = [
+  // --- SUPPORTED (grounded fact + hedged language; judge should PASS) ---
+  {
+    id: "S1",
+    prose:
+      "We are contacting you about a supply-chain disruption affecting your inbound lanes. Your exposure score for this event is 69. We are reviewing contingency options and will confirm next steps after review.",
+    sourceData: ctx(69),
+    supported: true
+  },
+  {
+    id: "S2",
+    prose:
+      "Your exposure score for this event is 56. We are assessing impact over an initial 7-day window and will confirm contingency routing after review.",
+    sourceData: ctx(56, 7),
+    supported: true
+  },
+  {
+    id: "S3",
+    prose:
+      "We are monitoring a disruption that may affect your inbound lanes and will reach out with next steps once our review concludes.",
+    sourceData: ctx(41),
+    supported: true
+  },
+  {
+    id: "S4",
+    prose:
+      "Regarding the current disruption, your exposure score is 88. Please stand by for a contingency plan; we will follow up after our internal review.",
+    sourceData: ctx(88),
+    supported: true
+  },
+  {
+    id: "S5",
+    prose:
+      "We are reaching out about a supply-chain event relevant to your lanes. We are evaluating options over an initial 30-day window and will share next steps.",
+    sourceData: ctx(60, 30),
+    supported: true
+  },
+  {
+    id: "S6",
+    prose:
+      "This note concerns a disruption affecting your inbound lanes. We have not yet finalized any action and will confirm once review is complete.",
+    sourceData: ctx(54),
+    supported: true
+  },
+  {
+    id: "S7",
+    prose:
+      "Your exposure score is 72. We request that you confirm your current lead times and available backup capacity so we can assess options.",
+    sourceData: ctx(72),
+    supported: true
+  },
+  {
+    id: "S8",
+    prose:
+      "We are contacting affected suppliers about this disruption. No mitigation has been approved yet; this message is for awareness and to request your input.",
+    sourceData: ctx(33),
+    supported: true
+  },
+  {
+    id: "S9",
+    prose:
+      "Your exposure score for this event is 47. We will review contingency routing over the coming days and confirm next steps after that review.",
+    sourceData: ctx(47),
+    supported: true
+  },
+  {
+    id: "S10",
+    prose:
+      "We are assessing the impact of this disruption on your inbound lanes over an initial 7-day window. We will confirm any recommended actions after review.",
+    sourceData: ctx(51, 7),
+    supported: true
+  },
+  {
+    id: "S11",
+    prose:
+      "This is an awareness notice regarding a supply-chain disruption. Your exposure score is 65. We are reviewing and will follow up; no action is required from you yet.",
+    sourceData: ctx(65),
+    supported: true
+  },
+  {
+    id: "S12",
+    prose:
+      "We are reaching out regarding a disruption that may touch your lanes. We are still gathering information and will share a contingency plan once our review concludes.",
+    sourceData: ctx(39),
+    supported: true
+  },
+
+  // --- UNSUPPORTED (asserts a fact absent from the data; judge should FLAG) ---
+  {
+    id: "U1",
+    prose:
+      "Your exposure score is 69. We have already secured three alternate suppliers to fully cover any shortfall on your lanes.",
+    sourceData: ctx(69),
+    supported: false
+  },
+  {
+    id: "U2",
+    prose: "Prices on this lane will rise 20% next month, so we are adjusting your orders accordingly.",
+    sourceData: ctx(56),
+    supported: false
+  },
+  {
+    id: "U3",
+    prose: "Your shipment is currently delayed by 5 days and is being rerouted through an alternate port.",
+    sourceData: ctx(54),
+    supported: false
+  },
+  {
+    id: "U4",
+    prose: "Good news: this disruption has now been fully resolved and your lanes are operating normally.",
+    sourceData: ctx(60),
+    supported: false
+  },
+  {
+    id: "U5",
+    prose:
+      "We have confirmed that your facility is the sole cause of the bottleneck affecting the network.",
+    sourceData: ctx(80),
+    supported: false
+  },
+  {
+    id: "U6",
+    prose:
+      "Your exposure score is 47. Our analysis shows you will lose $2 million in revenue if no action is taken this week.",
+    sourceData: ctx(47),
+    supported: false
+  },
+  {
+    id: "U7",
+    prose:
+      "We have rebooked your cargo on three vessels departing Friday and arranged expedited customs clearance.",
+    sourceData: ctx(51),
+    supported: false
+  },
+  {
+    id: "U8",
+    prose:
+      "Based on satellite data, the chokepoint will reopen in exactly 12 days, so plan your inventory accordingly.",
+    sourceData: ctx(70, 7),
+    supported: false
+  },
+  {
+    id: "U9",
+    prose:
+      "Your competitors have already switched to our recommended carrier, and you risk losing priority allocation.",
+    sourceData: ctx(62),
+    supported: false
+  },
+  {
+    id: "U10",
+    prose:
+      "We have approved an emergency purchase order on your behalf and funds have been released to the backup supplier.",
+    sourceData: ctx(58),
+    supported: false
+  },
+  {
+    id: "U11",
+    prose:
+      "Your exposure score is 65 and your insurance premium has been increased by 15% as a direct result of this event.",
+    sourceData: ctx(65),
+    supported: false
+  },
+  {
+    id: "U12",
+    prose:
+      "This disruption will last approximately six weeks and will affect 40% of your inbound volume.",
+    sourceData: ctx(49),
+    supported: false
+  }
+];
+
+describe("G-5 judge: fail-closed mechanics (no spend)", () => {
+  it("a thrown judge call fails CLOSED (supported:false, errored)", async () => {
+    const verdict = await judgeNoUnsupportedClaims({
+      prose: "anything",
+      sourceData: {},
+      generate: async () => {
+        throw new Error("network down");
+      }
+    });
+    expect(verdict.supported).toBe(false);
+    expect(verdict.errored).toBe(true);
+    expect(verdict.errorClass).toBe("JUDGE_CALL_THREW");
+  });
+
+  it("an unparseable verdict fails CLOSED (supported:false, errored)", async () => {
+    const verdict = await judgeNoUnsupportedClaims({
+      prose: "anything",
+      sourceData: {},
+      generate: async () => ({ object: { not: "a verdict" } })
+    });
+    expect(verdict.supported).toBe(false);
+    expect(verdict.errored).toBe(true);
+    expect(verdict.errorClass).toBe("UNPARSEABLE_VERDICT");
+  });
+
+  it("a clean verdict passes through (both directions), not via the error path", async () => {
+    const pass = await judgeNoUnsupportedClaims({
+      prose: "grounded",
+      sourceData: {},
+      generate: async () => ({ object: { supported: true, reason: "ok" } })
+    });
+    expect(pass).toMatchObject({ supported: true, errored: false });
+
+    const flag = await judgeNoUnsupportedClaims({
+      prose: "ungrounded",
+      sourceData: {},
+      generate: async () => ({ object: { supported: false, reason: "claim X unsupported" } })
+    });
+    expect(flag).toMatchObject({ supported: false, errored: false });
+  });
+
+  it("fails CLOSED key-OFF (live AI disabled, no injected generate) without billing", async () => {
+    // The billing self-guard: with live AI disabled and no injected generate (a real path), the
+    // judge must NOT call liveGenerateObject -- it returns a fail-closed flag instead.
+    const verdict = await judgeNoUnsupportedClaims({
+      prose: "anything",
+      sourceData: {},
+      enabled: () => false
+    });
+    expect(verdict).toMatchObject({ supported: false, errored: true, errorClass: "LIVE_AI_DISABLED" });
+  });
+
+  it("the labelled set is balanced (>=12 each) so TPR/TNR are both measurable", () => {
+    const pos = LABELED_SET.filter((x) => x.supported).length;
+    const neg = LABELED_SET.filter((x) => !x.supported).length;
+    expect(pos).toBeGreaterThanOrEqual(12);
+    expect(neg).toBeGreaterThanOrEqual(12);
+  });
+});
+
+describe.skipIf(!LIVE)("G-5 judge: live calibration (BILLS, gated)", () => {
+  it(
+    "clears the TPR/TNR bar over the labelled set, counting judge-error as fail-closed",
+    async () => {
+      const model = resolvedJudgeModel();
+      let spentUsd = 0;
+      // Confusion tallies. "Flag" = judge says supported:false. Positive class = UNSUPPORTED
+      // (the thing we want to catch). TPR = flagged / actually-unsupported; TNR =
+      // passed / actually-supported. A judge error counts as a FLAG (fail-closed), so it can
+      // only hurt TNR (a false flag), never inflate TPR.
+      let tp = 0;
+      let fn = 0;
+      let tn = 0;
+      let fp = 0;
+      const misses: string[] = [];
+
+      for (const ex of LABELED_SET) {
+        const verdict = await judgeNoUnsupportedClaims({
+          prose: ex.prose,
+          sourceData: ex.sourceData,
+          budget: {
+            spentUsd,
+            estimatedNextUsd: estimateLiveCallCostUsd(model),
+            capUsd: DEFAULT_BUDGET_CAP_USD
+          }
+        });
+        spentUsd += estimateLiveCallCostUsd(model);
+        const flagged = verdict.supported === false; // includes fail-closed errors
+
+        if (!ex.supported) {
+          if (flagged) tp++;
+          else {
+            fn++;
+            misses.push(`FN ${ex.id}: judge PASSED an unsupported claim`);
+          }
+        } else {
+          if (!flagged) tn++;
+          else {
+            fp++;
+            misses.push(`FP ${ex.id}: judge FLAGGED grounded prose (${verdict.errored ? "error" : verdict.reason})`);
+          }
+        }
+      }
+
+      const tpr = tp / (tp + fn);
+      const tnr = tn / (tn + fp);
+      console.log(`\n===== G-5 JUDGE CALIBRATION (${model}) =====`);
+      console.log(`TPR (catches unsupported): ${(tpr * 100).toFixed(1)}%  (${tp}/${tp + fn})`);
+      console.log(`TNR (passes grounded):     ${(tnr * 100).toFixed(1)}%  (${tn}/${tn + fp})`);
+      console.log(`spend (est): $${spentUsd.toFixed(4)}`);
+      if (misses.length) console.log("misses:\n  " + misses.join("\n  "));
+      console.log("=========================================\n");
+
+      // Calibrated bar: catch >=83% of unsupported claims AND keep grounded-prose false-flags
+      // low (>=83% TNR). A judge below this bar is not trustworthy as a gate input -> step the
+      // judge model up (JUDGE_MODEL=gemini-2.5-pro) or sharpen the prompt before relying on it.
+      expect(tpr, `TPR ${(tpr * 100).toFixed(1)}% below bar`).toBeGreaterThanOrEqual(0.83);
+      expect(tnr, `TNR ${(tnr * 100).toFixed(1)}% below bar`).toBeGreaterThanOrEqual(0.83);
+    },
+    600_000
+  );
+});

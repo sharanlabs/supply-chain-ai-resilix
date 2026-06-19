@@ -11,6 +11,12 @@ const RunRequestSchema = z.object({
   // scenario -> a 500. Present values are still validated as a string.
   scenarioId: z.string().optional(),
   useLiveSignals: z.boolean().default(true),
+  // Live-AI opt-in. Default FALSE: billing the Gemini budget requires an EXPLICIT
+  // per-request opt-in even behind the approval token (do not mirror useLiveSignals's
+  // default-true -- a forgotten flag must fall back to the free deterministic run, not
+  // silently bill). Effective only when the runtime also has the flag + key
+  // (liveAiEnabled()); otherwise the pipeline runs deterministically regardless.
+  live: z.boolean().default(false),
   idempotencyKey: z
     .string()
     .trim()
@@ -62,6 +68,7 @@ export async function POST(request: Request) {
     const packet = await runExceptionPipeline({
       scenarioId: parsed.data.scenarioId,
       useLiveSignals: parsed.data.useLiveSignals,
+      live: parsed.data.live,
       idempotencyKey: headerIdempotencyKey ?? parsed.data.idempotencyKey
     });
     return noStoreJson({ packet });

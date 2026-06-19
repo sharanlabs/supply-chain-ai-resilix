@@ -1,0 +1,416 @@
+{
+  "packetVersion": 2,
+  "id": "DP-b7a264e8-1dc9-419b-8b3f-d6e7395cf6a9",
+  "threatCard": {
+    "id": "THR-SCN-TARIFF",
+    "eventType": "TARIFF_DEADLINE",
+    "severity": "HIGH",
+    "location": {
+      "region": "Asia"
+    },
+    "summary": "New tariffs have been announced on certain semiconductor and electronics products originating from China, leading to increased costs for importers.",
+    "evidenceUrls": [
+      "https://ustr.gov/tariff-actions",
+      "https://api.gdeltproject.org/api/v2/doc/doc?query=section+301+tariff+semiconductors&mode=artlist&format=json"
+    ],
+    "confidence": 0.9,
+    "createdAt": "2026-06-19T16:39:54.411Z"
+  },
+  "publicSignals": [
+    {
+      "id": "SIG-TARIFF-USTR",
+      "source": "USTR",
+      "sourceUrl": "https://ustr.gov/tariff-actions",
+      "fetchedAt": "2026-06-17T12:00:00.000Z",
+      "eventType": "TRADE_POLICY",
+      "location": {
+        "country": "CN"
+      },
+      "severity": "MEDIUM",
+      "summary": "USTR announces additional Section 301 tariffs on listed China-origin semiconductor and electronics HS codes, effective on a fixed date; importers face a countdown after which landed cost rises.",
+      "freshnessMinutes": 0,
+      "status": "CACHED"
+    },
+    {
+      "id": "SIG-TARIFF-GDELT",
+      "source": "GDELT DOC 2.0",
+      "sourceUrl": "https://api.gdeltproject.org/api/v2/doc/doc?query=section+301+tariff+semiconductors&mode=artlist&format=json",
+      "fetchedAt": "2026-06-17T12:00:00.000Z",
+      "eventType": "TRADE_POLICY",
+      "location": {
+        "country": "CN"
+      },
+      "severity": "MEDIUM",
+      "summary": "Trade-press coverage warns buyers sourcing China-origin chips and electronics to confirm pre-deadline shipments or qualify alternate-origin supply before the tariff effective date.",
+      "freshnessMinutes": 0,
+      "status": "CACHED"
+    }
+  ],
+  "exposureResults": [
+    {
+      "id": "EXP-SCN-TARIFF-SUP-e1ccac4b8eed999b",
+      "supplierId": "SUP-e1ccac4b8eed999b",
+      "supplierName": "Jiangsu Semiconductor Works 011",
+      "country": "CN",
+      "sector": "SEMICONDUCTORS",
+      "exposureScore": 68,
+      "rationale": "CRITICAL risk tier; 43-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-TARIFF"
+      ]
+    },
+    {
+      "id": "EXP-SCN-TARIFF-SUP-b6d678f691dcc3c0",
+      "supplierId": "SUP-b6d678f691dcc3c0",
+      "supplierName": "Jiangsu Electronics Works 019",
+      "country": "CN",
+      "sector": "ELECTRONICS",
+      "exposureScore": 46,
+      "rationale": "HIGH risk tier; 36-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-TARIFF"
+      ]
+    },
+    {
+      "id": "EXP-SCN-TARIFF-SUP-969bbe7fa59c7b15",
+      "supplierId": "SUP-969bbe7fa59c7b15",
+      "supplierName": "Shanghai Electronics Solutions 016",
+      "country": "CN",
+      "sector": "ELECTRONICS",
+      "exposureScore": 43,
+      "rationale": "HIGH risk tier; 33-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-TARIFF"
+      ]
+    },
+    {
+      "id": "EXP-SCN-TARIFF-SUP-4b78d433d1a3676f",
+      "supplierId": "SUP-4b78d433d1a3676f",
+      "supplierName": "Zhejiang Electronics Systems 015",
+      "country": "CN",
+      "sector": "ELECTRONICS",
+      "exposureScore": 42,
+      "rationale": "HIGH risk tier; 32-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-TARIFF"
+      ]
+    },
+    {
+      "id": "EXP-SCN-TARIFF-SUP-ecd70b2c65014e06",
+      "supplierId": "SUP-ecd70b2c65014e06",
+      "supplierName": "Guangdong Electronics Industries 018",
+      "country": "CN",
+      "sector": "ELECTRONICS",
+      "exposureScore": 30,
+      "rationale": "MEDIUM risk tier; 35-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-TARIFF"
+      ]
+    },
+    {
+      "id": "EXP-SCN-TARIFF-SUP-febb22b9c693e102",
+      "supplierId": "SUP-febb22b9c693e102",
+      "supplierName": "Shandong Electronics Holdings 017",
+      "country": "CN",
+      "sector": "ELECTRONICS",
+      "exposureScore": 29,
+      "rationale": "MEDIUM risk tier; 34-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-TARIFF"
+      ]
+    },
+    {
+      "id": "EXP-SCN-TARIFF-SUP-7e5178809d53bc76",
+      "supplierId": "SUP-7e5178809d53bc76",
+      "supplierName": "Guangdong Semiconductor Industries 010",
+      "country": "CN",
+      "sector": "SEMICONDUCTORS",
+      "exposureScore": 24,
+      "rationale": "LOW risk tier; 42-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-TARIFF"
+      ]
+    }
+  ],
+  "dataTier": "TIER_1",
+  "dataGaps": [
+    "Tier-1 upload: no inventory columns provided, so runway is not simulated.",
+    "Tier-1 upload: no inventory columns provided, so runway is not simulated."
+  ],
+  "playbooks": [
+    {
+      "id": "PB-LLM-0",
+      "role": "Procurement Lead",
+      "summary": "Prioritize engagement with the most highly exposed semiconductor supplier to understand tariff impact and explore immediate mitigation strategies.",
+      "steps": [
+        "Initiate urgent communication with the most exposed semiconductor supplier to assess the direct impact of new tariffs on existing contracts and pricing.",
+        "Evaluate the supplier's capacity to absorb costs or propose revised terms.",
+        "Begin discussions on short-term inventory adjustments and potential expedited shipments.",
+        "Explore immediate alternative sourcing options for critical components from this supplier."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-TARIFF-SUP-e1ccac4b8eed999b"
+      ]
+    },
+    {
+      "id": "PB-LLM-1",
+      "role": "Supply Chain Risk Manager",
+      "summary": "Conduct a thorough review of all remaining exposed suppliers to develop a comprehensive diversification and mitigation strategy against tariff impacts.",
+      "steps": [
+        "Analyze the collective risk presented by the cohort of exposed suppliers in both electronics and semiconductor sectors.",
+        "Identify specific components or sub-assemblies highly reliant on these suppliers and assess their criticality to overall operations.",
+        "Develop a long-term strategy for diversifying the supply base, including exploring new geographic regions for sourcing.",
+        "Establish monitoring protocols for evolving trade policies and their potential impact on these suppliers."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-TARIFF-SUP-b6d678f691dcc3c0",
+        "EXP-SCN-TARIFF-SUP-969bbe7fa59c7b15",
+        "EXP-SCN-TARIFF-SUP-4b78d433d1a3676f",
+        "EXP-SCN-TARIFF-SUP-ecd70b2c65014e06",
+        "EXP-SCN-TARIFF-SUP-febb22b9c693e102",
+        "EXP-SCN-TARIFF-SUP-7e5178809d53bc76"
+      ]
+    }
+  ],
+  "supplierMessages": [
+    {
+      "id": "MSG-SUP-e1ccac4b8eed999b",
+      "supplierId": "SUP-e1ccac4b8eed999b",
+      "channel": "email",
+      "subject": "Supply Chain Review: SUP-e1ccac4b8eed999b",
+      "body": "We are reviewing potential supply chain impacts. Our assessment indicates an exposure score of 68. We request your input regarding any potential operational impacts. We will confirm next steps.",
+      "claims": [
+        {
+          "value": 68,
+          "unit": "score",
+          "sourcePath": "exposureResults[0].exposureScore"
+        }
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "MSG-SUP-b6d678f691dcc3c0",
+      "supplierId": "SUP-b6d678f691dcc3c0",
+      "channel": "email",
+      "subject": "Supply Chain Review: SUP-b6d678f691dcc3c0",
+      "body": "We are reviewing potential supply chain impacts. Our assessment indicates an exposure score of 46. We request your input regarding any potential operational impacts. We will confirm next steps.",
+      "claims": [
+        {
+          "value": 46,
+          "unit": "score",
+          "sourcePath": "exposureResults[1].exposureScore"
+        }
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "MSG-SUP-969bbe7fa59c7b15",
+      "supplierId": "SUP-969bbe7fa59c7b15",
+      "channel": "email",
+      "subject": "Supply Chain Review: SUP-969bbe7fa59c7b15",
+      "body": "We are reviewing potential supply chain impacts. Our assessment indicates an exposure score of 43. We request your input regarding any potential operational impacts. We will confirm next steps.",
+      "claims": [
+        {
+          "value": 43,
+          "unit": "score",
+          "sourcePath": "exposureResults[2].exposureScore"
+        }
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "MSG-SUP-4b78d433d1a3676f",
+      "supplierId": "SUP-4b78d433d1a3676f",
+      "channel": "email",
+      "subject": "Supply Chain Review: SUP-4b78d433d1a3676f",
+      "body": "We are reviewing potential supply chain impacts. Our assessment indicates an exposure score of 42. We request your input regarding any potential operational impacts. We will confirm next steps.",
+      "claims": [
+        {
+          "value": 42,
+          "unit": "score",
+          "sourcePath": "exposureResults[3].exposureScore"
+        }
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "MSG-SUP-ecd70b2c65014e06",
+      "supplierId": "SUP-ecd70b2c65014e06",
+      "channel": "email",
+      "subject": "Supply Chain Review: SUP-ecd70b2c65014e06",
+      "body": "We are reviewing potential supply chain impacts. Our assessment indicates an exposure score of 30. We request your input regarding any potential operational impacts. We will confirm next steps.",
+      "claims": [
+        {
+          "value": 30,
+          "unit": "score",
+          "sourcePath": "exposureResults[4].exposureScore"
+        }
+      ],
+      "approvalRequired": true
+    }
+  ],
+  "actionItems": [
+    {
+      "id": "AI-CONTINGENCY",
+      "title": "Confirm backup capacity for the most exposed lane",
+      "owner": "Procurement",
+      "status": "OPEN"
+    },
+    {
+      "id": "AI-REVIEW",
+      "title": "Review contingency drafts and approve outbound messages",
+      "owner": "Operations",
+      "status": "OPEN"
+    }
+  ],
+  "gatekeeper": {
+    "status": "PASS",
+    "failures": [],
+    "warnings": [],
+    "approvedForHumanReview": true,
+    "checkedAt": "2026-06-19T16:39:54.411Z"
+  },
+  "agentRuns": [
+    {
+      "id": "RUN-SENTINEL",
+      "agentName": "Sentinel",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 3580,
+      "tokenEstimate": 131,
+      "inputTokens": 432,
+      "outputTokens": 153,
+      "totalTokens": 1040,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0005121,
+      "inputHash": "5d19ade3",
+      "outputHash": "0f1bf7ad",
+      "validationStatus": "PASS",
+      "summary": "Classified threat TARIFF_DEADLINE at HIGH severity.",
+      "createdAt": "2026-06-19T16:39:54.411Z"
+    },
+    {
+      "id": "RUN-VERIFIER",
+      "agentName": "Verifier",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 31,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "5f3c535e",
+      "outputHash": "649cea70",
+      "validationStatus": "PASS",
+      "summary": "2 source(s); corroboration met; geo unconfirmed.",
+      "createdAt": "2026-06-19T16:39:54.411Z"
+    },
+    {
+      "id": "RUN-ATLAS",
+      "agentName": "Atlas",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 501,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "4c8f45c7",
+      "outputHash": "76519395",
+      "validationStatus": "PASS",
+      "summary": "7 supplier(s) matched and scored on tier + lead time.",
+      "createdAt": "2026-06-19T16:39:54.411Z"
+    },
+    {
+      "id": "RUN-SIMULATOR",
+      "agentName": "Simulator",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 10,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "0f3fc070",
+      "outputHash": "0d410f55",
+      "validationStatus": "PASS",
+      "summary": "Tier-1 scenario: no inventory data, runway not simulated.",
+      "createdAt": "2026-06-19T16:39:54.411Z"
+    },
+    {
+      "id": "RUN-STRATEGIST",
+      "agentName": "Strategist",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 12720,
+      "tokenEstimate": 418,
+      "inputTokens": 805,
+      "outputTokens": 492,
+      "totalTokens": 3495,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0014715000000000002,
+      "inputHash": "256b1e61",
+      "outputHash": "3c6c9310",
+      "validationStatus": "PASS",
+      "summary": "2 playbook(s) grounded in 7 exposure claim(s).",
+      "createdAt": "2026-06-19T16:39:54.411Z"
+    },
+    {
+      "id": "RUN-DISPATCHER",
+      "agentName": "Dispatcher",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 8184,
+      "tokenEstimate": 652,
+      "inputTokens": 888,
+      "outputTokens": 528,
+      "totalTokens": 2570,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0015864,
+      "inputHash": "74132ac1",
+      "outputHash": "604cee7a",
+      "validationStatus": "PASS",
+      "summary": "5 draft(s) queued for approval; 2 action item(s).",
+      "createdAt": "2026-06-19T16:39:54.411Z"
+    }
+  ],
+  "totalCostUsd": 0.0035700000000000003,
+  "pricingVersion": "2026-06-18",
+  "requestedMode": "LIVE_AI",
+  "effectiveMode": "LIVE_AI",
+  "approvalStatus": "PENDING",
+  "auditTrail": [
+    {
+      "at": "2026-06-19T16:39:54.411Z",
+      "actor": "system",
+      "action": "SCENARIO_RUN",
+      "detail": "Scenario Tariff-deadline countdown executed with cached signals."
+    },
+    {
+      "at": "2026-06-19T16:39:54.411Z",
+      "actor": "gatekeeper",
+      "action": "PASS",
+      "detail": "0 failures and 0 warnings."
+    }
+  ],
+  "createdAt": "2026-06-19T16:39:54.411Z",
+  "updatedAt": "2026-06-19T16:39:54.411Z"
+}

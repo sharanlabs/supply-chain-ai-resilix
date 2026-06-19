@@ -20,7 +20,12 @@ export const dynamic = "force-dynamic";
 export default async function Home() {
   let packet: DecisionPacketV2;
   try {
-    packet = await buildDecisionPacket({ useLiveSignals: false });
+    // live:false is explicit, not incidental: this render runs on EVERY request
+    // (force-dynamic), so it must NEVER fire a billable LLM call even when
+    // ENABLE_LIVE_AI is on. Live billing is reachable only through the authenticated
+    // /api/run-exception POST (live:true); useLiveSignals:false keeps it off the
+    // network too (cached signals).
+    packet = await buildDecisionPacket({ useLiveSignals: false, live: false });
   } catch (error) {
     // Fall back to the reference packet so the surface never blanks -- but make the
     // failure OBSERVABLE. A silent swallow would render the canned demo

@@ -159,7 +159,24 @@ export function collectCitationFailures(root: CitationCheckRoot): string[] {
     }
 
     const prose = `${msg.subject ?? ""}\n${msg.body}`;
-    const { figures, unparseable } = extractSourceableNumerals(prose);
+    // A supplier NAME is a proper noun the Dispatcher is MEANT to echo, and real names carry
+    // digits ("Abu Chemical Partners 078", "3M", "7-Eleven"). SPAN-MASK the message's own
+    // supplier name out of the prose BEFORE the numeral scan, so digits INSIDE the echoed name
+    // are not read as sourceable figures. This is SPAN-bound, not value-based: only the literal
+    // name occurrence is exempt, so a fabricated numeral ANYWHERE ELSE is still flagged even when
+    // the supplier is literally named "Acme 5000" -- closing the engineered-collision hole an
+    // attacker-chosen UPLOADED name could otherwise open (the prior value-based allow let any
+    // numeral equal to a name digit pass). Residual is minimal: only the entity's own
+    // (ingest-sanitized, length-capped) name span is exempt, and every draft is human-approved.
+    const supplierName =
+      root.exposureResults?.find((e) => e.supplierId === msg.supplierId)?.supplierName ?? "";
+    // Only mask a name that contains a LETTER (a genuine proper noun like "Abu Chemical Partners
+    // 078"). A digit-only / no-letter "name" -- an adversarial uploaded "5000" -- is NOT masked:
+    // masking it would strip a fabricated "5000" out of "within 5000 days" and miss it. So a
+    // numeric-only name's digits stay flaggable; only a real name's embedded digits are exempt.
+    const maskable = /[a-z]/i.test(supplierName);
+    const scannedProse = maskable ? prose.split(supplierName).join(" ") : prose;
+    const { figures, unparseable } = extractSourceableNumerals(scannedProse);
     for (const numeral of figures) {
       if (!claimValues.some((value) => sameFigure(value, numeral))) {
         failures.push(`message ${msg.id}: unsourced numeral ${numeral} in prose (no backing claim)`);

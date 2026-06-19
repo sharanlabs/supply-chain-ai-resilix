@@ -1,0 +1,481 @@
+{
+  "packetVersion": 2,
+  "id": "DP-2117958c-36b9-4a74-9995-b6bf2bb75353",
+  "threatCard": {
+    "id": "THR-SCN-REDSEA",
+    "eventType": "ROUTE_DIVERSION",
+    "severity": "HIGH",
+    "location": {
+      "region": "Middle East"
+    },
+    "summary": "Persistent security concerns in the Red Sea are causing major shipping lines to reroute vessels around the Cape of Good Hope instead of using the Suez Canal. This shift significantly lengthens transit times for trade between Asia, Europe, and India, prompting carriers to advise shippers to prepare for extended voyages and adjust inventory plans.",
+    "evidenceUrls": [
+      "https://api.gdeltproject.org/api/v2/doc/doc?query=Red+Sea+diversion+Suez&mode=artlist&format=json",
+      "https://www.lloydslist.com/red-sea-diversions"
+    ],
+    "confidence": 0.9,
+    "createdAt": "2026-06-19T16:40:19.149Z"
+  },
+  "publicSignals": [
+    {
+      "id": "SIG-REDSEA-GDELT",
+      "source": "GDELT DOC 2.0",
+      "sourceUrl": "https://api.gdeltproject.org/api/v2/doc/doc?query=Red+Sea+diversion+Suez&mode=artlist&format=json",
+      "fetchedAt": "2026-06-17T12:00:00.000Z",
+      "eventType": "SHIPPING_DIVERSION",
+      "location": {
+        "region": "Red Sea"
+      },
+      "severity": "MEDIUM",
+      "summary": "Security risk in the Red Sea persists; major container lines continue diverting around the Cape of Good Hope rather than transiting the Suez Canal, adding well over a week of transit to Asia-Europe and India-origin lanes.",
+      "freshnessMinutes": 0,
+      "status": "CACHED"
+    },
+    {
+      "id": "SIG-REDSEA-LLOYDS",
+      "source": "Lloyd's List (via GDELT)",
+      "sourceUrl": "https://www.lloydslist.com/red-sea-diversions",
+      "fetchedAt": "2026-06-17T12:00:00.000Z",
+      "eventType": "SHIPPING_DIVERSION",
+      "location": {
+        "region": "Red Sea",
+        "country": "IN"
+      },
+      "severity": "MEDIUM",
+      "summary": "Carriers signal the Suez diversion will persist; shippers are advised to rebuild buffer stock and re-time India-origin orders for the longer Cape routing.",
+      "freshnessMinutes": 0,
+      "status": "CACHED"
+    }
+  ],
+  "exposureResults": [
+    {
+      "id": "EXP-SCN-REDSEA-SUP-7def2bc3320bcedf",
+      "supplierId": "SUP-7def2bc3320bcedf",
+      "supplierName": "Maharashtra Pharma Holdings 057",
+      "country": "IN",
+      "sector": "PHARMACEUTICALS",
+      "exposureScore": 75,
+      "rationale": "CRITICAL risk tier; 50-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-REDSEA"
+      ]
+    },
+    {
+      "id": "EXP-SCN-REDSEA-SUP-566a74b338ce6396",
+      "supplierId": "SUP-566a74b338ce6396",
+      "supplierName": "Telangana Pharma Industries 058",
+      "country": "IN",
+      "sector": "PHARMACEUTICALS",
+      "exposureScore": 54,
+      "rationale": "HIGH risk tier; 44-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-REDSEA"
+      ]
+    },
+    {
+      "id": "EXP-SCN-REDSEA-SUP-b7a9d0cc60339334",
+      "supplierId": "SUP-b7a9d0cc60339334",
+      "supplierName": "Gujarat Chemical Works 083",
+      "country": "IN",
+      "sector": "CHEMICALS",
+      "exposureScore": 50,
+      "rationale": "HIGH risk tier; 40-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-REDSEA"
+      ]
+    },
+    {
+      "id": "EXP-SCN-REDSEA-SUP-4313f701bcf481b1",
+      "supplierId": "SUP-4313f701bcf481b1",
+      "supplierName": "Gujarat Pharma Solutions 056",
+      "country": "IN",
+      "sector": "PHARMACEUTICALS",
+      "exposureScore": 44,
+      "rationale": "MEDIUM risk tier; 49-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-REDSEA"
+      ]
+    },
+    {
+      "id": "EXP-SCN-REDSEA-SUP-825d84d96f035cab",
+      "supplierId": "SUP-825d84d96f035cab",
+      "supplierName": "Maharashtra Textile Group 132",
+      "country": "IN",
+      "sector": "TEXTILES_APPAREL",
+      "exposureScore": 22,
+      "rationale": "LOW risk tier; 40-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-REDSEA"
+      ]
+    }
+  ],
+  "simulation": {
+    "horizons": [
+      {
+        "days": 7,
+        "revenueAtRiskUsd": 280000
+      },
+      {
+        "days": 30,
+        "revenueAtRiskUsd": 1200000
+      },
+      {
+        "days": 90,
+        "revenueAtRiskUsd": 2400000
+      }
+    ],
+    "productRunouts": [
+      {
+        "productId": "PROD-IN-PHARMA",
+        "runoutDate": "2026-07-19"
+      }
+    ],
+    "generatedAt": "2026-06-19T16:40:19.149Z"
+  },
+  "dataTier": "SEEDED",
+  "dataGaps": [],
+  "playbooks": [
+    {
+      "id": "PB-LLM-0",
+      "role": "Supply Chain Lead",
+      "summary": "Oversees the comprehensive response to Red Sea disruptions, prioritizing engagement with suppliers exhibiting elevated exposure scores and coordinating efforts to maintain continuity across all affected sectors.",
+      "steps": [
+        "Prioritize engagement with suppliers exhibiting elevated exposure scores, especially those in pharmaceuticals.",
+        "Initiate communication with identified suppliers to assess their specific impact from Red Sea disruptions.",
+        "Coordinate with procurement to explore alternative sourcing strategies or routes.",
+        "Monitor global shipping advisories and geopolitical developments impacting maritime routes.",
+        "Develop contingency plans for potential extended disruptions, including inventory adjustments and alternative supplier vetting."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-REDSEA-SUP-7def2bc3320bcedf",
+        "EXP-SCN-REDSEA-SUP-566a74b338ce6396",
+        "EXP-SCN-REDSEA-SUP-b7a9d0cc60339334",
+        "EXP-SCN-REDSEA-SUP-4313f701bcf481b1",
+        "EXP-SCN-REDSEA-SUP-825d84d96f035cab"
+      ]
+    },
+    {
+      "id": "PB-LLM-1",
+      "role": "Procurement Manager",
+      "summary": "Manages direct supplier engagement to understand the material impact of disruptions and secures supply through existing or alternative channels for all affected components and products.",
+      "steps": [
+        "Contact key pharmaceutical suppliers with elevated exposure scores to understand shipment status and transit impacts.",
+        "Discuss mitigation strategies with affected chemical and textile suppliers.",
+        "Evaluate inventory levels for critical inputs from exposed suppliers.",
+        "Research and identify potential alternative suppliers or sourcing regions, particularly for pharmaceuticals.",
+        "Negotiate revised terms or expedited shipping options where feasible."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-REDSEA-SUP-7def2bc3320bcedf",
+        "EXP-SCN-REDSEA-SUP-566a74b338ce6396",
+        "EXP-SCN-REDSEA-SUP-b7a9d0cc60339334",
+        "EXP-SCN-REDSEA-SUP-4313f701bcf481b1",
+        "EXP-SCN-REDSEA-SUP-825d84d96f035cab"
+      ]
+    },
+    {
+      "id": "PB-LLM-2",
+      "role": "Logistics Coordinator",
+      "summary": "Manages the movement of goods, identifies and implements re-routing options, and explores transport alternatives to minimize transit delays and ensure timely delivery of essential materials.",
+      "steps": [
+        "Assess current shipment routes and identify those directly impacted by Red Sea disruptions.",
+        "Liaise with freight forwarders and carriers to explore alternative shipping lanes or modes, such as air freight for critical items.",
+        "Track delayed shipments and provide updates to internal stakeholders.",
+        "Evaluate warehousing needs for any rerouted or delayed cargo.",
+        "Optimize delivery schedules to accommodate extended transit times."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-REDSEA-SUP-7def2bc3320bcedf",
+        "EXP-SCN-REDSEA-SUP-566a74b338ce6396",
+        "EXP-SCN-REDSEA-SUP-b7a9d0cc60339334",
+        "EXP-SCN-REDSEA-SUP-4313f701bcf481b1",
+        "EXP-SCN-REDSEA-SUP-825d84d96f035cab"
+      ]
+    },
+    {
+      "id": "PB-LLM-3",
+      "role": "Risk Management Lead",
+      "summary": "Assesses the broader implications of Red Sea disruptions, quantifies potential business impact across the supply chain, and advises on robust risk mitigation strategies for current and future challenges.",
+      "steps": [
+        "Conduct a comprehensive risk assessment focusing on the financial and operational impact of extended Red Sea disruptions.",
+        "Identify critical single points of failure within the supply chain, especially concerning highly exposed pharmaceutical suppliers.",
+        "Develop risk mitigation strategies, including diversification plans and enhanced inventory policies.",
+        "Monitor geopolitical developments and their potential to escalate or de-escalate the Red Sea situation.",
+        "Provide recommendations for long-term supply chain resilience improvements."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-REDSEA-SUP-7def2bc3320bcedf",
+        "EXP-SCN-REDSEA-SUP-566a74b338ce6396",
+        "EXP-SCN-REDSEA-SUP-b7a9d0cc60339334",
+        "EXP-SCN-REDSEA-SUP-4313f701bcf481b1",
+        "EXP-SCN-REDSEA-SUP-825d84d96f035cab"
+      ]
+    }
+  ],
+  "supplierMessages": [
+    {
+      "id": "MSG-SUP-7def2bc3320bcedf",
+      "supplierId": "SUP-7def2bc3320bcedf",
+      "channel": "email",
+      "subject": "Supply Chain Review for SUP-7def2bc3320bcedf: Exposure Score 75",
+      "body": "We are reviewing current supply chain conditions over the next 7 days. Your exposure score is 75. We request your input to assess the situation. We will confirm next steps.",
+      "claims": [
+        {
+          "value": 75,
+          "unit": "score",
+          "sourcePath": "exposureResults[0].exposureScore"
+        },
+        {
+          "value": 7,
+          "unit": "days",
+          "sourcePath": "simulation.horizons[0].days"
+        }
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "MSG-SUP-566a74b338ce6396",
+      "supplierId": "SUP-566a74b338ce6396",
+      "channel": "email",
+      "subject": "Supply Chain Review for SUP-566a74b338ce6396: Exposure Score 54",
+      "body": "We are reviewing current supply chain conditions over the next 7 days. Your exposure score is 54. We request your input to assess the situation. We will confirm next steps.",
+      "claims": [
+        {
+          "value": 54,
+          "unit": "score",
+          "sourcePath": "exposureResults[1].exposureScore"
+        },
+        {
+          "value": 7,
+          "unit": "days",
+          "sourcePath": "simulation.horizons[0].days"
+        }
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "MSG-SUP-b7a9d0cc60339334",
+      "supplierId": "SUP-b7a9d0cc60339334",
+      "channel": "email",
+      "subject": "Supply Chain Review for SUP-b7a9d0cc60339334: Exposure Score 50",
+      "body": "We are reviewing current supply chain conditions over the next 7 days. Your exposure score is 50. We request your input to assess the situation. We will confirm next steps.",
+      "claims": [
+        {
+          "value": 50,
+          "unit": "score",
+          "sourcePath": "exposureResults[2].exposureScore"
+        },
+        {
+          "value": 7,
+          "unit": "days",
+          "sourcePath": "simulation.horizons[0].days"
+        }
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "MSG-SUP-4313f701bcf481b1",
+      "supplierId": "SUP-4313f701bcf481b1",
+      "channel": "email",
+      "subject": "Supply Chain Review for SUP-4313f701bcf481b1: Exposure Score 44",
+      "body": "We are reviewing current supply chain conditions over the next 7 days. Your exposure score is 44. We request your input to assess the situation. We will confirm next steps.",
+      "claims": [
+        {
+          "value": 44,
+          "unit": "score",
+          "sourcePath": "exposureResults[3].exposureScore"
+        },
+        {
+          "value": 7,
+          "unit": "days",
+          "sourcePath": "simulation.horizons[0].days"
+        }
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "MSG-SUP-825d84d96f035cab",
+      "supplierId": "SUP-825d84d96f035cab",
+      "channel": "email",
+      "subject": "Supply Chain Review for SUP-825d84d96f035cab: Exposure Score 22",
+      "body": "We are reviewing current supply chain conditions over the next 7 days. Your exposure score is 22. We request your input to assess the situation. We will confirm next steps.",
+      "claims": [
+        {
+          "value": 22,
+          "unit": "score",
+          "sourcePath": "exposureResults[4].exposureScore"
+        },
+        {
+          "value": 7,
+          "unit": "days",
+          "sourcePath": "simulation.horizons[0].days"
+        }
+      ],
+      "approvalRequired": true
+    }
+  ],
+  "actionItems": [
+    {
+      "id": "AI-CONTINGENCY",
+      "title": "Confirm backup capacity for the most exposed lane",
+      "owner": "Procurement",
+      "status": "OPEN"
+    },
+    {
+      "id": "AI-REVIEW",
+      "title": "Review contingency drafts and approve outbound messages",
+      "owner": "Operations",
+      "status": "OPEN"
+    }
+  ],
+  "gatekeeper": {
+    "status": "PASS",
+    "failures": [],
+    "warnings": [],
+    "approvedForHumanReview": true,
+    "checkedAt": "2026-06-19T16:40:19.149Z"
+  },
+  "agentRuns": [
+    {
+      "id": "RUN-SENTINEL",
+      "agentName": "Sentinel",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 8190,
+      "tokenEstimate": 183,
+      "inputTokens": 456,
+      "outputTokens": 209,
+      "totalTokens": 2188,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0006593,
+      "inputHash": "0a5d3c97",
+      "outputHash": "0332bffa",
+      "validationStatus": "PASS",
+      "summary": "Classified threat ROUTE_DIVERSION at HIGH severity.",
+      "createdAt": "2026-06-19T16:40:19.149Z"
+    },
+    {
+      "id": "RUN-VERIFIER",
+      "agentName": "Verifier",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 31,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "72bd34e4",
+      "outputHash": "649cea70",
+      "validationStatus": "PASS",
+      "summary": "2 source(s); corroboration met; geo unconfirmed.",
+      "createdAt": "2026-06-19T16:40:19.149Z"
+    },
+    {
+      "id": "RUN-ATLAS",
+      "agentName": "Atlas",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 351,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "28ed3f4f",
+      "outputHash": "1f653045",
+      "validationStatus": "PASS",
+      "summary": "5 supplier(s) matched and scored on tier + lead time.",
+      "createdAt": "2026-06-19T16:40:19.149Z"
+    },
+    {
+      "id": "RUN-SIMULATOR",
+      "agentName": "Simulator",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 102,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "67d99dc5",
+      "outputHash": "51124d92",
+      "validationStatus": "PASS",
+      "summary": "Projected 3 revenue horizon(s) and 1 runout(s).",
+      "createdAt": "2026-06-19T16:40:19.149Z"
+    },
+    {
+      "id": "RUN-STRATEGIST",
+      "agentName": "Strategist",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 15161,
+      "tokenEstimate": 974,
+      "inputTokens": 655,
+      "outputTokens": 1203,
+      "totalTokens": 3936,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0032040000000000003,
+      "inputHash": "256b1e9f",
+      "outputHash": "0fb2154e",
+      "validationStatus": "PASS",
+      "summary": "4 playbook(s) grounded in 5 exposure claim(s).",
+      "createdAt": "2026-06-19T16:40:19.149Z"
+    },
+    {
+      "id": "RUN-DISPATCHER",
+      "agentName": "Dispatcher",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 9950,
+      "tokenEstimate": 738,
+      "inputTokens": 905,
+      "outputTokens": 668,
+      "totalTokens": 3028,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0019415,
+      "inputHash": "0af183f8",
+      "outputHash": "2205afe3",
+      "validationStatus": "PASS",
+      "summary": "5 draft(s) queued for approval; 2 action item(s).",
+      "createdAt": "2026-06-19T16:40:19.149Z"
+    }
+  ],
+  "totalCostUsd": 0.005804800000000001,
+  "pricingVersion": "2026-06-18",
+  "requestedMode": "LIVE_AI",
+  "effectiveMode": "LIVE_AI",
+  "approvalStatus": "PENDING",
+  "auditTrail": [
+    {
+      "at": "2026-06-19T16:40:19.149Z",
+      "actor": "system",
+      "action": "SCENARIO_RUN",
+      "detail": "Scenario Red Sea / Suez diversion persistence executed with cached signals."
+    },
+    {
+      "at": "2026-06-19T16:40:19.149Z",
+      "actor": "gatekeeper",
+      "action": "PASS",
+      "detail": "0 failures and 0 warnings."
+    }
+  ],
+  "createdAt": "2026-06-19T16:40:19.149Z",
+  "updatedAt": "2026-06-19T16:40:19.149Z"
+}

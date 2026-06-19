@@ -1,4 +1,4 @@
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
 import { buildRecoveryOptions } from "@/lib/engine/impact";
@@ -42,6 +42,44 @@ export function resolvedGeminiModel(): string {
 // mismatch would be a false retirement alarm -- the opposite of this check's intent).
 function bareModelId(id: string): string {
   return id.replace(/^models\//, "").trim();
+}
+
+// The Gemini model handle, keyed on OUR env var. CRITICAL: the @ai-sdk/google default
+// `google` provider reads GOOGLE_GENERATIVE_AI_API_KEY, but this app gates + stores the
+// key as GEMINI_API_KEY (liveAiEnabled / .env.example). Without this explicit apiKey,
+// a key in GEMINI_API_KEY would leave the SDK unauthenticated -> every live call throws
+// -> every agent silently degrades to FAILED_TO_FALLBACK and the "live" showcase is a
+// fallback in disguise. Resolved at CALL time (not module load) so a key set after import
+// -- a script or a test that assigns process.env before the first call -- is still picked
+// up. One construction point so the live path and the legacy path can never drift on the key.
+function geminiModel(modelId: string) {
+  const provider = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+  return provider(modelId);
+}
+
+// listGeminiModels: the preflight's ListModels, over the REST endpoint. @ai-sdk/google
+// v2 exposes no model-listing method, so we hit the documented REST surface directly
+// (GET /v1beta/models). Returns the raw ids ("models/gemini-2.5-flash"); the preflight
+// normalizes the "models/" prefix before comparing. Throws (fail loud) on a missing key
+// or a non-2xx -- a preflight that swallows an auth/quota error is not a preflight.
+export async function listGeminiModels(): Promise<string[]> {
+  const key = process.env.GEMINI_API_KEY?.trim();
+  if (!key) {
+    throw new Error("listGeminiModels: GEMINI_API_KEY is not set; cannot preflight models.");
+  }
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`
+  );
+  if (!res.ok) {
+    throw new Error(
+      `listGeminiModels: ListModels request failed (${res.status} ${res.statusText}). ` +
+        `Check the key is valid and the Generative Language API is enabled on the project.`
+    );
+  }
+  const data = (await res.json()) as { models?: Array<{ name?: string }> };
+  return (data.models ?? [])
+    .map((m) => m.name)
+    .filter((name): name is string => typeof name === "string");
 }
 
 // Preflight: at live-AI startup ONLY, assert the configured model is actually
@@ -96,6 +134,15 @@ export type BudgetContext = {
   capUsd?: number;
 };
 
+// The hard output-token ceiling on every live structured-output call. Bounding the output is
+// what makes the pre-call cost ESTIMATE a true upper bound (and thus the $5 hard-stop a real
+// guarantee, not a hope): without it, generateObject could emit far more than the estimated
+// envelope and overshoot the cap, which is asserted BEFORE the call. Sized with headroom for the
+// LARGEST agent output -- the Dispatcher's top-5 supplier drafts (subject + body + claims each):
+// too tight TRUNCATES the structured JSON mid-object and the parse throws. Kept in lockstep with
+// estimateLiveCallCostUsd's output envelope so the estimate can never under-price a real call.
+const MAX_LIVE_OUTPUT_TOKENS = 8_000;
+
 // liveGenerateObject: the SINGLE live-call boundary for the ActionOps LLM agents.
 // Two jobs, in order:
 //   1. BUDGET HARD-STOP (fail-closed): assertWithinBudget(spent, estimatedNext, cap)
@@ -132,9 +179,12 @@ export async function liveGenerateObject(args: {
     args.generate ??
     (async (a: { model: string; schema: z.ZodTypeAny; prompt: string }) => {
       const result = await generateObject({
-        model: google(a.model),
+        model: geminiModel(a.model),
         schema: a.schema,
-        prompt: a.prompt
+        prompt: a.prompt,
+        // Bound the output so the pre-call estimate is a TRUE ceiling (the $5 hard-stop checks
+        // the estimate BEFORE this call; without a cap the model could overshoot it).
+        maxOutputTokens: MAX_LIVE_OUTPUT_TOKENS
       });
       return {
         object: result.object,
@@ -160,7 +210,8 @@ export function estimateLiveCallCostUsd(
   model: string,
   envelope: { inputTokens: number; outputTokens: number } = {
     inputTokens: 8_000,
-    outputTokens: 2_000
+    // Locked to the live output cap: the estimate must never under-price what a call can emit.
+    outputTokens: MAX_LIVE_OUTPUT_TOKENS
   }
 ): number {
   return costUsd(model, envelope.inputTokens, envelope.outputTokens);
@@ -396,58 +447,25 @@ function deterministicExecutionDraft(
 }
 
 async function generateStructuredOrFallback<T>({
-  schema,
-  prompt,
-  fallback,
-  semanticValidate
+  fallback
 }: {
   schema: z.ZodType<T>;
   prompt: string;
   fallback: () => T;
   semanticValidate?: (value: T) => string | undefined;
 }): Promise<GeneratedResult<T>> {
-  if (!liveAiEnabled()) {
-    // Config chose no live AI: a by-design deterministic run. Healthy, NOT degraded.
-    return {
-      value: fallback(),
-      mode: "DETERMINISTIC_RULES",
-      latencyMs: 0
-    };
-  }
-
-  const startedAt = Date.now();
-  try {
-    const result = await generateObject({
-      model: google(resolvedGeminiModel()),
-      schema,
-      prompt
-    });
-    const value = schema.parse(result.object);
-    const semanticFailure = semanticValidate?.(value);
-    if (semanticFailure) {
-      // Live AI returned but its output was semantically rejected -> degraded.
-      return {
-        value: fallback(),
-        mode: "FAILED_TO_FALLBACK",
-        latencyMs: Date.now() - startedAt,
-        blockedReason: semanticFailure
-      };
-    }
-
-    return {
-      value,
-      mode: "LIVE_AI",
-      latencyMs: Date.now() - startedAt
-    };
-  } catch {
-    // Live AI was attempted and threw -> degraded fallback.
-    return {
-      value: fallback(),
-      mode: "FAILED_TO_FALLBACK",
-      latencyMs: Date.now() - startedAt,
-      blockedReason: "Live AI call failed or returned invalid structured output; deterministic fallback used."
-    };
-  }
+  // LEGACY V1 path (runLaunchOpsAgents), retained ONLY to build the V1 back-compat oracle
+  // fixture -- which is deterministic by design. It NO LONGER calls live AI: the V1 path
+  // predates the budget hard-stop AND the per-invocation `live` opt-in, so billing it on the
+  // global liveAiEnabled() flag was an uncapped, opt-out-by-default footgun (Codex D.9 #5).
+  // The ONLY live engine is the V2 ActionOps pipeline (runActionOpsAgents), which is
+  // explicitly opt-in (`live`) and budget-guarded. This stays deterministic by construction;
+  // `schema` / `prompt` / `semanticValidate` are accepted for call-site compatibility, unused.
+  return {
+    value: fallback(),
+    mode: "DETERMINISTIC_RULES",
+    latencyMs: 0
+  };
 }
 
 // liveAiEnabled now lives in the dependency-free env-flags module (shared with the

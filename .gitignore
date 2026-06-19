@@ -31,10 +31,5 @@ Thumbs.db
 # no shared project config lives here)
 .claude/
 
-# Quarantined legacy n8n pipeline exports (reference only; project reoriented to
-# ActionOps). Kept local, isolated from the active codebase per the quarantine
-# invariant. The ACTIVE workflow is tracked at workflows/launchops_approval_workflow.json.
-resilix_pipeline_v2*.json
-
 # Phase-8 design render shots: heavy + regenerable via design/*.mjs (the source HTML + shoot harness stay tracked as provenance)
 design/shots/

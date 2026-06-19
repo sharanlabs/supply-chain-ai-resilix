@@ -9,8 +9,6 @@ export default defineConfig([
     ".next/**",
     "node_modules/**",
     "playwright-report/**",
-    "test-results/**",
-    "resilix_pipeline_v2.json",
-    "resilix_pipeline_v2 (1).json"
+    "test-results/**"
   ])
 ]);

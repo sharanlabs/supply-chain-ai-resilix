@@ -22,6 +22,12 @@ export type ActionOpsContext = {
   signals: PublicSignal[];
   suppliers: Supplier[];
   baseDateIso: string;
+  // Explicit per-invocation live-AI opt-in (default false/absent). The 3 LLM agents
+  // bill ONLY when this is true AND liveAiEnabled() (flag + key). The page render
+  // passes false, so a homepage load never bills even with ENABLE_LIVE_AI on; the only
+  // billable path is the authenticated /api/run-exception POST. Agents ignore this
+  // field -- the orchestrator (index.ts) reads it to pick the live vs deterministic body.
+  live?: boolean;
 };
 
 // What runActionOpsAgents returns: the V2 slices the pipeline assembles into a

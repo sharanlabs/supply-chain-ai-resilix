@@ -1,0 +1,282 @@
+{
+  "packetVersion": 2,
+  "id": "DP-be734ccf-99b4-44ad-840f-8f9998bd8a0f",
+  "threatCard": {
+    "id": "THR-SCN-BANKRUPTCY",
+    "eventType": "SUPPLIER_BANKRUPTCY",
+    "severity": "HIGH",
+    "location": {
+      "region": "Maharashtra"
+    },
+    "summary": "A crucial pharmaceutical supplier located in India has commenced liquidation, creating an immediate and significant risk to the supply continuity for affected buyers.",
+    "evidenceUrls": [
+      "https://api.gdeltproject.org/api/v2/doc/doc?query=supplier+liquidation+insolvency&mode=artlist&format=json"
+    ],
+    "confidence": 0.9,
+    "createdAt": "2026-06-19T16:41:11.893Z"
+  },
+  "publicSignals": [
+    {
+      "id": "SIG-BANKRUPTCY-GDELT",
+      "source": "GDELT DOC 2.0",
+      "sourceUrl": "https://api.gdeltproject.org/api/v2/doc/doc?query=supplier+liquidation+insolvency&mode=artlist&format=json",
+      "fetchedAt": "2026-06-17T12:00:00.000Z",
+      "eventType": "FINANCIAL_DISTRESS",
+      "location": {
+        "region": "Maharashtra",
+        "country": "IN"
+      },
+      "severity": "HIGH",
+      "summary": "News wires report a critical-tier pharmaceutical supplier in Maharashtra, India has entered sudden liquidation proceedings; dependent buyers face an abrupt continuity-of-supply risk and should confirm open orders.",
+      "freshnessMinutes": 0,
+      "status": "CACHED"
+    }
+  ],
+  "exposureResults": [
+    {
+      "id": "EXP-SCN-BANKRUPTCY-SUP-7def2bc3320bcedf",
+      "supplierId": "SUP-7def2bc3320bcedf",
+      "supplierName": "Maharashtra Pharma Holdings 057",
+      "country": "IN",
+      "sector": "PHARMACEUTICALS",
+      "exposureScore": 75,
+      "rationale": "CRITICAL risk tier; 50-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-BANKRUPTCY"
+      ]
+    }
+  ],
+  "dataTier": "TIER_1",
+  "dataGaps": [
+    "Tier-1 upload: no inventory columns provided, so runway is not simulated.",
+    "Tier-1 upload: no inventory columns provided, so runway is not simulated."
+  ],
+  "playbooks": [
+    {
+      "id": "PB-LLM-0",
+      "role": "Risk Analyst",
+      "summary": "To assess the immediate and potential long-term impacts of a key supplier's elevated bankruptcy risk on the supply chain.",
+      "steps": [
+        "Initiate a detailed risk assessment for the identified supplier.",
+        "Evaluate the criticality of materials or services provided by the supplier.",
+        "Determine the current inventory levels of critical components from this supplier.",
+        "Project the potential disruption impact across all dependent products and services.",
+        "Report findings to the war room leadership promptly."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-BANKRUPTCY-SUP-7def2bc3320bcedf"
+      ]
+    },
+    {
+      "id": "PB-LLM-1",
+      "role": "Procurement Lead",
+      "summary": "To ensure continuity of supply by identifying and engaging alternative sources for critical materials affected by supplier bankruptcy risk.",
+      "steps": [
+        "Identify all critical products and components sourced from the at-risk supplier.",
+        "Initiate outreach to pre-approved alternative suppliers.",
+        "Expedite qualification processes for new potential suppliers.",
+        "Negotiate terms for contingency supply agreements.",
+        "Monitor alternative supplier capacity and readiness to scale."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-BANKRUPTCY-SUP-7def2bc3320bcedf"
+      ]
+    },
+    {
+      "id": "PB-LLM-2",
+      "role": "Legal Counsel",
+      "summary": "To review contractual agreements and potential legal implications associated with a supplier's high bankruptcy risk.",
+      "steps": [
+        "Examine existing contracts with the flagged supplier for relevant clauses regarding insolvency or material adverse change.",
+        "Assess potential liabilities and obligations in the event of supplier default.",
+        "Advise on legal strategies for mitigating exposure.",
+        "Prepare for potential contract termination or renegotiation processes.",
+        "Liaise with procurement regarding any legal constraints with alternative supplier onboarding."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-BANKRUPTCY-SUP-7def2bc3320bcedf"
+      ]
+    }
+  ],
+  "supplierMessages": [
+    {
+      "id": "MSG-SUP-7def2bc3320bcedf",
+      "supplierId": "SUP-7def2bc3320bcedf",
+      "channel": "email",
+      "subject": "Supply Chain Review - SUP-7def2bc3320bcedf",
+      "body": "We are reviewing current supply chain impacts. Our records indicate an exposure score of 75 for your operations. We will confirm next steps. Your input is requested.",
+      "claims": [
+        {
+          "value": 75,
+          "unit": "score",
+          "sourcePath": "exposureResults[0].exposureScore"
+        }
+      ],
+      "approvalRequired": true
+    }
+  ],
+  "actionItems": [
+    {
+      "id": "AI-CONTINGENCY",
+      "title": "Confirm backup capacity for the most exposed lane",
+      "owner": "Procurement",
+      "status": "OPEN"
+    },
+    {
+      "id": "AI-REVIEW",
+      "title": "Review contingency drafts and approve outbound messages",
+      "owner": "Operations",
+      "status": "OPEN"
+    }
+  ],
+  "gatekeeper": {
+    "status": "PASS",
+    "failures": [],
+    "warnings": [],
+    "approvedForHumanReview": true,
+    "checkedAt": "2026-06-19T16:41:11.893Z"
+  },
+  "agentRuns": [
+    {
+      "id": "RUN-SENTINEL",
+      "agentName": "Sentinel",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 4159,
+      "tokenEstimate": 131,
+      "inputTokens": 350,
+      "outputTokens": 102,
+      "totalTokens": 1058,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.00036,
+      "inputHash": "5d5ffe6d",
+      "outputHash": "4d0976ce",
+      "validationStatus": "PASS",
+      "summary": "Classified threat SUPPLIER_BANKRUPTCY at HIGH severity.",
+      "createdAt": "2026-06-19T16:41:11.893Z"
+    },
+    {
+      "id": "RUN-VERIFIER",
+      "agentName": "Verifier",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 32,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "23d93be8",
+      "outputHash": "625b9b42",
+      "validationStatus": "PASS",
+      "summary": "1 source(s); corroboration single-source; geo unconfirmed.",
+      "createdAt": "2026-06-19T16:41:11.893Z"
+    },
+    {
+      "id": "RUN-ATLAS",
+      "agentName": "Atlas",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 99,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "70f6f09d",
+      "outputHash": "51aa068e",
+      "validationStatus": "PASS",
+      "summary": "1 supplier(s) matched and scored on tier + lead time.",
+      "createdAt": "2026-06-19T16:41:11.893Z"
+    },
+    {
+      "id": "RUN-SIMULATOR",
+      "agentName": "Simulator",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 10,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "0f3fc070",
+      "outputHash": "0d410f55",
+      "validationStatus": "PASS",
+      "summary": "Tier-1 scenario: no inventory data, runway not simulated.",
+      "createdAt": "2026-06-19T16:41:11.893Z"
+    },
+    {
+      "id": "RUN-STRATEGIST",
+      "agentName": "Strategist",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 6574,
+      "tokenEstimate": 476,
+      "inputTokens": 331,
+      "outputTokens": 388,
+      "totalTokens": 1688,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0010693,
+      "inputHash": "256b1f1b",
+      "outputHash": "4ecbec38",
+      "validationStatus": "PASS",
+      "summary": "3 playbook(s) grounded in 1 exposure claim(s).",
+      "createdAt": "2026-06-19T16:41:11.893Z"
+    },
+    {
+      "id": "RUN-DISPATCHER",
+      "agentName": "Dispatcher",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 4009,
+      "tokenEstimate": 189,
+      "inputTokens": 484,
+      "outputTokens": 112,
+      "totalTokens": 1222,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0004252,
+      "inputHash": "5c1c83fb",
+      "outputHash": "4337ff9c",
+      "validationStatus": "PASS",
+      "summary": "1 draft(s) queued for approval; 2 action item(s).",
+      "createdAt": "2026-06-19T16:41:11.893Z"
+    }
+  ],
+  "totalCostUsd": 0.0018545,
+  "pricingVersion": "2026-06-18",
+  "requestedMode": "LIVE_AI",
+  "effectiveMode": "LIVE_AI",
+  "approvalStatus": "PENDING",
+  "auditTrail": [
+    {
+      "at": "2026-06-19T16:41:11.893Z",
+      "actor": "system",
+      "action": "SCENARIO_RUN",
+      "detail": "Scenario Supplier bankruptcy with sudden liquidation executed with cached signals."
+    },
+    {
+      "at": "2026-06-19T16:41:11.893Z",
+      "actor": "gatekeeper",
+      "action": "PASS",
+      "detail": "0 failures and 0 warnings."
+    }
+  ],
+  "createdAt": "2026-06-19T16:41:11.893Z",
+  "updatedAt": "2026-06-19T16:41:11.893Z"
+}

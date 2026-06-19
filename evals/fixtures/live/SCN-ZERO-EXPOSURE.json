@@ -1,0 +1,195 @@
+{
+  "packetVersion": 2,
+  "id": "DP-cb81dff0-45ea-422b-a0d4-794bf51674c2",
+  "threatCard": {
+    "id": "THR-SCN-ZERO-EXPOSURE",
+    "eventType": "LABOR_DISRUPTION",
+    "severity": "CRITICAL",
+    "location": {
+      "region": "South America"
+    },
+    "summary": "A labor action at the Callao port in Peru has brought container handling to a standstill.",
+    "evidenceUrls": [
+      "https://api.gdeltproject.org/api/v2/doc/doc?query=Callao+port+strike&mode=artlist&format=json"
+    ],
+    "confidence": 0.9,
+    "createdAt": "2026-06-19T16:41:26.754Z"
+  },
+  "publicSignals": [
+    {
+      "id": "SIG-ZERO-GDELT",
+      "source": "GDELT DOC 2.0",
+      "sourceUrl": "https://api.gdeltproject.org/api/v2/doc/doc?query=Callao+port+strike&mode=artlist&format=json",
+      "fetchedAt": "2026-06-17T12:00:00.000Z",
+      "eventType": "PORT_LABOR",
+      "location": {
+        "region": "South America Pacific",
+        "country": "PE"
+      },
+      "severity": "MEDIUM",
+      "summary": "A port labour strike at Callao, Peru halts container operations at the terminal; the action is well-formed but affects a region with no suppliers in this dataset.",
+      "freshnessMinutes": 0,
+      "status": "CACHED"
+    }
+  ],
+  "exposureResults": [],
+  "dataTier": "TIER_1",
+  "dataGaps": [
+    "No direct exposure: no supplier in the base matches the disruption's affected set.",
+    "No direct exposure: the event location and lanes match no supplier in the current dataset.",
+    "Tier-1 upload: no inventory columns provided, so runway is not simulated."
+  ],
+  "playbooks": [],
+  "supplierMessages": [],
+  "actionItems": [],
+  "gatekeeper": {
+    "status": "PASS",
+    "failures": [],
+    "warnings": [],
+    "approvedForHumanReview": true,
+    "checkedAt": "2026-06-19T16:41:26.754Z"
+  },
+  "agentRuns": [
+    {
+      "id": "RUN-SENTINEL",
+      "agentName": "Sentinel",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 3334,
+      "tokenEstimate": 111,
+      "inputTokens": 343,
+      "outputTokens": 122,
+      "totalTokens": 866,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0004079,
+      "inputHash": "70c42cb8",
+      "outputHash": "4e61ec90",
+      "validationStatus": "PASS",
+      "summary": "Classified threat LABOR_DISRUPTION at CRITICAL severity.",
+      "createdAt": "2026-06-19T16:41:26.754Z"
+    },
+    {
+      "id": "RUN-VERIFIER",
+      "agentName": "Verifier",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 32,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "43a2d49d",
+      "outputHash": "625b9b42",
+      "validationStatus": "PASS",
+      "summary": "1 source(s); corroboration single-source; geo unconfirmed.",
+      "createdAt": "2026-06-19T16:41:26.754Z"
+    },
+    {
+      "id": "RUN-ATLAS",
+      "agentName": "Atlas",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 14,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "6fd42fe1",
+      "outputHash": "00000b62",
+      "validationStatus": "PASS",
+      "summary": "0 supplier(s) matched the disruption.",
+      "createdAt": "2026-06-19T16:41:26.754Z"
+    },
+    {
+      "id": "RUN-SIMULATOR",
+      "agentName": "Simulator",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 10,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "0f3fc070",
+      "outputHash": "0d410f55",
+      "validationStatus": "PASS",
+      "summary": "Tier-1 scenario: no inventory data, runway not simulated.",
+      "createdAt": "2026-06-19T16:41:26.754Z"
+    },
+    {
+      "id": "RUN-STRATEGIST",
+      "agentName": "Strategist",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 6,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "256b1f3a",
+      "outputHash": "00000b62",
+      "validationStatus": "PASS",
+      "summary": "0 playbook(s) grounded in 0 exposure claim(s).",
+      "createdAt": "2026-06-19T16:41:26.754Z"
+    },
+    {
+      "id": "RUN-DISPATCHER",
+      "agentName": "Dispatcher",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 21,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "581e12da",
+      "outputHash": "18b5bf78",
+      "validationStatus": "PASS",
+      "summary": "0 draft(s) queued for approval; 0 action item(s).",
+      "createdAt": "2026-06-19T16:41:26.754Z"
+    }
+  ],
+  "totalCostUsd": 0.0004079,
+  "pricingVersion": "2026-06-18",
+  "requestedMode": "LIVE_AI",
+  "effectiveMode": "LIVE_AI",
+  "approvalStatus": "PENDING",
+  "auditTrail": [
+    {
+      "at": "2026-06-19T16:41:26.754Z",
+      "actor": "system",
+      "action": "SCENARIO_RUN",
+      "detail": "Scenario Zero-exposure control (valid taxonomy, no match) executed with cached signals."
+    },
+    {
+      "at": "2026-06-19T16:41:26.754Z",
+      "actor": "gatekeeper",
+      "action": "PASS",
+      "detail": "0 failures and 0 warnings."
+    }
+  ],
+  "createdAt": "2026-06-19T16:41:26.754Z",
+  "updatedAt": "2026-06-19T16:41:26.754Z"
+}

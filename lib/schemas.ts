@@ -261,12 +261,16 @@ export const CountryCodeSchema = z
 // The CLOSED threat-event vocabulary the Sentinel (D.5) classifies into. Grounded
 // in the ActionOps threat categories the signal sources actually surface:
 //   CHOKEPOINT_CLOSURE   - a maritime/land chokepoint disrupted (the Hormuz flagship).
+//   ROUTE_DIVERSION      - a lane stays open but reroutes long (Red Sea -> around Africa),
+//                          adding sustained transit days (the Suez / Red Sea scenario).
 //   PORT_DISRUPTION      - a specific port closed/congested (strike, outage, blockade).
+//   TARIFF_DEADLINE      - a tariff action with a fixed effective date raising landed cost.
 //   NATURAL_DISASTER     - earthquake/flood/storm hitting a supplier corridor (USGS/EONET).
 //   SEVERE_WEATHER       - a weather alert with logistics impact (NWS).
 //   GEOPOLITICAL_CONFLICT- conflict/sanctions/closure of a trade lane (GDELT geopolitics).
 //   LABOR_DISRUPTION     - strike/work stoppage at a supplier or carrier.
 //   CYBER_DISRUPTION     - a cyber incident degrading a supplier/logistics operator.
+//   SUPPLIER_BANKRUPTCY  - a news-derived insolvency/liquidation threatening continuity.
 //   OTHER_UNMAPPED       - the escape hatch: a real but unclassified event. NEVER
 //                          force-fit a named type; an honest OTHER_UNMAPPED beats a
 //                          confident wrong label (mirrors SectorSchema's escape hatch).
@@ -277,12 +281,15 @@ export const CountryCodeSchema = z
 // the Sentinel boundary, exactly as the closed Sector vocab is enforced at Atlas.
 export const ThreatEventTypeSchema = z.enum([
   "CHOKEPOINT_CLOSURE",
+  "ROUTE_DIVERSION",
   "PORT_DISRUPTION",
+  "TARIFF_DEADLINE",
   "NATURAL_DISASTER",
   "SEVERE_WEATHER",
   "GEOPOLITICAL_CONFLICT",
   "LABOR_DISRUPTION",
   "CYBER_DISRUPTION",
+  "SUPPLIER_BANKRUPTCY",
   "OTHER_UNMAPPED"
 ]);
 

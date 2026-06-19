@@ -1,0 +1,410 @@
+{
+  "packetVersion": 2,
+  "id": "DP-8ba630ac-c9c6-4fba-8e8c-b3e0b801dbf2",
+  "threatCard": {
+    "id": "THR-SCN-OFF-TAXONOMY",
+    "eventType": "OTHER_UNMAPPED",
+    "severity": "HIGH",
+    "location": {
+      "region": "GLOBAL"
+    },
+    "summary": "A severe geomagnetic storm watch has been issued following significant solar activity, posing potential stress on power grids and satellite operations globally.",
+    "evidenceUrls": [
+      "https://www.swpc.noaa.gov/products/geomagnetic-storm"
+    ],
+    "confidence": 0.9,
+    "createdAt": "2026-06-19T16:41:30.208Z"
+  },
+  "publicSignals": [
+    {
+      "id": "SIG-OFFTAX-SWPC",
+      "source": "NOAA SWPC",
+      "sourceUrl": "https://www.swpc.noaa.gov/products/geomagnetic-storm",
+      "fetchedAt": "2026-06-17T12:00:00.000Z",
+      "eventType": "SPACE_WEATHER",
+      "location": {
+        "region": "Global"
+      },
+      "severity": "MEDIUM",
+      "summary": "NOAA issues a severe geomagnetic storm watch after a strong solar flare and coronal mass ejection; power grids and satellite operations could be stressed -- an event outside the standard supply-chain disruption taxonomy.",
+      "freshnessMinutes": 0,
+      "status": "CACHED"
+    }
+  ],
+  "exposureResults": [
+    {
+      "id": "EXP-SCN-OFF-TAXONOMY-SUP-e3fab211f6d4a7b5",
+      "supplierId": "SUP-e3fab211f6d4a7b5",
+      "supplierName": "Arizona Energy Group 084",
+      "country": "US",
+      "sector": "OTHER_UNMAPPED",
+      "exposureScore": 55,
+      "rationale": "CRITICAL risk tier; 5-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-OFF-TAXONOMY"
+      ]
+    },
+    {
+      "id": "EXP-SCN-OFF-TAXONOMY-SUP-7b8da560e3838184",
+      "supplierId": "SUP-7b8da560e3838184",
+      "supplierName": "Arizona Metals Solutions 104",
+      "country": "US",
+      "sector": "OTHER_UNMAPPED",
+      "exposureScore": 40,
+      "rationale": "HIGH risk tier; 9-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-OFF-TAXONOMY"
+      ]
+    },
+    {
+      "id": "EXP-SCN-OFF-TAXONOMY-SUP-96928ba51516e378",
+      "supplierId": "SUP-96928ba51516e378",
+      "supplierName": "Arizona Pharma Partners 054",
+      "country": "US",
+      "sector": "OTHER_UNMAPPED",
+      "exposureScore": 40,
+      "rationale": "HIGH risk tier; 16-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-OFF-TAXONOMY"
+      ]
+    },
+    {
+      "id": "EXP-SCN-OFF-TAXONOMY-SUP-b07fd051cc0ab530",
+      "supplierId": "SUP-b07fd051cc0ab530",
+      "supplierName": "Arizona Automotive Solutions 032",
+      "country": "US",
+      "sector": "OTHER_UNMAPPED",
+      "exposureScore": 40,
+      "rationale": "HIGH risk tier; 6-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-OFF-TAXONOMY"
+      ]
+    },
+    {
+      "id": "EXP-SCN-OFF-TAXONOMY-SUP-f38606d7caf594d9",
+      "supplierId": "SUP-f38606d7caf594d9",
+      "supplierName": "Arizona Logistics Works 147",
+      "country": "US",
+      "sector": "OTHER_UNMAPPED",
+      "exposureScore": 25,
+      "rationale": "MEDIUM risk tier; 9-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-OFF-TAXONOMY"
+      ]
+    },
+    {
+      "id": "EXP-SCN-OFF-TAXONOMY-SUP-ef2888078d61238f",
+      "supplierId": "SUP-ef2888078d61238f",
+      "supplierName": "Arizona AgriFood Group 124",
+      "country": "US",
+      "sector": "OTHER_UNMAPPED",
+      "exposureScore": 12,
+      "rationale": "LOW risk tier; 9-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-OFF-TAXONOMY"
+      ]
+    }
+  ],
+  "dataTier": "TIER_1",
+  "dataGaps": [
+    "Event type is outside the closed event vocabulary; matched suppliers are classified OTHER_UNMAPPED pending taxonomy review.",
+    "Tier-1 upload: no inventory columns provided, so runway is not simulated."
+  ],
+  "playbooks": [
+    {
+      "id": "PB-LLM-0",
+      "role": "Risk Mitigation Lead",
+      "summary": "Prioritize and address the most significant supplier exposures to minimize potential disruption, especially for the critically exposed entity.",
+      "steps": [
+        "Initiate immediate contact with the highest-exposure supplier to understand the nature of the unmapped sector and current operational status.",
+        "Conduct a rapid impact assessment for the most exposed supplier, focusing on dependencies and potential bottlenecks.",
+        "Develop preliminary mitigation strategies for the top exposure, including identifying alternative sources or inventory adjustments.",
+        "Review the next tier of highly exposed suppliers to prepare for follow-up actions."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-OFF-TAXONOMY-SUP-e3fab211f6d4a7b5",
+        "EXP-SCN-OFF-TAXONOMY-SUP-7b8da560e3838184",
+        "EXP-SCN-OFF-TAXONOMY-SUP-96928ba51516e378",
+        "EXP-SCN-OFF-TAXONOMY-SUP-b07fd051cc0ab530"
+      ]
+    },
+    {
+      "id": "PB-LLM-1",
+      "role": "Supplier Data Analyst",
+      "summary": "Address the critical gap in supplier sector categorization to enable more effective risk assessment and planning across all identified exposures.",
+      "steps": [
+        "Launch an urgent investigation into the 'OTHER_UNMAPPED' sector for all listed suppliers to accurately classify their business activities.",
+        "Collaborate with procurement teams and supplier relationship managers to gather necessary information for re-categorization.",
+        "Update the supplier database with precise sector information once validated.",
+        "Implement processes to prevent future 'OTHER_UNMAPPED' categorizations, ensuring comprehensive data capture upon onboarding."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-OFF-TAXONOMY-SUP-e3fab211f6d4a7b5",
+        "EXP-SCN-OFF-TAXONOMY-SUP-7b8da560e3838184",
+        "EXP-SCN-OFF-TAXONOMY-SUP-96928ba51516e378",
+        "EXP-SCN-OFF-TAXONOMY-SUP-b07fd051cc0ab530",
+        "EXP-SCN-OFF-TAXONOMY-SUP-f38606d7caf594d9",
+        "EXP-SCN-OFF-TAXONOMY-SUP-ef2888078d61238f"
+      ]
+    },
+    {
+      "id": "PB-LLM-2",
+      "role": "Business Continuity & Contingency Lead",
+      "summary": "Develop and review contingency plans, focusing initially on the more significantly exposed suppliers, to ensure resilience against potential disruptions.",
+      "steps": [
+        "Initiate a review of existing business continuity plans related to the top-tier exposed supplier.",
+        "Begin drafting alternative sourcing strategies and buffer stock recommendations for the group of highly exposed suppliers.",
+        "Assess the potential impact on downstream operations for all exposed entities, considering various disruption scenarios.",
+        "Prepare communication protocols for internal stakeholders regarding potential supply chain interruptions."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-OFF-TAXONOMY-SUP-e3fab211f6d4a7b5",
+        "EXP-SCN-OFF-TAXONOMY-SUP-7b8da560e3838184",
+        "EXP-SCN-OFF-TAXONOMY-SUP-96928ba51516e378",
+        "EXP-SCN-OFF-TAXONOMY-SUP-b07fd051cc0ab530",
+        "EXP-SCN-OFF-TAXONOMY-SUP-f38606d7caf594d9"
+      ]
+    }
+  ],
+  "supplierMessages": [
+    {
+      "id": "MSG-SUP-e3fab211f6d4a7b5",
+      "supplierId": "SUP-e3fab211f6d4a7b5",
+      "channel": "email",
+      "subject": "Reviewing supply chain status with Arizona Energy Group 084",
+      "body": "We are reviewing current supply chain status. Our assessment indicates an exposure score of 55. We request your input and will confirm next steps.",
+      "claims": [
+        {
+          "value": 55,
+          "unit": "score",
+          "sourcePath": "exposureResults[0].exposureScore"
+        }
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "MSG-SUP-7b8da560e3838184",
+      "supplierId": "SUP-7b8da560e3838184",
+      "channel": "email",
+      "subject": "Reviewing supply chain status with Arizona Metals Solutions 104",
+      "body": "We are reviewing current supply chain status. Our assessment indicates an exposure score of 40. We request your input and will confirm next steps.",
+      "claims": [
+        {
+          "value": 40,
+          "unit": "score",
+          "sourcePath": "exposureResults[1].exposureScore"
+        }
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "MSG-SUP-96928ba51516e378",
+      "supplierId": "SUP-96928ba51516e378",
+      "channel": "email",
+      "subject": "Reviewing supply chain status with Arizona Pharma Partners 054",
+      "body": "We are reviewing current supply chain status. Our assessment indicates an exposure score of 40. We request your input and will confirm next steps.",
+      "claims": [
+        {
+          "value": 40,
+          "unit": "score",
+          "sourcePath": "exposureResults[2].exposureScore"
+        }
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "MSG-SUP-b07fd051cc0ab530",
+      "supplierId": "SUP-b07fd051cc0ab530",
+      "channel": "email",
+      "subject": "Reviewing supply chain status with Arizona Automotive Solutions 032",
+      "body": "We are reviewing current supply chain status. Our assessment indicates an exposure score of 40. We request your input and will confirm next steps.",
+      "claims": [
+        {
+          "value": 40,
+          "unit": "score",
+          "sourcePath": "exposureResults[3].exposureScore"
+        }
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "MSG-SUP-f38606d7caf594d9",
+      "supplierId": "SUP-f38606d7caf594d9",
+      "channel": "email",
+      "subject": "Reviewing supply chain status with Arizona Logistics Works 147",
+      "body": "We are reviewing current supply chain status. Our assessment indicates an exposure score of 25. We request your input and will confirm next steps.",
+      "claims": [
+        {
+          "value": 25,
+          "unit": "score",
+          "sourcePath": "exposureResults[4].exposureScore"
+        }
+      ],
+      "approvalRequired": true
+    }
+  ],
+  "actionItems": [
+    {
+      "id": "AI-CONTINGENCY",
+      "title": "Confirm backup capacity for the most exposed lane",
+      "owner": "Procurement",
+      "status": "OPEN"
+    },
+    {
+      "id": "AI-REVIEW",
+      "title": "Review contingency drafts and approve outbound messages",
+      "owner": "Operations",
+      "status": "OPEN"
+    }
+  ],
+  "gatekeeper": {
+    "status": "PASS",
+    "failures": [],
+    "warnings": [],
+    "approvedForHumanReview": true,
+    "checkedAt": "2026-06-19T16:41:30.208Z"
+  },
+  "agentRuns": [
+    {
+      "id": "RUN-SENTINEL",
+      "agentName": "Sentinel",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 3010,
+      "tokenEstimate": 115,
+      "inputTokens": 326,
+      "outputTokens": 79,
+      "totalTokens": 800,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.00029529999999999997,
+      "inputHash": "2f18cb17",
+      "outputHash": "12980661",
+      "validationStatus": "PASS",
+      "summary": "Classified threat OTHER_UNMAPPED at HIGH severity.",
+      "createdAt": "2026-06-19T16:41:30.208Z"
+    },
+    {
+      "id": "RUN-VERIFIER",
+      "agentName": "Verifier",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 32,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "7a0e402e",
+      "outputHash": "625b9b42",
+      "validationStatus": "PASS",
+      "summary": "1 source(s); corroboration single-source; geo unconfirmed.",
+      "createdAt": "2026-06-19T16:41:30.208Z"
+    },
+    {
+      "id": "RUN-ATLAS",
+      "agentName": "Atlas",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 437,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "612b3573",
+      "outputHash": "5e61cd54",
+      "validationStatus": "PASS",
+      "summary": "6 supplier(s) matched and scored on tier + lead time.",
+      "createdAt": "2026-06-19T16:41:30.208Z"
+    },
+    {
+      "id": "RUN-SIMULATOR",
+      "agentName": "Simulator",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 10,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "0f3fc070",
+      "outputHash": "0d410f55",
+      "validationStatus": "PASS",
+      "summary": "Tier-1 scenario: no inventory data, runway not simulated.",
+      "createdAt": "2026-06-19T16:41:30.208Z"
+    },
+    {
+      "id": "RUN-STRATEGIST",
+      "agentName": "Strategist",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 15937,
+      "tokenEstimate": 707,
+      "inputTokens": 758,
+      "outputTokens": 930,
+      "totalTokens": 4335,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0025524000000000002,
+      "inputHash": "256b1e80",
+      "outputHash": "536be3c4",
+      "validationStatus": "PASS",
+      "summary": "3 playbook(s) grounded in 6 exposure claim(s).",
+      "createdAt": "2026-06-19T16:41:30.208Z"
+    },
+    {
+      "id": "RUN-DISPATCHER",
+      "agentName": "Dispatcher",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 9374,
+      "tokenEstimate": 620,
+      "inputTokens": 896,
+      "outputTokens": 520,
+      "totalTokens": 2953,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0015688,
+      "inputHash": "7014b9a0",
+      "outputHash": "0c1370e5",
+      "validationStatus": "PASS",
+      "summary": "5 draft(s) queued for approval; 2 action item(s).",
+      "createdAt": "2026-06-19T16:41:30.208Z"
+    }
+  ],
+  "totalCostUsd": 0.0044165,
+  "pricingVersion": "2026-06-18",
+  "requestedMode": "LIVE_AI",
+  "effectiveMode": "LIVE_AI",
+  "approvalStatus": "PENDING",
+  "auditTrail": [
+    {
+      "at": "2026-06-19T16:41:30.208Z",
+      "actor": "system",
+      "action": "SCENARIO_RUN",
+      "detail": "Scenario Off-taxonomy control (OTHER_UNMAPPED) executed with cached signals."
+    },
+    {
+      "at": "2026-06-19T16:41:30.208Z",
+      "actor": "gatekeeper",
+      "action": "PASS",
+      "detail": "0 failures and 0 warnings."
+    }
+  ],
+  "createdAt": "2026-06-19T16:41:30.208Z",
+  "updatedAt": "2026-06-19T16:41:30.208Z"
+}

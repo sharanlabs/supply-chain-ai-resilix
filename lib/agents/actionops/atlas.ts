@@ -47,7 +47,13 @@ function leadComponent(standardLeadTimeDays: number): number {
 // misclassification firewall test rejects against (a Gulf match is not within it).
 const CHOKEPOINT_AFFECTED_COUNTRIES: Record<string, readonly string[]> = {
   "Strait of Hormuz": ["SA", "AE", "QA", "KW", "BH", "IQ", "IR", "OM"],
-  "Strait of Malacca": ["SG", "MY", "ID", "TH", "VN"]
+  "Strait of Malacca": ["SG", "MY", "ID", "TH", "VN"],
+  // Suez Canal / Red Sea: the Asia + Gulf origins whose Europe- and US-East-bound maritime
+  // trade transits the Red Sea and the Suez Canal. A sustained Red Sea diversion adds
+  // transit days to these lanes. India anchors the live Red Sea / Suez scenario; the wider
+  // set keeps the scope firewall honest if the match broadens. Real chokepoint domain data,
+  // one row per chokepoint the core can reason about (mirrors the Hormuz row).
+  "Suez Canal": ["IN", "LK", "BD", "PK", "AE", "SA", "OM", "EG", "CN", "VN", "TH"]
 };
 
 // Match chokepoint names case- and whitespace-insensitively, so a handoff that drifts
@@ -212,6 +218,11 @@ function matchSuppliers(suppliers: Supplier[], match: ScenarioMatch): Supplier[]
     const countryOk = !match.countries || match.countries.includes(s.country);
     const sectorOk =
       !match.sectors || (s.sector != null && match.sectors.includes(s.sector));
-    return countryOk && sectorOk;
+    const regionOk = !match.regions || match.regions.includes(s.region);
+    const riskTierOk = !match.riskTiers || match.riskTiers.includes(s.riskTier);
+    // Every PRESENT constraint must hold (absent ones are "any"). region + riskTier let a
+    // single-source scenario pin its supplier declaratively (e.g. one Texas Gulf-Coast
+    // ENERGY plant) without hard-coding a seed-derived id.
+    return countryOk && sectorOk && regionOk && riskTierOk;
   });
 }

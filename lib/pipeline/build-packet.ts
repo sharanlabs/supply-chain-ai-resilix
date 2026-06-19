@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { runActionOpsAgents } from "@/lib/agents/actionops";
-import { computeEffectiveMode, liveAiEnabled } from "@/lib/agents/run";
+import {
+  assertConfiguredModelAvailable,
+  computeEffectiveMode,
+  listGeminiModels,
+  liveAiEnabled
+} from "@/lib/agents/run";
 import { summarizeCost } from "@/lib/agents/cost-summary";
 import { validateDecisionPacket } from "@/lib/agents/gatekeeper";
 import { getActionOpsScenario } from "@/lib/data/actionops-scenarios";
@@ -11,6 +16,11 @@ import type { DecisionPacketV2 } from "@/lib/schemas";
 export type BuildPacketOptions = {
   scenarioId?: string;
   useLiveSignals?: boolean;
+  // Per-invocation live-AI opt-in (default false). Threaded into runActionOpsAgents,
+  // where it is AND-gated with liveAiEnabled() before any LLM agent bills. Distinct
+  // from useLiveSignals (which only governs live vs cached signal FETCHING, never the
+  // LLM). The page render leaves this false; only the authenticated POST sets it true.
+  live?: boolean;
 };
 
 // Assemble a DecisionPacketV2 from the ActionOps agents -- PURE: no persistence,
@@ -22,20 +32,46 @@ export type BuildPacketOptions = {
 export async function buildDecisionPacket(
   options: BuildPacketOptions = {}
 ): Promise<DecisionPacketV2> {
-  const { scenarioId, useLiveSignals = false } = options;
+  const { scenarioId, useLiveSignals = false, live = false } = options;
   const scenario = getActionOpsScenario(scenarioId);
   const now = new Date().toISOString();
 
-  const signals = await fetchPublicSignals({ useLive: useLiveSignals });
+  // Replay path (the demo + the live-AI showcase): the scenario's OWN dated signals, so
+  // the live Sentinel classifies THIS scenario's disruption -- a generic global board would
+  // misclassify (e.g. read a sample earthquake instead of the Hormuz closure). Live-signals
+  // path: the real GDELT/NWS fetch (scenario-agnostic, with its own CACHED fallback).
+  // useLiveSignals governs signal FETCHING; `live` governs whether the LLM agents run.
+  const signals = useLiveSignals
+    ? await fetchPublicSignals({ useLive: true })
+    : scenario.replaySignals;
   const suppliers = ingestSeed().suppliers;
 
-  const result = runActionOpsAgents({ scenario, signals, suppliers, baseDateIso: now });
+  // Preflight (LIVE runs only): assert the configured Gemini model is actually available
+  // on this key BEFORE the agents run, and FAIL LOUD (listing what IS available) if not.
+  // WHY here: a Google retirement otherwise surfaces as a silent mid-run 404 -> fallback,
+  // mislabeling a config defect as a degraded run. The `enabled` predicate is the SAME
+  // (live && liveAiEnabled()) gate the orchestrator bills on, so a page render (live:false)
+  // makes NO ListModels call and never touches the network -- the preflight self-guards.
+  await assertConfiguredModelAvailable({
+    listModels: listGeminiModels,
+    enabled: () => live && liveAiEnabled()
+  });
 
-  // requested = what the run intended; effective = what actually happened across
-  // the agent runs (R4-8). Key-OFF -> both DETERMINISTIC_RULES; a replay scenario
+  const result = await runActionOpsAgents({ scenario, signals, suppliers, baseDateIso: now, live });
+
+  // requested = what the run intended; effective = what actually happened across the
+  // agent runs (R4-8). requestedMode reflects THIS invocation's real intent: a live
+  // request needs BOTH the per-call opt-in (live) AND the runtime config (liveAiEnabled)
+  // -- so a page render (live:false) requests DETERMINISTIC_RULES even when the global
+  // flag is on, and only the genuine live POST requests LIVE_AI. A replay scenario still
   // requests REPLAY. computeEffectiveMode never invents a live label.
+  // An EXPLICIT live invocation takes precedence over a scenario's default requestedMode: a
+  // billable live run must audit as requestedMode LIVE_AI even for a scenario tagged REPLAY
+  // (e.g. hurricane), or the intent/audit layer would mislabel a real live run as replay. When
+  // NOT live, honor the scenario's requestedMode (REPLAY for replay-only scenarios) else
+  // DETERMINISTIC_RULES.
   const requestedMode =
-    scenario.requestedMode ?? (liveAiEnabled() ? "LIVE_AI" : "DETERMINISTIC_RULES");
+    live && liveAiEnabled() ? "LIVE_AI" : (scenario.requestedMode ?? "DETERMINISTIC_RULES");
   const effectiveMode = computeEffectiveMode(result.agentRuns, requestedMode);
 
   // Packet-level cost summary (D.8, R4-10): the Success_Criteria "<=$5 total LLM

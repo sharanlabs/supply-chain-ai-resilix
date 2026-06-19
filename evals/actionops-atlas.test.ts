@@ -210,7 +210,7 @@ describe("Atlas exposure model (D.2, deterministic, key-OFF)", () => {
     // stays PASS and the gatekeeper does NOT block it -- distinct from the rejected
     // (FAIL) handoff above.
     const signals = await fetchPublicSignals({ useLive: false });
-    const result = runActionOpsAgents({ ...base, scenario: emptyScenario, signals });
+    const result = await runActionOpsAgents({ ...base, scenario: emptyScenario, signals });
     expect(result.exposureResults).toEqual([]);
     expect(result.dataGaps.join(" ")).toMatch(/no direct exposure/i);
     expect(result.playbooks).toEqual([]);

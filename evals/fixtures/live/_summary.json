@@ -1,0 +1,79 @@
+[
+  {
+    "id": "SCN-HORMUZ",
+    "eventType": "CHOKEPOINT_CLOSURE",
+    "effectiveMode": "LIVE_AI",
+    "exposures": 9,
+    "playbooks": 5,
+    "drafts": 5,
+    "costUsd": 0.007474,
+    "gatekeeper": "PASS",
+    "modes": "SENTINEL=LIVE_AI,STRATEGIST=LIVE_AI,DISPATCHER=LIVE_AI"
+  },
+  {
+    "id": "SCN-TARIFF",
+    "eventType": "TARIFF_DEADLINE",
+    "effectiveMode": "LIVE_AI",
+    "exposures": 7,
+    "playbooks": 2,
+    "drafts": 5,
+    "costUsd": 0.0035700000000000003,
+    "gatekeeper": "PASS",
+    "modes": "SENTINEL=LIVE_AI,STRATEGIST=LIVE_AI,DISPATCHER=LIVE_AI"
+  },
+  {
+    "id": "SCN-REDSEA",
+    "eventType": "ROUTE_DIVERSION",
+    "effectiveMode": "LIVE_AI",
+    "exposures": 5,
+    "playbooks": 4,
+    "drafts": 5,
+    "costUsd": 0.005804800000000001,
+    "gatekeeper": "PASS",
+    "modes": "SENTINEL=LIVE_AI,STRATEGIST=LIVE_AI,DISPATCHER=LIVE_AI"
+  },
+  {
+    "id": "SCN-HURRICANE",
+    "eventType": "SEVERE_WEATHER",
+    "effectiveMode": "LIVE_AI",
+    "exposures": 1,
+    "playbooks": 3,
+    "drafts": 1,
+    "costUsd": 0.0021082,
+    "gatekeeper": "PASS",
+    "modes": "SENTINEL=LIVE_AI,STRATEGIST=LIVE_AI,DISPATCHER=LIVE_AI"
+  },
+  {
+    "id": "SCN-BANKRUPTCY",
+    "eventType": "SUPPLIER_BANKRUPTCY",
+    "effectiveMode": "LIVE_AI",
+    "exposures": 1,
+    "playbooks": 3,
+    "drafts": 1,
+    "costUsd": 0.0018545,
+    "gatekeeper": "PASS",
+    "modes": "SENTINEL=LIVE_AI,STRATEGIST=LIVE_AI,DISPATCHER=LIVE_AI"
+  },
+  {
+    "id": "SCN-ZERO-EXPOSURE",
+    "eventType": "LABOR_DISRUPTION",
+    "effectiveMode": "LIVE_AI",
+    "exposures": 0,
+    "playbooks": 0,
+    "drafts": 0,
+    "costUsd": 0.0004079,
+    "gatekeeper": "PASS",
+    "modes": "SENTINEL=LIVE_AI,STRATEGIST=DETERMINISTIC_RULES,DISPATCHER=DETERMINISTIC_RULES"
+  },
+  {
+    "id": "SCN-OFF-TAXONOMY",
+    "eventType": "OTHER_UNMAPPED",
+    "effectiveMode": "LIVE_AI",
+    "exposures": 6,
+    "playbooks": 3,
+    "drafts": 5,
+    "costUsd": 0.0044165,
+    "gatekeeper": "PASS",
+    "modes": "SENTINEL=LIVE_AI,STRATEGIST=LIVE_AI,DISPATCHER=LIVE_AI"
+  }
+]

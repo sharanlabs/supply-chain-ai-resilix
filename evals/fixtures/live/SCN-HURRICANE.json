@@ -1,0 +1,305 @@
+{
+  "packetVersion": 2,
+  "id": "DP-330bd4cf-4688-4917-897a-0c6900926e4a",
+  "threatCard": {
+    "id": "THR-SCN-HURRICANE",
+    "eventType": "SEVERE_WEATHER",
+    "severity": "HIGH",
+    "location": {
+      "region": "Texas"
+    },
+    "summary": "A significant hurricane is anticipated to impact the Texas Gulf Coast, threatening critical petrochemical operations and the flow of goods into the region.",
+    "evidenceUrls": [
+      "https://api.weather.gov/alerts/active?area=TX"
+    ],
+    "confidence": 0.9,
+    "createdAt": "2026-06-19T16:40:52.557Z"
+  },
+  "publicSignals": [
+    {
+      "id": "SIG-HURRICANE-NWS",
+      "source": "National Weather Service",
+      "sourceUrl": "https://api.weather.gov/alerts/active?area=TX",
+      "fetchedAt": "2026-06-17T12:00:00.000Z",
+      "eventType": "HURRICANE_WARNING",
+      "location": {
+        "region": "US Gulf Coast",
+        "country": "US"
+      },
+      "severity": "HIGH",
+      "summary": "NWS issues a hurricane warning for the Texas Gulf Coast with landfall expected near a major petrochemical corridor; plant operations and inbound logistics in the area are at risk.",
+      "freshnessMinutes": 0,
+      "status": "CACHED"
+    }
+  ],
+  "exposureResults": [
+    {
+      "id": "EXP-SCN-HURRICANE-SUP-e9a5022b56af8803",
+      "supplierId": "SUP-e9a5022b56af8803",
+      "supplierName": "Texas Energy Solutions 088",
+      "country": "US",
+      "sector": "ENERGY",
+      "exposureScore": 25,
+      "rationale": "MEDIUM risk tier; 9-day lead time.",
+      "evidenceIds": [
+        "THR-SCN-HURRICANE"
+      ]
+    }
+  ],
+  "simulation": {
+    "horizons": [
+      {
+        "days": 7,
+        "revenueAtRiskUsd": 175000
+      },
+      {
+        "days": 30,
+        "revenueAtRiskUsd": 350000
+      }
+    ],
+    "productRunouts": [
+      {
+        "productId": "PROD-SINGLE-SOURCE",
+        "runoutDate": "2026-06-29"
+      }
+    ],
+    "generatedAt": "2026-06-19T16:40:52.557Z"
+  },
+  "dataTier": "SEEDED",
+  "dataGaps": [
+    "Single-source plant: no qualified backup supplier in the current dataset."
+  ],
+  "playbooks": [
+    {
+      "id": "PB-LLM-0",
+      "role": "Logistics Lead",
+      "summary": "Assess immediate disruption to energy supply from the impacted US supplier and identify alternative distribution channels and backup providers.",
+      "steps": [
+        "Initiate an urgent review of current energy supply routes originating from the affected region.",
+        "Determine the operational status of Texas Energy Solutions following the hurricane event.",
+        "Evaluate the impact on transportation infrastructure in the affected area.",
+        "Identify and activate alternative energy sources or transport methods to maintain continuity.",
+        "Coordinate with carriers and distribution partners to reroute or expedite critical shipments."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-HURRICANE-SUP-e9a5022b56af8803"
+      ]
+    },
+    {
+      "id": "PB-LLM-1",
+      "role": "Procurement Manager",
+      "summary": "Engage with the affected energy supplier to understand the full extent of operational disruption and promptly secure alternative energy provisions.",
+      "steps": [
+        "Establish immediate contact with Texas Energy Solutions to ascertain the status of their facilities and supply capabilities post-hurricane.",
+        "Review existing contracts and service level agreements related to the exposed supplier.",
+        "Initiate outreach to backup energy suppliers to assess their capacity and availability.",
+        "Negotiate terms for provisional supply arrangements to cover any anticipated shortfall.",
+        "Monitor the recovery progress of the primary supplier and adjust alternative sourcing plans as needed."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-HURRICANE-SUP-e9a5022b56af8803"
+      ]
+    },
+    {
+      "id": "PB-LLM-2",
+      "role": "Risk Mitigation Specialist",
+      "summary": "Evaluate the potential cascading effects of the energy supply disruption and develop strategic contingency plans to safeguard overall supply chain resilience.",
+      "steps": [
+        "Conduct an immediate assessment of the potential ripple effects across dependent operations due to the energy supply impact.",
+        "Analyze the financial and operational implications of a prolonged disruption from Texas Energy Solutions.",
+        "Develop a comprehensive contingency strategy including diversified sourcing options and energy storage solutions.",
+        "Review insurance policies and contractual agreements for coverage related to natural disaster impacts.",
+        "Prepare for potential future disruptions by strengthening resilience measures for critical energy inputs."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-HURRICANE-SUP-e9a5022b56af8803"
+      ]
+    }
+  ],
+  "supplierMessages": [
+    {
+      "id": "MSG-SUP-e9a5022b56af8803",
+      "supplierId": "SUP-e9a5022b56af8803",
+      "channel": "email",
+      "subject": "Supply Chain Review for Texas Energy Solutions 088 - Exposure Score 25, 7 Day Window",
+      "body": "Dear Texas Energy Solutions 088,We are reviewing supply chain status. Your current exposure score is 25 within a 7 day simulation window. We will confirm next steps. We request your input regarding potential impacts.",
+      "claims": [
+        {
+          "value": 25,
+          "unit": "score",
+          "sourcePath": "exposureResults[0].exposureScore"
+        },
+        {
+          "value": 7,
+          "unit": "days",
+          "sourcePath": "simulation.horizons[0].days"
+        }
+      ],
+      "approvalRequired": true
+    }
+  ],
+  "actionItems": [
+    {
+      "id": "AI-CONTINGENCY",
+      "title": "Confirm backup capacity for the most exposed lane",
+      "owner": "Procurement",
+      "status": "OPEN"
+    },
+    {
+      "id": "AI-REVIEW",
+      "title": "Review contingency drafts and approve outbound messages",
+      "owner": "Operations",
+      "status": "OPEN"
+    }
+  ],
+  "gatekeeper": {
+    "status": "PASS",
+    "failures": [],
+    "warnings": [],
+    "approvedForHumanReview": true,
+    "checkedAt": "2026-06-19T16:40:52.557Z"
+  },
+  "agentRuns": [
+    {
+      "id": "RUN-SENTINEL",
+      "agentName": "Sentinel",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 2781,
+      "tokenEstimate": 110,
+      "inputTokens": 318,
+      "outputTokens": 110,
+      "totalTokens": 795,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0003704,
+      "inputHash": "16583223",
+      "outputHash": "3c14d04f",
+      "validationStatus": "PASS",
+      "summary": "Classified threat SEVERE_WEATHER at HIGH severity.",
+      "createdAt": "2026-06-19T16:40:52.557Z"
+    },
+    {
+      "id": "RUN-VERIFIER",
+      "agentName": "Verifier",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 31,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "32227008",
+      "outputHash": "625b9b42",
+      "validationStatus": "PASS",
+      "summary": "1 source(s); corroboration single-source; geo unconfirmed.",
+      "createdAt": "2026-06-19T16:40:52.557Z"
+    },
+    {
+      "id": "RUN-ATLAS",
+      "agentName": "Atlas",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 88,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "1a4fe8ef",
+      "outputHash": "61d2c838",
+      "validationStatus": "PASS",
+      "summary": "1 supplier(s) matched and scored on tier + lead time.",
+      "createdAt": "2026-06-19T16:40:52.557Z"
+    },
+    {
+      "id": "RUN-SIMULATOR",
+      "agentName": "Simulator",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 94,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0,
+      "inputHash": "52632423",
+      "outputHash": "3e184e19",
+      "validationStatus": "PASS",
+      "summary": "Projected 2 revenue horizon(s) and 1 runout(s).",
+      "createdAt": "2026-06-19T16:40:52.557Z"
+    },
+    {
+      "id": "RUN-STRATEGIST",
+      "agentName": "Strategist",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 10809,
+      "tokenEstimate": 602,
+      "inputTokens": 331,
+      "outputTokens": 454,
+      "totalTokens": 2631,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0012343,
+      "inputHash": "256b1f1b",
+      "outputHash": "7caf48d7",
+      "validationStatus": "PASS",
+      "summary": "3 playbook(s) grounded in 1 exposure claim(s).",
+      "createdAt": "2026-06-19T16:40:52.557Z"
+    },
+    {
+      "id": "RUN-DISPATCHER",
+      "agentName": "Dispatcher",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 5629,
+      "tokenEstimate": 229,
+      "inputTokens": 495,
+      "outputTokens": 142,
+      "totalTokens": 1639,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-18",
+      "costUsd": 0.0005035,
+      "inputHash": "33b7e8fc",
+      "outputHash": "21080933",
+      "validationStatus": "PASS",
+      "summary": "1 draft(s) queued for approval; 2 action item(s).",
+      "createdAt": "2026-06-19T16:40:52.557Z"
+    }
+  ],
+  "totalCostUsd": 0.0021082,
+  "pricingVersion": "2026-06-18",
+  "requestedMode": "REPLAY",
+  "effectiveMode": "LIVE_AI",
+  "approvalStatus": "PENDING",
+  "auditTrail": [
+    {
+      "at": "2026-06-19T16:40:52.557Z",
+      "actor": "system",
+      "action": "SCENARIO_RUN",
+      "detail": "Scenario Hurricane strike on a single-source plant (replay) executed with cached signals."
+    },
+    {
+      "at": "2026-06-19T16:40:52.557Z",
+      "actor": "gatekeeper",
+      "action": "PASS",
+      "detail": "0 failures and 0 warnings."
+    }
+  ],
+  "createdAt": "2026-06-19T16:40:52.557Z",
+  "updatedAt": "2026-06-19T16:40:52.557Z"
+}
