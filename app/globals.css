@@ -1,13 +1,17 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   RESILIX ActionOps — "calm command center" design language.
+   RESILIX ActionOps -- "Quiet Instrument" design language (2026).
 
-   A serious crisis-to-action decision tool, read like a briefing document.
-   Tokens are OKLCH; neutrals are tinted toward the teal accent (low chroma)
-   rather than pure grey, and the ground/ink are warm off-white / deep ink
-   rather than #fff / #000. Severity is a perceptual ramp (low -> critical),
-   not a rainbow, and every color carries a meaning.
+   A serious crisis-to-action decision tool, read like a war-room briefing.
+   The lineage is Polaris / Linear / Apple Health: a cool near-white canvas, a
+   deep graphite ink (never #000), and ONE calm accent -- a steel-blue. The 2026
+   retheme drops the previous teal/green family entirely: the palette is now
+   strictly three families -- cool neutrals (60), a secondary tonal surface (30),
+   and ~10% steel-blue accent. Severity (amber -> red) is the ONLY saturated
+   color and appears ONLY on real risk; it is a perceptual ramp, not a rainbow,
+   and every color carries a meaning. Depth is tonal surfaces + a hairline, never
+   a decorative drop shadow.
 
    Tailwind v4: tokens are registered in @theme so utilities like
    `bg-ground` / `text-ink` / `border-line` / `text-sev-critical` exist. The
@@ -17,27 +21,32 @@
    --------------------------------------------------------------------------- */
 
 @theme {
-  /* Surfaces — warm off-white ground, slightly lifted panels, a tinted sink. */
-  --color-ground: oklch(0.982 0.004 152);
+  /* Surfaces -- a cool near-white ground (neutral hue ~255, never pure #fff), a
+     pure-white lifted panel, and two tonal sinks. Depth is read from these 2-3
+     near-white steps + a hairline, not from shadow. */
+  --color-ground: oklch(0.984 0.003 255);
   --color-surface: oklch(1 0 0);
-  --color-sink: oklch(0.965 0.006 152);
-  --color-line: oklch(0.906 0.008 152);
-  --color-line-strong: oklch(0.84 0.01 152);
+  --color-sink: oklch(0.967 0.005 255);
+  --color-sink-deep: oklch(0.952 0.006 255);
+  --color-line: oklch(0.912 0.006 255);
+  --color-line-strong: oklch(0.85 0.008 255);
 
-  /* Text — deep ink (not #000), a muted mid, and a faint label grey. All three
-     clear WCAG AA 4.5:1 for small text on every surface (ground/sink/surface);
-     ink-faint sits at L 0.52, the lightest value that still passes on the sink. */
-  --color-ink: oklch(0.27 0.018 168);
-  --color-ink-muted: oklch(0.48 0.014 168);
-  --color-ink-faint: oklch(0.52 0.012 168);
+  /* Text -- cool graphite ink (not #000), a muted mid, and a faint label grey.
+     All three clear WCAG AA 4.5:1 for small text on every surface
+     (ground/sink/surface); ink-faint is the lightest value that still passes on
+     the sink (measured 5.10:1). */
+  --color-ink: oklch(0.26 0.018 262);
+  --color-ink-muted: oklch(0.46 0.02 262);
+  --color-ink-faint: oklch(0.515 0.02 262);
 
-  /* One confident accent — refined teal. */
-  --color-accent: oklch(0.52 0.072 184);
-  --color-accent-strong: oklch(0.46 0.078 184);
-  --color-accent-soft: oklch(0.95 0.022 184);
-  --color-accent-ink: oklch(0.99 0.004 184);
+  /* One confident accent -- a calm steel-blue (hue ~245), clearly off the AI
+     purple (~290) and off the dropped teal/green (~152-184). */
+  --color-accent: oklch(0.5 0.09 245);
+  --color-accent-strong: oklch(0.44 0.1 245);
+  --color-accent-soft: oklch(0.955 0.022 245);
+  --color-accent-ink: oklch(0.99 0.004 245);
 
-  /* Semantic severity — a single perceptual ramp, calm -> alarm. The -edge
+  /* Semantic severity -- a single perceptual ramp, calm -> alarm. The -edge
      value is a touch deeper/brighter for the trailing end of a runway gradient
      (a single hue shift, never a rainbow). */
   --color-sev-low: oklch(0.55 0.05 200);
@@ -54,7 +63,7 @@
 
   /* Badge-text ink per severity. The base --color-sev-* values are tuned for
      runway-fill gradients and icon strokes, where they sit on light surfaces at
-     large/graphic scale — but as small badge TEXT on the matching -soft fill
+     large/graphic scale -- but as small badge TEXT on the matching -soft fill
      they fall below WCAG AA (low 4.19, medium 3.24, high 3.29 against -soft).
      These dedicated ink tokens darken the same hue just enough to clear AA for
      small text WITHOUT touching the runway colors. Measured against their -soft
@@ -64,9 +73,14 @@
   --color-sev-high-ink: oklch(0.5 0.145 52);
   --color-sev-critical-ink: oklch(0.5 0.165 28);
 
-  /* Status semantics distinct from severity (mode/approval/validation). */
-  --color-positive: oklch(0.52 0.1 152);
-  --color-positive-soft: oklch(0.955 0.03 152);
+  /* Status semantics distinct from severity (mode/approval/validation). The
+     green family is GONE: a "PASS / approved" state is calm confidence, not a
+     green-light decoration, so "positive" now resolves to the steel-blue accent
+     -- the gatekeeper, claim ticks, and the approved pill read as quiet evidence
+     in the one accent, never as celebratory chrome. (Token name kept so existing
+     callers stay valid; the meaning is "validated", rendered in the accent.) */
+  --color-positive: oklch(0.46 0.094 245);
+  --color-positive-soft: oklch(0.955 0.022 245);
   --color-caution: oklch(0.6 0.12 75);
   --color-caution-soft: oklch(0.96 0.04 75);
   /* Caution badge text on caution-soft is 3.55 (< AA); a dedicated ink token
@@ -85,9 +99,11 @@
      hue-independent 1px edge draws the bar boundary in one dark token that
      clears 3:1 for EVERY severity -- measured 4.37:1 vs --color-sink in
      evals/e2e/a11y.spec.ts. The numeric label beside each bar separately
-     satisfies SC 1.4.1 (use of color). */
-  --color-runway-edge: oklch(0.55 0.018 168);
+     satisfies SC 1.4.1 (use of color). Re-tuned to the cool neutral hue (262)
+     for the 2026 palette; measured 4.40:1 vs the new --color-sink (>=3:1). */
+  --color-runway-edge: oklch(0.55 0.018 262);
 
+  /* Crisp instrument radii -- 6-8px, not 24px blobs. */
   --radius-card: 0.5rem;
 }
 
@@ -123,37 +139,34 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* The "lamp on the desk" warmth — two faint radial blooms tinted toward the
-   accent. Fixed, pointer-events-none, never on a scroll container (so it never
-   triggers a continuous GPU repaint). This is the warm-command-center ground. */
+/* A single, very faint cool wash at the top of the canvas -- the "instrument lit
+   from above" ground. One bloom, low opacity, tinted to the cool neutral hue
+   (not the dropped teal). Fixed, pointer-events-none, never on a scroll
+   container (so it never triggers a continuous GPU repaint). Restraint over the
+   previous two-bloom warm lamp: the Quiet Instrument canvas reads near-flat. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background:
-    radial-gradient(
-      120% 80% at 8% -6%,
-      oklch(0.97 0.012 168 / 0.7),
-      transparent 52%
-    ),
-    radial-gradient(
-      100% 70% at 100% 0%,
-      oklch(0.965 0.016 196 / 0.4),
-      transparent 48%
-    );
+  background: radial-gradient(
+    130% 60% at 50% -10%,
+    oklch(0.965 0.008 245 / 0.5),
+    transparent 60%
+  );
 }
 
-/* A faint tactile grain — same fixed-overlay discipline. Subtle enough to read
-   as paper, not noise; lifts the flat off-white off a "default" feel. */
+/* A whisper of tactile grain -- same fixed-overlay discipline. Subtle enough to
+   read as fine paper, not noise; lifts the flat off-white off a "default" feel
+   without warming it. Pulled back for the Quiet Instrument calm. */
 body::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.5;
+  opacity: 0.35;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
@@ -191,37 +204,49 @@ textarea:focus-visible,
   font-feature-settings: "tnum";
 }
 
-/* Briefing headline voice — the serif display face, optically sized. The
-   italic <em> is the one place the teal accent enters the headline (the figure
-   that the whole packet turns on), matching the iter-3 editorial lede. */
-.headline {
+/* The ONE editorial gesture. The serif appears in exactly one place across the
+   whole app: the north-star at-risk figure in the briefing lede. Everything else
+   is Geist (the bespoke grotesk, ~95% of type). The italic <em> is the at-risk
+   dollar figure the entire packet turns on -- set in the serif, in the accent, so
+   the reader's eye lands on the number that matters before anything else. */
+.headline-figure {
   font-family: var(--font-serif);
   font-optical-sizing: auto;
-  letter-spacing: -0.012em;
-}
-
-.headline em {
   font-style: italic;
+  font-weight: 500;
+  /* The cheapest move from "calm" to "has a voice": the at-risk figure outsizes
+     the surrounding lede so the eye lands on the NUMBER first, before the place
+     name. ~1.18x the inherited size, with a hair more air around it (the inline
+     box stays on the same baseline; the leading is handled by the h1). */
+  font-size: 1.18em;
+  letter-spacing: 0.004em;
+  margin: 0 0.04em;
   color: var(--color-accent-strong);
 }
 
-/* The masthead mark — serif wordmark with the accented italic sub-word. */
+/* The masthead mark -- Geist, not serif (serif is reserved for the at-risk
+   figure). The sub-word is weighted + accented to read as the product name. */
 .wordmark {
-  font-family: var(--font-serif);
-  font-optical-sizing: auto;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.014em;
 }
 
 .wordmark em {
-  font-style: italic;
-  font-weight: 500;
+  font-style: normal;
+  font-weight: 600;
   color: var(--color-accent-strong);
 }
 
-/* A panel: one hairline, a faint warm lift — no decorative drop shadow. */
+/* A panel: pure-white surface lifted off the cool ground by ONE hairline -- edge,
+   not elevation (committing to one, never both). No decorative drop shadow. A
+   recessed variant (.panel-sunken) sits on the tonal sink for grouped wells. */
 .panel {
   border: 1px solid var(--color-line);
   background: var(--color-surface);
+}
+
+.panel-sunken {
+  border: 1px solid var(--color-line);
+  background: var(--color-sink);
 }
 
 /* A scroll guard so data tables never overflow the viewport on small screens
@@ -235,7 +260,7 @@ textarea:focus-visible,
   min-width: 32rem;
 }
 
-/* Scannable evidence/exposure table — hairline rows, label header. */
+/* Scannable evidence/exposure table -- hairline rows, label header. */
 .brief-table {
   width: 100%;
   border-collapse: collapse;
@@ -266,7 +291,7 @@ textarea:focus-visible,
   font-size: 0.875rem;
 }
 
-/* Runway bar track — the inline sparkline-style exposure-over-time gauge. */
+/* Runway bar track -- the inline sparkline-style exposure-over-time gauge. */
 .runway-track {
   position: relative;
   height: 0.5rem;
@@ -284,7 +309,7 @@ textarea:focus-visible,
   border: 1px solid var(--color-runway-edge);
   /* A calm grow-in: bars animate their width on mount (one transition, not a
      loop). The inline `width` is set after first paint so the bar fills from 0
-     — JS that drives it is reduced-motion-guarded. */
+     -- JS that drives it is reduced-motion-guarded. */
   transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -319,18 +344,18 @@ textarea:focus-visible,
   );
 }
 
-/* The inset well under a runway bar — a faint recessed track, tactile not flat. */
+/* The inset well under a runway bar -- a faint recessed track, tactile not flat. */
 .runway-track {
-  box-shadow: inset 0 1px 1px oklch(0.3 0.02 168 / 0.05);
+  box-shadow: inset 0 1px 1px oklch(0.3 0.02 262 / 0.05);
 }
 
 /* ---------------------------------------------------------------------------
-   Entrance motion — restrained, one pass.
+   Entrance motion -- restrained, one pass.
 
    `.reveal` rises a panel into place on mount; the per-panel `--d` (ms) staggers
    the sequence so the briefing assembles top-down. `.tab-enter` is the ≤200ms
    tab-switch fade/slide, re-fired by a changing React `key`. Both are single
-   transitions — no perpetual loops anywhere.
+   transitions -- no perpetual loops anywhere.
    --------------------------------------------------------------------------- */
 @keyframes rise {
   from {
@@ -389,7 +414,7 @@ textarea:focus-visible,
 
   /* Looping loaders (Tailwind's animate-spin / -ping / -bounce / -pulse) are
      infinite keyframe animations. The universal 0.01ms duration override above
-     would not stop them — it would turn a spinner into a near-instant flicker
+     would not stop them -- it would turn a spinner into a near-instant flicker
      looping forever. For reduced motion they must HALT at a static frame, so
      null the animation outright rather than just shrinking its duration. */
   .animate-spin,

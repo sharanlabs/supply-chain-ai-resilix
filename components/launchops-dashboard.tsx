@@ -27,14 +27,14 @@ function buildTabs(signals: PublicSignal[]): TabDef[] {
     {
       key: "events",
       label: hasLive ? "Live Events" : "Recorded Events",
-      hint: "Signal feed"
+      hint: "What we're seeing"
     },
     { key: "exposure", label: "Exposure", hint: "Who is hit" },
-    { key: "simulation", label: "Simulation", hint: "Runway" },
+    { key: "simulation", label: "Simulation", hint: "How fast it bites" },
     {
       key: "packet",
       label: "Action Packet",
-      hint: "The decision",
+      hint: "The briefing",
       pip: "READY"
     }
   ];
@@ -75,14 +75,14 @@ export function LaunchOpsDashboard({ packet }: { packet?: DecisionPacketV2 }) {
 
   return (
     <div className="min-h-[100dvh]">
-      <header className="sticky top-0 z-20 border-b border-line bg-ground/80 backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b border-line bg-ground/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-3.5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div className="flex items-center gap-3.5">
             <div className="flex size-9 items-center justify-center rounded-md bg-ink text-ground">
               <ShieldCheck className="size-[1.125rem]" aria-hidden="true" />
             </div>
             <div className="flex items-baseline gap-3">
-              <p className="wordmark text-[1.1875rem] font-medium text-ink">
+              <p className="wordmark text-[1.1875rem] font-semibold text-ink">
                 RESILIX <em>ActionOps</em>
               </p>
               <span className="hidden font-mono text-[0.625rem] tracking-[0.16em] text-ink-faint uppercase sm:inline">
@@ -148,9 +148,10 @@ export function LaunchOpsDashboard({ packet }: { packet?: DecisionPacketV2 }) {
 function LiveEventsTab({ packet }: { packet: DecisionPacketV2 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink-muted">
-        Recorded public signals backing the current threat. Each carries its
-        source, recency, and an honest live/recorded status.
+      <p className="max-w-[64ch] text-sm leading-6 text-ink-muted">
+        These are the recorded public signals that triggered the briefing -- what
+        we are seeing, where it came from, and how fresh it is. Each one is marked
+        honestly as live or recorded.
       </p>
       {packet.publicSignals.map((signal) => (
         <article
@@ -193,11 +194,12 @@ function ExposureTab({ packet }: { packet: DecisionPacketV2 }) {
   return (
     <div className="panel rounded-(--radius-card)">
       <header className="border-b border-line px-5 py-4">
-        <h2 className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase">
-          Exposure mapping
+        <h2 className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
+          Who is hit
         </h2>
-        <p className="mt-1 text-sm text-ink-muted">
-          Suppliers matched to the threat on origin, sector, and routing.
+        <p className="mt-1 max-w-[60ch] text-sm leading-6 text-ink-muted">
+          Suppliers matched to the threat on origin, sector, and routing --
+          ranked by how hard the disruption lands on each.
         </p>
       </header>
       <div className="table-scroll">
@@ -264,7 +266,7 @@ function SimulationTab({ packet }: { packet: DecisionPacketV2 }) {
         <Database className="size-4 text-accent" aria-hidden="true" />
         {/* Derived from the packet's real horizons -- honest for any scenario,
             never a hardcoded day list that drifts from the simulated window. */}
-        <h2 className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase">
+        <h2 className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
           {simulation.horizons.map((h) => h.days).join(" / ")}-day runway
         </h2>
       </header>

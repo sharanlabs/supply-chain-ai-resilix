@@ -41,9 +41,32 @@ function severityKey(severity: Severity): "low" | "medium" | "high" | "critical"
   return "critical";
 }
 
+// The single source of truth for a supplier row's risk tier: the leading token of
+// the Atlas rationale ("CRITICAL risk tier; 47-day lead time."). The exposureScore
+// alone CANNOT recover the tier -- base+lead ranges overlap (a HIGH supplier on a
+// long lane can outscore a CRITICAL on a short one; atlas.ts states this is
+// intended) -- so a score threshold would mislabel real packets. Parsing the tier
+// keeps the WHO-IS-HIT bar color and any future tier label reading the SAME field,
+// so they can never disagree. Defensive null only if an upstream rationale ever
+// drops the leading tier token (not a path Atlas produces); the caller falls back
+// to a neutral mid so the bar still renders.
+function tierFromRationale(rationale: string): Severity | null {
+  const match = /^\s*(LOW|MEDIUM|HIGH|CRITICAL)\b/i.exec(rationale);
+  return match ? (match[1].toUpperCase() as Severity) : null;
+}
+
+// A plain-English confidence word for the prose, so a layperson reads "high
+// confidence", not a bare percentage. The number still appears beside it.
+function confidenceWord(pct: number) {
+  if (pct >= 85) return "high";
+  if (pct >= 65) return "moderate";
+  if (pct >= 45) return "limited";
+  return "low";
+}
+
 // Defense-in-depth: only http(s) reaches the DOM. Evidence URLs derive from GDELT
 // signals validated by HttpUrlSchema upstream, but the render layer must not assume
-// that holds — block javascript:/data: if an unvalidated path ever feeds an
+// that holds -- block javascript:/data: if an unvalidated path ever feeds an
 // evidence URL (Law 11: untrusted external data is never trusted at the sink).
 function safeHref(url: string): string {
   try {
@@ -89,9 +112,9 @@ function shortTime(iso: string) {
   });
 }
 
-// Compact currency for the display headline only — a 42px serif lede reads
+// Compact currency for the display lede only -- the serif at-risk figure reads
 // "$1.1M", not "$1,142,500". The exact figure is shown everywhere it matters
-// (runway rows, threat params, claim provenance); only the hero is rounded.
+// (runway rows, threat prose, claim provenance); only the lede is rounded.
 function compactCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
     notation: "compact",
@@ -109,12 +132,34 @@ function hostname(url: string) {
   }
 }
 
-// Pre-format the event type to a readable phrase IN JS — never a blanket CSS
+// Turn a claim's machine sourcePath into a plain-English provenance phrase, so a
+// layperson reads "from this supplier's exposure result", not the bare dotted
+// path `exposureResults[0].exposureScore`. The raw path still renders beside it
+// (smaller, mono) -- the human reading leads, the exact trace stays for the pro.
+// Keyed off the top-level field of the path; falls back to a generic phrase for
+// any path shape not enumerated, so it never renders blank.
+function humanSource(sourcePath: string): string {
+  const root = sourcePath.split(/[.[]/, 1)[0];
+  switch (root) {
+    case "exposureResults":
+      return "from this supplier's exposure result";
+    case "simulation":
+      return "from the runway simulation";
+    case "threatCard":
+      return "from the threat assessment";
+    case "publicSignals":
+      return "from a recorded source signal";
+    default:
+      return "traced to a structured input";
+  }
+}
+
+// Pre-format the event type to a readable phrase IN JS -- never a blanket CSS
 // title-case. Small words (of/the/and/&/to/in/for/on) stay lowercase so a
 // proper noun like "Strait of Hormuz" never becomes "Strait Of Hormuz". The
 // location comes straight from data and is already correct, so it is left
 // untouched. Works for any threat: chokepoint closure, tariff, hurricane,
-// bankruptcy — not just the Gulf demo.
+// bankruptcy -- not just the Gulf demo.
 const SMALL_WORDS = new Set([
   "of",
   "the",
@@ -146,21 +191,28 @@ function threatHeadline(threat: DecisionPacketV2["threatCard"]) {
     threat.location.chokepoint ??
     threat.location.region ??
     threat.location.country;
-  return where ? `${event} — ${where}` : event;
+  return where ? `${event} -- ${where}` : event;
 }
 
 // ---------------------------------------------------------------------------
-// The Action Packet — the primary screen, read like a briefing document.
+// The Action Packet -- the primary screen, read start-to-end like a war-room
+// briefing a layperson and an industry pro both follow.
 //
-// Editorial 2-column command-center layout (matching the approved iter-3):
-//   packet head (kicker + serif headline + meta)
-//   main column  -> threat / exposure / runway / playbooks / drafts / tasks
-//   sticky side  -> human approval / gatekeeper / audit trail
+// The narrative spine (numbers SUPPORT the story, never a stat-wall):
+//   1. North-star lede   -- the at-risk figure, in one sentence (the serif gesture)
+//   2. Threat            -- what happened, how sure (confidence in prose + evidence)
+//   3. Exposure          -- who is hit (ranked table)
+//   4. Runway            -- how fast (revenue-at-risk over time + first stockout)
+//   5. Drafted response  -- the prepared supplier emails (bodies behind disclosure)
+//   6. The Approve moment -- the human decision, with the gatekeeper as quiet evidence
+//
+// Secondary detail (role playbooks, full task list) lives behind progressive
+// disclosure so the default view stays at the briefing spine, not a data dump.
 //
 // Presentational + a self-contained approve/reject action with optimistic local
 // state (the persisted /approve API only exists for the live V1 pipeline; on a
 // seeded V2 packet it would 404, so the action mutates a local copy and appends
-// a client-side audit line — honest, and the right behavior for a demo packet).
+// a client-side audit line -- honest, and the right behavior for a demo packet).
 // ---------------------------------------------------------------------------
 export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
   const [approval, setApproval] = useState<{
@@ -187,7 +239,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
     ?.fetchedAt;
 
   // Validate the evidence URLs at the data boundary with the SAME schema the
-  // signal pipeline uses (HttpUrlSchema — http(s)-only). The "evidence allowlist
+  // signal pipeline uses (HttpUrlSchema -- http(s)-only). The "evidence allowlist
   // passed" line is then derived from this real result, not asserted blindly: if
   // any URL fails (e.g. a javascript:/data: link slipped in), the line says so
   // and only the URLs that actually pass are rendered as links. safeHref stays
@@ -212,39 +264,64 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
     return Math.max(...simulation.horizons.map((h) => h.revenueAtRiskUsd), 1);
   }, [simulation]);
 
-  // The headline figure the packet turns on: the worst-case revenue at risk.
+  // The north-star figure the packet turns on: the worst-case revenue at risk.
   const peakRisk = useMemo(() => {
     if (!simulation || simulation.horizons.length === 0) return null;
     return Math.max(...simulation.horizons.map((h) => h.revenueAtRiskUsd));
   }, [simulation]);
 
+  // Revenue at risk saturates once the disruption's full exposure is reached
+  // (revenueAtRisk = min(H, durationDays)), so the later horizons can hold flat at
+  // the peak -- two equal adjacent bars are correct data, not a render bug. Detect
+  // the FIRST horizon that hits the peak: if an earlier one already does (a later
+  // bar equals it), the runway plateaus, and the copy/annotation say so honestly
+  // instead of claiming it "climbs across the window". When every horizon is
+  // distinct (the fixture: 50k -> 200k) it genuinely climbs and no plateau is shown.
+  const plateau = useMemo(() => {
+    if (!simulation || simulation.horizons.length < 2 || peakRisk === null) {
+      return null;
+    }
+    const firstPeakIndex = simulation.horizons.findIndex(
+      (h) => h.revenueAtRiskUsd >= peakRisk
+    );
+    // A plateau exists only if a horizon AFTER the first peak also sits at the
+    // peak (i.e. it stops climbing before the last horizon).
+    const saturates = firstPeakIndex < simulation.horizons.length - 1;
+    if (!saturates) return null;
+    return { day: simulation.horizons[firstPeakIndex].days };
+  }, [simulation, peakRisk]);
+
   const earliestRunout = useMemo(() => {
     if (!simulation || simulation.productRunouts.length === 0) return null;
-    return simulation.productRunouts
-      .map((r) => r.runoutDate)
-      .sort()[0];
+    return simulation.productRunouts.map((r) => r.runoutDate).sort()[0];
   }, [simulation]);
 
   const auditTrail = [...packet.auditTrail, ...approval.extraAudit];
 
+  const where =
+    threatCard.location.chokepoint ??
+    threatCard.location.region ??
+    threatCard.location.country ??
+    "the supply route";
+
   // The human-approval invariant: a packet may only be approved while it is
   // PENDING *and* the gatekeeper cleared it for human review. A BLOCKED/WARN
   // gatekeeper verdict, or an already-decided packet, must make approval
-  // impossible from the UI — both the control and the handler are gated, so the
+  // impossible from the UI -- both the control and the handler are gated, so the
   // gate can never be bypassed. (Return-for-revision stays available while
   // PENDING; only the approve path is gatekeeper-gated.)
   const canApprove =
     approval.status === "PENDING" && gatekeeper.approvedForHumanReview === true;
 
   // Why approval is blocked, surfaced under the disabled control. Derived from
-  // the real gatekeeper verdict — never hardcoded.
+  // the real gatekeeper verdict -- never hardcoded.
   const approveBlockedReason =
     approval.status !== "PENDING"
-      ? null // already decided — the status pill already communicates this
+      ? null // already decided -- the status pill already communicates this
       : gatekeeper.approvedForHumanReview
         ? null
         : gatekeeper.status === "BLOCKED"
-          ? "Gatekeeper BLOCKED this packet — resolve the failures above before approval."
+          ? "Gatekeeper BLOCKED this packet -- resolve the failures above before approval."
           : "Gatekeeper has not cleared this packet for human review.";
 
   function decide(status: "APPROVED" | "REJECTED") {
@@ -274,7 +351,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
   }
 
   return (
-    <div className="flex flex-col gap-8" data-testid="actionops-packet">
+    <div className="flex flex-col gap-9" data-testid="actionops-packet">
       {/* WCAG 2.2 SC 4.1.3: a persistent, always-mounted live region -- it exists
           empty when live, and when the packet mode flips to degraded (or recorded)
           its text changes so assistive tech announces it without moving focus.
@@ -282,35 +359,56 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
       <div role="status" aria-live="polite" className="sr-only" data-testid="mode-status">
         {modeAnnouncement}
       </div>
-      {/* Packet head — the briefing lede. The at-risk figure is the one accented
-          word in the serif headline. */}
-      <div
+
+      {/* ============================================================
+          1. NORTH-STAR LEDE -- the at-risk figure in one calm sentence.
+          The serif italic figure is the single editorial gesture in the
+          whole app; the rest of the lede is Geist. No uppercase kicker
+          stacked above it -- the meta sits quietly to the side.
+          ============================================================ */}
+      <header
         className="reveal flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"
         style={{ "--d": 40 } as React.CSSProperties}
       >
-        <div>
-          <p className="text-[0.6875rem] font-semibold tracking-[0.14em] text-accent-strong uppercase">
+        <div className="max-w-[34rem]">
+          <p className="flex items-center gap-2 text-sm text-ink-faint">
+            <span
+              aria-hidden="true"
+              className="size-1.5 rounded-full bg-accent"
+            />
             Decision packet ·{" "}
             {approval.status === "PENDING"
-              ? "Pending approval"
+              ? "awaiting your approval"
               : approval.status === "APPROVED"
-                ? "Approved"
-                : "Returned"}
+                ? "approved"
+                : "returned for revision"}
           </p>
-          <h1 className="headline mt-2 max-w-[22ch] text-[1.875rem] leading-[1.06] font-medium text-ink sm:text-[2.625rem]">
+          <h1 className="mt-3 text-[1.625rem] leading-[1.18] font-medium text-ink sm:text-[2rem] sm:leading-[1.16]">
             {peakRisk !== null ? (
               <>
-                A{" "}
-                {threatCard.location.chokepoint ??
-                  threatCard.location.region ??
-                  "supply"}{" "}
-                disruption puts <em>{compactCurrency(peakRisk)}</em> of supply
-                at risk.
+                A disruption at {where} puts{" "}
+                {/* The one figure the packet turns on: COMPACT in the display lede
+                    ($2.7M), with the exact value as a tooltip so the rounding is
+                    intentional, not lossy. Full precision still shows in the runway
+                    data table below. */}
+                <span
+                  className="headline-figure"
+                  title={`${formatCurrency(peakRisk)} peak revenue at risk`}
+                >
+                  {compactCurrency(peakRisk)}
+                </span>{" "}
+                of supply at risk.
               </>
             ) : (
               threatHeadline(threatCard)
             )}
           </h1>
+          {peakRisk !== null ? (
+            <p className="mt-3 max-w-[46ch] text-[0.9375rem] leading-7 text-ink-muted">
+              Here is what we know, who it hits, how fast it bites, and the
+              response we have drafted for your sign-off.
+            </p>
+          ) : null}
         </div>
         {/* Presentational packet meta (label-value lines), not a definition
             list -- a <dl> here trips axe's definition-list rule because the
@@ -332,23 +430,27 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             <span className="font-medium text-ink">procurement desk</span>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* The editorial 2-column command-center grid: main briefing + sticky
-          decision rail. Collapses to one column under lg. */}
+      {/* The two-column war room: the briefing spine on the left, the human
+          decision rail sticky on the right. Collapses to one column under lg. */}
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        {/* ===================== MAIN COLUMN ===================== */}
+        {/* ===================== BRIEFING SPINE ===================== */}
         <div className="flex min-w-0 flex-col gap-6">
-          {/* Threat card — severity-led, with the deterministic-verifier
-              evidence line rendered as a verified statement. */}
+          {/* --------------------------------------------------------
+              2. THREAT -- what happened, and how sure we are. Confidence
+              reads as a plain-English sentence (number supporting prose),
+              not a stat-wall. Severity is a small badge; the panel is a
+              hairline tonal surface -- no thick colored left border.
+              -------------------------------------------------------- */}
           <section
-            className="reveal panel rounded-(--radius-card) border-l-[3px] border-l-sev-critical p-6 sm:p-7"
+            className="reveal panel rounded-(--radius-card) p-6 sm:p-7"
             style={{ "--d": 120 } as React.CSSProperties}
             aria-labelledby="threat-h"
           >
             <div className="flex items-center justify-between gap-3">
-              <span className="text-[0.625rem] font-semibold tracking-[0.13em] text-ink-faint uppercase">
-                Threat card · Sentinel
+              <span className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
+                The threat
               </span>
               <span className="font-mono text-[0.625rem] tracking-[0.04em] text-ink-faint">
                 {threatCard.eventType}
@@ -358,7 +460,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
               <h2
                 id="threat-h"
-                className="headline max-w-[26ch] text-[1.375rem] leading-[1.14] font-medium text-ink sm:text-[1.625rem]"
+                className="max-w-[28ch] text-[1.25rem] leading-[1.22] font-semibold text-ink sm:text-[1.4375rem]"
               >
                 {threatHeadline(threatCard)}
               </h2>
@@ -367,68 +469,53 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               </Badge>
             </div>
 
-            <p className="mt-4 max-w-[62ch] text-[0.9375rem] leading-7 text-ink-muted">
+            <p className="mt-4 max-w-[64ch] text-[0.9375rem] leading-7 text-ink-muted">
               {threatCard.summary}
             </p>
 
-            {/* Threat parameters — the count-up lands one figure (confidence)
-                for a calm sense of compute; the rest are static. */}
-            <dl className="tnum mt-5 flex flex-wrap gap-x-10 gap-y-4 border-t border-b border-line py-4">
-              <Param label="Confidence" value={`${confidenceCount}`} unit="%" />
-              <Param
-                label="Sources"
-                value={`${honesty.cached + honesty.live}`}
-                unit="cited"
-              />
-              {peakRisk !== null ? (
-                <Param
-                  label="Peak at risk"
-                  value={formatCurrency(peakRisk)}
-                />
-              ) : null}
-              <Param
-                label="Exposed"
-                value={`${packet.exposureResults.length}`}
-                unit="suppliers"
-              />
-            </dl>
-
-            {/* Deterministic-verifier evidence line. */}
-            <div className="mt-5 flex items-start gap-3 rounded-md border border-accent/30 bg-accent-soft px-4 py-3.5">
-              <span
-                aria-hidden="true"
-                className="mt-px flex size-[1.375rem] shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink"
-              >
-                <CheckCircle2 className="size-3.5" />
+            {/* Confidence + sourcing as ONE plain sentence -- the figures support
+                the story rather than standing as a number grid. */}
+            <p className="tnum mt-4 max-w-[64ch] border-t border-line pt-4 text-[0.9375rem] leading-7 text-ink-muted">
+              We hold{" "}
+              <span className="font-semibold text-ink">
+                {confidenceWord(confidencePct)} confidence
+              </span>{" "}
+              in this read (
+              <span className="font-semibold text-ink">{confidenceCount}%</span>
+              ), drawn from{" "}
+              <span className="font-semibold text-ink">
+                {honesty.cached + honesty.live} recorded sources
               </span>
-              <div className="text-[0.8125rem] leading-[1.45] text-accent-strong">
-                {/* A descriptive count of the recorded signal feed -- NOT a
-                    relevance-verified corroboration claim. The deterministic D.1
-                    Verifier does not yet confirm each source supports the threat
-                    (D.4 owns that); the evidence-allowlist line below IS computed. */}
-                <span className="font-semibold">
-                  Across {honesty.cached + honesty.live} recorded sources
-                </span>
-                {capturedAt
-                  ? `, captured ${shortDate(capturedAt)}.`
-                  : "."}{" "}
+              {capturedAt ? <> captured {shortDate(capturedAt)}</> : null}.{" "}
+              <span className="text-ink-faint">
                 {honesty.live > 0
-                  ? `${honesty.live} live / ${honesty.cached} recorded.`
-                  : "Recorded replay — no live AI claimed."}
-                <span className="mt-1 block font-mono text-[0.625rem] tracking-[0.02em]">
+                  ? `${honesty.live} live, ${honesty.cached} recorded.`
+                  : "Recorded replay -- no live AI is claimed."}
+              </span>
+            </p>
+
+            {/* Quiet evidence line -- the provenance/verifier statement as a trust
+                feature, in the calm accent, never red-alert chrome. */}
+            <div className="mt-4 flex items-start gap-3 rounded-md border border-accent/25 bg-accent-soft px-4 py-3">
+              <ShieldCheck
+                aria-hidden="true"
+                className="mt-0.5 size-4 shrink-0 text-accent-strong"
+              />
+              <p className="text-[0.8125rem] leading-[1.5] text-accent-strong">
+                Every figure in this packet traces back to a recorded source.
+                <span className="mt-0.5 block font-mono text-[0.625rem] tracking-[0.02em] text-accent">
                   VERIFIER · {packet.effectiveMode} ·{" "}
                   {evidenceAllowlistPassed
                     ? "evidence allowlist passed"
                     : `evidence allowlist: ${allowedEvidenceUrls.length}/${threatCard.evidenceUrls.length} URLs passed`}
                 </span>
-              </div>
+              </p>
             </div>
 
-            {/* Source links. */}
-            {/* min-h-6 makes every source link a >=24px WCAG 2.2 SC 2.5.8
-                target (these are a link list, not a sentence, so the inline
-                exception does not apply); the wider gap-y keeps wrapped rows
-                from crowding the enlarged targets. */}
+            {/* Source links. min-h-6 makes every source link a >=24px WCAG 2.2
+                SC 2.5.8 target (these are a link list, not a sentence, so the
+                inline exception does not apply); the wider gap-y keeps wrapped
+                rows from crowding the enlarged targets. */}
             <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-ink-faint">
               {allowedEvidenceUrls.map((url) => (
                 <li key={url}>
@@ -446,27 +533,40 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             </ul>
           </section>
 
-          {/* Exposure — a scannable table, not a card grid. */}
+          {/* --------------------------------------------------------
+              3. EXPOSURE -- who is hit. A scannable ranked table, not a
+              card grid. The lead sentence carries the count.
+              -------------------------------------------------------- */}
           <section
             className="reveal panel rounded-(--radius-card)"
             style={{ "--d": 200 } as React.CSSProperties}
             aria-labelledby="exp-h"
           >
-            <header className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+            <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
               <div>
                 <h2
                   id="exp-h"
-                  className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase"
+                  className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase"
                 >
-                  Supplier exposure
+                  Who is hit
                 </h2>
-                <p className="mt-1 text-sm text-ink-muted">
-                  {packet.exposureResults.length} suppliers in the blast radius,
-                  ranked by exposure score.
+                <p className="mt-1 max-w-[52ch] text-sm leading-6 text-ink-muted">
+                  {packet.exposureResults.length} suppliers sit in the blast
+                  radius, ranked here by how hard the disruption lands.
                 </p>
+                {/* The context EVERY exposed supplier shares, stated once -- so the
+                    per-row line carries only what varies (the risk tier + lead
+                    time), not nine repetitions of the same clause. */}
+                {packet.exposureResults.length > 0 ? (
+                  <p className="mt-1.5 max-w-[58ch] text-xs leading-5 text-ink-faint">
+                    All {packet.exposureResults.length} sit on lanes routed
+                    through the affected chokepoint, none with a qualified backup
+                    on file. Per row: the risk tier and the standard lead time.
+                  </p>
+                ) : null}
               </div>
               <AlertTriangle
-                className="size-5 shrink-0 text-sev-high"
+                className="mt-0.5 size-5 shrink-0 text-sev-high"
                 aria-hidden="true"
               />
             </header>
@@ -489,57 +589,91 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {packet.exposureResults.map((result) => (
-                      <tr key={result.id}>
-                        <td>
-                          <div className="font-medium text-ink">
-                            {result.supplierName}
-                          </div>
-                          <div className="mt-0.5 max-w-[42ch] text-xs leading-5 text-ink-faint">
-                            {result.rationale}
-                          </div>
-                        </td>
-                        <td className="tnum text-ink-muted">{result.country}</td>
-                        <td className="font-mono text-xs text-ink-muted">
-                          {result.sector}
-                        </td>
-                        <td>
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1">
-                              <RunwayBar
-                                pct={(result.exposureScore / maxExposure) * 100}
-                                sev="high"
-                              />
+                    {packet.exposureResults.map((result) => {
+                      // The row's ACTUAL tier drives its exposure bar, so the
+                      // column reads as a true heat ramp (a CRITICAL row is red, a
+                      // LOW row blue) -- not a flat amber. Same parse the row line
+                      // shows, so bar color and label can never disagree. Fallback
+                      // to a neutral mid only if a rationale ever drops its tier
+                      // token (not a path Atlas produces).
+                      const tier = tierFromRationale(result.rationale);
+                      const sev = tier ? severityKey(tier) : "medium";
+                      return (
+                        <tr key={result.id}>
+                          <td>
+                            <div className="font-medium text-ink">
+                              {result.supplierName}
                             </div>
-                            <span className="tnum w-8 text-right text-sm font-medium text-ink">
-                              {result.exposureScore}
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                            <div className="mt-0.5 max-w-[42ch] text-xs leading-5 text-ink-faint">
+                              {result.rationale}
+                            </div>
+                          </td>
+                          <td className="tnum text-ink-muted">
+                            {result.country}
+                          </td>
+                          <td className="font-mono text-xs text-ink-muted">
+                            {result.sector}
+                          </td>
+                          <td>
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1">
+                                <RunwayBar
+                                  pct={
+                                    (result.exposureScore / maxExposure) * 100
+                                  }
+                                  sev={sev}
+                                />
+                              </div>
+                              <span className="tnum w-8 text-right text-sm font-medium text-ink">
+                                {result.exposureScore}
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
           </section>
 
-          {/* Runway — inline horizontal bars, revenue at risk over time. */}
+          {/* --------------------------------------------------------
+              4. RUNWAY -- how fast it bites. Revenue at risk over the
+              response window, plus the first projected stockout date.
+              -------------------------------------------------------- */}
           <section
-            className="reveal panel rounded-(--radius-card) p-5"
+            className="reveal panel rounded-(--radius-card) p-5 sm:p-6"
             style={{ "--d": 280 } as React.CSSProperties}
             aria-labelledby="run-h"
           >
-            <header className="mb-4 flex items-center justify-between gap-3">
+            <header className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h2
                   id="run-h"
-                  className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase"
+                  className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase"
                 >
-                  Runway
+                  How fast it bites
                 </h2>
-                <p className="mt-1 text-sm text-ink-muted">
-                  Revenue at risk across the response window.
+                <p className="mt-1 max-w-[52ch] text-sm leading-6 text-ink-muted">
+                  {earliestRunout ? (
+                    <>
+                      The first stockout lands{" "}
+                      <span className="font-medium text-sev-critical-ink">
+                        {shortDate(earliestRunout)}
+                      </span>
+                      {plateau ? (
+                        <>
+                          ; revenue at risk climbs to full exposure by day{" "}
+                          {plateau.day}, then holds.
+                        </>
+                      ) : (
+                        <>; revenue at risk climbs across the window below.</>
+                      )}
+                    </>
+                  ) : (
+                    "Revenue at risk across the response window."
+                  )}
                 </p>
               </div>
               <Badge tone="neutral">{packet.dataTier}</Badge>
@@ -572,9 +706,19 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                       </div>
                     );
                   })}
+                  {/* When two adjacent bars sit at the same value the runway has
+                      plateaued -- full exposure is already reached, so the later
+                      horizon equals the earlier one. Name it, so equal bars read as
+                      a real saturation point and not a render bug. */}
+                  {plateau ? (
+                    <p className="tnum text-xs leading-5 text-ink-faint">
+                      Saturated -- full exposure reached by day {plateau.day};
+                      later horizons hold at the peak.
+                    </p>
+                  ) : null}
                 </div>
                 <div className="border-line lg:border-l lg:pl-6">
-                  <h3 className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase">
+                  <h3 className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
                     Product runout
                   </h3>
                   <dl className="mt-3 space-y-2.5">
@@ -598,8 +742,8 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                         className="size-3.5 shrink-0 text-sev-high"
                         aria-hidden="true"
                       />
-                      First projected stockout —{" "}
-                      <span className="tnum font-medium text-sev-critical">
+                      First projected stockout --{" "}
+                      <span className="tnum font-medium text-sev-critical-ink">
                         {shortDate(earliestRunout)}
                       </span>
                     </p>
@@ -617,64 +761,29 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             )}
           </section>
 
-          {/* Playbooks — role briefings. */}
-          {packet.playbooks.length > 0 ? (
-            <section
-              className="reveal panel rounded-(--radius-card) p-5"
-              style={{ "--d": 340 } as React.CSSProperties}
-            >
-              <header className="mb-4 flex items-center gap-2">
-                <Workflow className="size-4 text-accent" aria-hidden="true" />
-                <h2 className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase">
-                  Role playbooks
-                </h2>
-              </header>
-              <div className="grid gap-5 md:grid-cols-2">
-                {packet.playbooks.map((playbook) => (
-                  <article
-                    key={playbook.id}
-                    className="border-l-2 border-accent/40 pl-4"
-                  >
-                    <h3 className="text-sm font-semibold text-ink">
-                      {playbook.role}
-                    </h3>
-                    <p className="mt-1 text-sm leading-6 text-ink-muted">
-                      {playbook.summary}
-                    </p>
-                    {playbook.steps.length > 0 ? (
-                      <ol className="mt-2 space-y-1.5 text-sm text-ink-muted">
-                        {playbook.steps.map((step, index) => (
-                          <li
-                            key={`${playbook.id}-step-${index}`}
-                            className="flex gap-2"
-                          >
-                            <span className="tnum text-ink-faint">
-                              {index + 1}.
-                            </span>
-                            <span>{step}</span>
-                          </li>
-                        ))}
-                      </ol>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {/* Supplier drafts — never sends. */}
+          {/* --------------------------------------------------------
+              5. DRAFTED RESPONSE -- the prepared supplier emails. The
+              subject + claim provenance stay visible; the full body sits
+              behind a per-draft disclosure so the spine stays scannable.
+              Nothing ever sends.
+              -------------------------------------------------------- */}
           <section
-            className="reveal panel rounded-(--radius-card) p-5"
-            style={{ "--d": 400 } as React.CSSProperties}
+            className="reveal panel rounded-(--radius-card) p-5 sm:p-6"
+            style={{ "--d": 360 } as React.CSSProperties}
+            aria-labelledby="draft-h"
           >
-            <header className="mb-1 flex items-center gap-2">
+            <header className="flex items-center gap-2">
               <Mail className="size-4 text-accent" aria-hidden="true" />
-              <h2 className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase">
-                Drafted supplier emails
+              <h2
+                id="draft-h"
+                className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase"
+              >
+                The drafted response
               </h2>
             </header>
-            <p className="mb-4 text-xs text-ink-faint">
-              Drafts only — nothing sends without human approval.
+            <p className="mt-1 mb-4 max-w-[60ch] text-sm leading-6 text-ink-muted">
+              We have written the outreach for you. These are drafts only --
+              nothing leaves the building until a person sends them.
             </p>
             {packet.supplierMessages.length === 0 ? (
               <p className="text-sm text-ink-muted">
@@ -702,24 +811,45 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                         {message.subject}
                       </p>
                     ) : null}
-                    <p className="mt-1 text-sm leading-6 whitespace-pre-line text-ink-muted">
-                      {message.body}
-                    </p>
+                    {/* Full body behind a disclosure -- present in the DOM (so
+                        claims/search still resolve), collapsed by default to keep
+                        the spine calm. */}
+                    <details className="group mt-2">
+                      <summary className="inline-flex min-h-6 cursor-pointer list-none items-center gap-1 text-xs font-medium text-accent-strong underline-offset-2 hover:underline">
+                        <ArrowUpRight
+                          className="size-3 transition-transform group-open:rotate-90"
+                          aria-hidden="true"
+                        />
+                        Read the draft
+                      </summary>
+                      <p className="mt-2 text-sm leading-6 whitespace-pre-line text-ink-muted">
+                        {message.body}
+                      </p>
+                    </details>
                     {message.claims.length > 0 ? (
-                      <ul className="mt-3 space-y-1 border-t border-line pt-2 text-xs text-ink-faint">
+                      <ul className="mt-3 space-y-1.5 border-t border-line pt-2 text-xs text-ink-faint">
                         {message.claims.map((claim, index) => (
                           <li
                             key={`${message.id}-claim-${index}`}
-                            className="tnum flex items-start gap-1.5"
+                            className="flex items-start gap-1.5"
                           >
                             <CheckCircle2
-                              className="mt-0.5 size-3 shrink-0 text-positive"
+                              className="mt-0.5 size-3 shrink-0 text-accent"
                               aria-hidden="true"
                             />
-                            <span className="min-w-0 break-words">
-                              {String(claim.value)} {claim.unit}{" "}
-                              <span className="font-mono break-all text-ink-faint">
-                                ← {claim.sourcePath}
+                            {/* The HUMAN reading leads -- the value and where it
+                                came from, in plain English -- so a layperson is
+                                not staring at a dotted code path. The exact
+                                machine sourcePath stays for the pro, secondary
+                                (smaller, mono); it remains in the DOM so the
+                                grounding trace is always present. */}
+                            <span className="min-w-0 break-words leading-5">
+                              <span className="tnum font-medium text-ink">
+                                {String(claim.value)} {claim.unit}
+                              </span>{" "}
+                              {humanSource(claim.sourcePath)}
+                              <span className="mt-0.5 block font-mono text-[0.625rem] break-all text-ink-faint">
+                                {claim.sourcePath}
                               </span>
                             </span>
                           </li>
@@ -732,56 +862,134 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             )}
           </section>
 
-          {/* Task list. */}
-          {packet.actionItems.length > 0 ? (
+          {/* --------------------------------------------------------
+              SECONDARY DETAIL -- role playbooks + the task list, behind
+              progressive disclosure so the default view stays at the
+              briefing spine, not a full data dump.
+              -------------------------------------------------------- */}
+          {packet.playbooks.length > 0 || packet.actionItems.length > 0 ? (
             <section
-              className="reveal panel rounded-(--radius-card)"
-              style={{ "--d": 460 } as React.CSSProperties}
+              className="reveal panel-sunken rounded-(--radius-card)"
+              style={{ "--d": 440 } as React.CSSProperties}
             >
-              <header className="border-b border-line px-5 py-4">
-                <h2 className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase">
-                  Task list
-                </h2>
-              </header>
-              <div className="table-scroll">
-                <table className="brief-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Task</th>
-                      <th scope="col">Owner</th>
-                      <th scope="col">Due</th>
-                      <th scope="col">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {packet.actionItems.map((item) => (
-                      <tr key={item.id}>
-                        <td className="font-medium text-ink">{item.title}</td>
-                        <td className="text-ink-muted">{item.owner}</td>
-                        <td className="tnum text-ink-muted">
-                          {item.dueDate ? shortDate(item.dueDate) : "—"}
-                        </td>
-                        <td>
-                          <Badge tone="neutral">{item.status}</Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <details className="group">
+                <summary className="flex min-h-6 cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+                  <span className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
+                    Working detail -- playbooks &amp; tasks
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-accent-strong">
+                    <span className="tnum">
+                      {packet.playbooks.length} roles · {packet.actionItems.length}{" "}
+                      tasks
+                    </span>
+                    <ArrowUpRight
+                      className="size-3.5 transition-transform group-open:rotate-90"
+                      aria-hidden="true"
+                    />
+                  </span>
+                </summary>
+
+                <div className="flex flex-col gap-6 border-t border-line bg-surface px-5 py-5">
+                  {packet.playbooks.length > 0 ? (
+                    <div>
+                      <header className="mb-3 flex items-center gap-2">
+                        <Workflow
+                          className="size-4 text-accent"
+                          aria-hidden="true"
+                        />
+                        <h3 className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
+                          Role playbooks
+                        </h3>
+                      </header>
+                      <div className="grid gap-5 md:grid-cols-2">
+                        {packet.playbooks.map((playbook) => (
+                          // Edge, not a colored accent stripe -- the same neutral
+                          // hairline grammar as every other surface (the decorative
+                          // accent left-border contradicted the system's own
+                          // "hairline, not elevation, not a colored edge" rule).
+                          <article
+                            key={playbook.id}
+                            className="rounded-md border border-line bg-surface p-4"
+                          >
+                            <h4 className="text-sm font-semibold text-ink">
+                              {playbook.role}
+                            </h4>
+                            <p className="mt-1 text-sm leading-6 text-ink-muted">
+                              {playbook.summary}
+                            </p>
+                            {playbook.steps.length > 0 ? (
+                              <ol className="mt-2 space-y-1.5 text-sm text-ink-muted">
+                                {playbook.steps.map((step, index) => (
+                                  <li
+                                    key={`${playbook.id}-step-${index}`}
+                                    className="flex gap-2"
+                                  >
+                                    <span className="tnum text-ink-faint">
+                                      {index + 1}.
+                                    </span>
+                                    <span>{step}</span>
+                                  </li>
+                                ))}
+                              </ol>
+                            ) : null}
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {packet.actionItems.length > 0 ? (
+                    <div>
+                      <h3 className="mb-3 text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
+                        Task list
+                      </h3>
+                      <div className="table-scroll">
+                        <table className="brief-table">
+                          <thead>
+                            <tr>
+                              <th scope="col">Task</th>
+                              <th scope="col">Owner</th>
+                              <th scope="col">Due</th>
+                              <th scope="col">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {packet.actionItems.map((item) => (
+                              <tr key={item.id}>
+                                <td className="font-medium text-ink">
+                                  {item.title}
+                                </td>
+                                <td className="text-ink-muted">{item.owner}</td>
+                                <td className="tnum text-ink-muted">
+                                  {item.dueDate ? shortDate(item.dueDate) : "--"}
+                                </td>
+                                <td>
+                                  <Badge tone="neutral">{item.status}</Badge>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </details>
             </section>
           ) : null}
         </div>
 
-        {/* ===================== DECISION RAIL ===================== */}
+        {/* ===================== 6. THE APPROVE MOMENT ===================== */}
         <aside className="flex flex-col gap-6 lg:sticky lg:top-[5.5rem]">
-          {/* The approve action — the trust anchor of the packet. */}
+          {/* The human decision -- the trust anchor of the packet. A solid tonal
+              panel (no gradient): depth is read from the surface step + hairline,
+              and every background resolves for the a11y contrast scan. */}
           <section
             className="reveal panel overflow-hidden rounded-(--radius-card)"
             style={{ "--d": 160 } as React.CSSProperties}
             aria-labelledby="approve-h"
           >
-            <div className="bg-gradient-to-b from-accent-soft/60 to-transparent p-5 sm:p-6">
+            <div className="p-5 sm:p-6">
               <div className="flex items-center justify-between gap-2">
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold tracking-[0.06em] uppercase ${
@@ -789,7 +997,11 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                       ? "bg-positive-soft text-positive"
                       : approval.status === "REJECTED"
                         ? "bg-danger-soft text-danger"
-                        : "bg-caution-soft text-caution-ink"
+                        : // PENDING is a NEUTRAL, expected state -- "awaiting your
+                          // approval", not a hazard. It reads in the calm accent;
+                          // amber/red stay reserved for genuinely adverse states
+                          // (a BLOCKED gatekeeper, a returned packet).
+                          "bg-accent-soft text-accent-strong"
                   }`}
                 >
                   <span
@@ -813,17 +1025,18 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
 
               <h2
                 id="approve-h"
-                className="headline mt-3 text-[1.3125rem] leading-tight font-medium text-ink"
+                className="mt-3 text-[1.1875rem] leading-tight font-semibold text-ink"
               >
-                Approve the action packet
+                Your call
               </h2>
               <p className="mt-2 text-[0.8125rem] leading-[1.55] text-ink-muted">
                 {approval.reason ??
-                  "Code calculates the exposure; the AI drafts the response. Approval records a local review decision in the audit trail below and releases the drafts, tasks, and one-pager for execution. Even then, nothing sends automatically."}
+                  "Code calculates the exposure; the AI drafts the response. Approving records your decision in the audit trail below and releases the drafts, tasks, and one-pager for execution. Even then, nothing sends automatically."}
               </p>
 
-              {/* Gatekeeper PASS — the trust anchor next to APPROVE, bound to
-                  the real gatekeeper verdict (never hardcoded). */}
+              {/* Gatekeeper PASS -- the quiet-evidence trust anchor next to APPROVE,
+                  bound to the real gatekeeper verdict (never hardcoded). Rendered
+                  in calm ink + the accent, not a green light. */}
               <div className="mt-4 rounded-md border border-line bg-ground p-3.5">
                 <div className="mb-2.5 flex items-center justify-between">
                   <span className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
@@ -832,7 +1045,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                   <span
                     className={`inline-flex items-center gap-1.5 text-[0.6875rem] font-bold tracking-[0.06em] ${
                       gatekeeper.status === "PASS"
-                        ? "text-positive"
+                        ? "text-accent-strong"
                         : "text-danger"
                     }`}
                   >
@@ -911,7 +1124,8 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             </div>
           </section>
 
-          {/* Audit trail — bound to the real packet audit entries. */}
+          {/* Audit trail -- bound to the real packet audit entries. The latest few
+              show; older entries collapse behind a disclosure. */}
           <section
             className="reveal panel rounded-(--radius-card)"
             style={{ "--d": 240 } as React.CSSProperties}
@@ -920,7 +1134,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             <header className="flex items-center justify-between gap-2 border-b border-line px-5 py-4">
               <h2
                 id="audit-h"
-                className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase"
+                className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase"
               >
                 <FileText
                   className="mr-1.5 inline size-3.5 align-[-0.15em]"
@@ -932,39 +1146,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                 {packet.id}
               </span>
             </header>
-            <ol className="relative flex flex-col gap-4 px-5 py-4 pl-9 before:absolute before:top-5 before:bottom-5 before:left-[1.5rem] before:w-px before:bg-line">
-              {auditTrail.map((entry, index) => {
-                const isLatest = index === auditTrail.length - 1;
-                return (
-                  // The array index is part of the key because at+actor+action
-                  // can repeat (two approvals in the same millisecond); the index
-                  // is the deterministic tiebreaker that keeps keys collision-free
-                  // for an append-only audit log.
-                  <li
-                    key={`${index}-${entry.at}-${entry.actor}-${entry.action}`}
-                    className="relative"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`absolute top-1 -left-[0.875rem] size-[0.5625rem] rounded-full border-2 ${
-                        isLatest
-                          ? "border-accent bg-accent"
-                          : "border-line-strong bg-surface"
-                      }`}
-                    />
-                    <p className="text-[0.8125rem] font-medium text-ink">
-                      {entry.action}
-                    </p>
-                    <p className="mt-0.5 text-xs leading-5 text-ink-muted">
-                      {entry.detail}
-                    </p>
-                    <p className="tnum mt-0.5 font-mono text-[0.625rem] text-ink-faint">
-                      {entry.actor} · {shortDate(entry.at)} {shortTime(entry.at)}
-                    </p>
-                  </li>
-                );
-              })}
-            </ol>
+            <AuditTrailList entries={auditTrail} />
             <div className="flex items-center gap-2 border-t border-line px-5 py-3 text-[0.6875rem] text-ink-faint">
               <span className="rounded border border-line bg-sink px-1.5 py-0.5 font-mono text-[0.625rem] text-ink-muted">
                 {packet.effectiveMode}
@@ -978,11 +1160,86 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
   );
 }
 
+// The audit trail timeline. The most recent THREE entries are always visible;
+// any earlier entries collapse behind a disclosure so the rail stays calm while
+// the full append-only log is still one click away (and present in the DOM).
+const AUDIT_VISIBLE = 3;
+
+function AuditTrailList({ entries }: { entries: AuditTrailEntry[] }) {
+  // Newest first for the reader; the data is appended oldest-first.
+  const ordered = [...entries].reverse();
+  const head = ordered.slice(0, AUDIT_VISIBLE);
+  const rest = ordered.slice(AUDIT_VISIBLE);
+
+  return (
+    <div className="px-5 py-4">
+      <AuditTimeline entries={head} latestIndex={0} />
+      {rest.length > 0 ? (
+        <details className="group mt-2">
+          <summary className="inline-flex min-h-6 cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-accent-strong underline-offset-2 hover:underline">
+            <ArrowUpRight
+              className="size-3 transition-transform group-open:rotate-90"
+              aria-hidden="true"
+            />
+            <span className="tnum">{rest.length} earlier entries</span>
+          </summary>
+          <div className="mt-3">
+            <AuditTimeline entries={rest} latestIndex={-1} />
+          </div>
+        </details>
+      ) : null}
+    </div>
+  );
+}
+
+function AuditTimeline({
+  entries,
+  latestIndex
+}: {
+  entries: AuditTrailEntry[];
+  latestIndex: number;
+}) {
+  return (
+    <ol className="relative flex flex-col gap-4 pl-4 before:absolute before:top-2 before:bottom-2 before:left-[0.1875rem] before:w-px before:bg-line">
+      {entries.map((entry, index) => {
+        const isLatest = index === latestIndex;
+        return (
+          // The array index is part of the key because at+actor+action can
+          // repeat (two approvals in the same millisecond); the index is the
+          // deterministic tiebreaker that keeps keys collision-free.
+          <li
+            key={`${index}-${entry.at}-${entry.actor}-${entry.action}`}
+            className="relative"
+          >
+            <span
+              aria-hidden="true"
+              className={`absolute top-1 -left-[1rem] size-[0.5625rem] rounded-full border-2 ${
+                isLatest
+                  ? "border-accent bg-accent"
+                  : "border-line-strong bg-surface"
+              }`}
+            />
+            <p className="text-[0.8125rem] font-medium text-ink">
+              {entry.action}
+            </p>
+            <p className="mt-0.5 text-xs leading-5 text-ink-muted">
+              {entry.detail}
+            </p>
+            <p className="tnum mt-0.5 font-mono text-[0.625rem] text-ink-faint">
+              {entry.actor} · {shortDate(entry.at)} {shortTime(entry.at)}
+            </p>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 // An inline runway/exposure bar. When motion is allowed it grows from 0 to its
 // target on first paint, so the CSS `transition: width` fires (a single calm
 // grow-in, not a paint-instantly block). The width INITIALIZES to the final
 // value, so server render, first client render, reduced-motion, and no-RAF /
-// jsdom all paint the final width immediately — never a flash of 0 (and no
+// jsdom all paint the final width immediately -- never a flash of 0 (and no
 // hydration mismatch). Only when rAF exists and motion is allowed do we briefly
 // drop to 0 and animate back up.
 function RunwayBar({
@@ -1035,40 +1292,14 @@ function RunwayBar({
   );
 }
 
-// A single threat-parameter cell — uppercase label over a serif figure.
-function Param({
-  label,
-  value,
-  unit
-}: {
-  label: string;
-  value: string;
-  unit?: string;
-}) {
-  return (
-    <div>
-      <dt className="text-[0.6875rem] tracking-[0.1em] text-ink-faint uppercase">
-        {label}
-      </dt>
-      <dd className="headline mt-1.5 text-2xl leading-none font-medium text-ink">
-        {value}
-        {unit ? (
-          <span className="ml-1 font-sans text-[0.8125rem] font-normal text-ink-muted">
-            {unit}
-          </span>
-        ) : null}
-      </dd>
-    </div>
-  );
-}
-
-// A gatekeeper check row — teal tick + statement.
+// A gatekeeper check row -- accent tick + statement (quiet evidence, not a green
+// light).
 function GateCheck({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex items-center gap-2.5">
       <span
         aria-hidden="true"
-        className="flex size-[0.9375rem] shrink-0 items-center justify-center rounded-full bg-positive-soft text-positive"
+        className="flex size-[0.9375rem] shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-strong"
       >
         <CheckCircle2 className="size-2.5" />
       </span>

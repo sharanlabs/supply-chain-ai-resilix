@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 // Tones map to the design tokens (globals.css @theme). The original five tones
 // (neutral/success/warning/critical/info) are kept so existing callers and tests
 // stay valid; severity tones (low/medium/high/critical-sev) drive the threat /
-// exposure ramp. Every tone carries one meaning — no decorative color.
+// exposure ramp. Every tone carries one meaning -- no decorative color.
 type BadgeTone =
   | "neutral"
   | "success"
@@ -17,9 +17,11 @@ type BadgeTone =
   | "accent";
 
 // Foreground tokens are the AA-compliant *-ink severity inks (>=4.5:1 small-text
-// contrast on the matching -soft fill); border/background tokens are unchanged so
-// the calm severity palette is preserved. success/critical already clear AA on
-// their soft fills (4.65 / 4.87), so they keep their base tokens.
+// contrast on the matching -soft fill); border/background tokens carry the calm
+// severity ramp. The "success" tone now reads in the steel-blue accent -- the
+// green status family was dropped in the 2026 retheme ("validated" is calm
+// confidence in the one accent, not a green light); it clears AA on accent-soft
+// (6.73). critical keeps its red status family (4.89 on danger-soft).
 const tones: Record<BadgeTone, string> = {
   neutral: "border-line-strong bg-sink text-ink-muted",
   success: "border-positive/30 bg-positive-soft text-positive",

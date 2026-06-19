@@ -34,7 +34,10 @@ export function makeV2Packet(
         country: "AE",
         sector: "ELECTRONICS",
         exposureScore: 72,
-        rationale: "Inbound lanes transit the affected chokepoint.",
+        // Atlas-shaped rationale: the leading tier token is what the packet view
+        // parses to drive the row label + its exposure bar severity. The shared
+        // chokepoint/no-backup context lives once above the table, not per row.
+        rationale: "HIGH risk tier; 47-day lead time.",
         evidenceIds: ["THREAT-001"]
       }
     ],
