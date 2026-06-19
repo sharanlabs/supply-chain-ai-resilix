@@ -76,4 +76,37 @@ describe("D.1 -- ActionOps pipeline emits a valid V2 packet (key-OFF, determinis
     const report = runGraders(packet, gt);
     expect(report.blocked, report.results.flatMap((r) => r.failures).join("; ")).toBe(false);
   });
+
+  it("runGraders is the LIVE-OUTPUT GATE: a corrupted live packet BLOCKS (the D.9 gate role)", async () => {
+    // The gate role made explicit (not duplicated): runGraders over the assembled live V2
+    // packet is the SAME F contract that will gate D.9's real LLM output, and `blocked` is
+    // its hard signal -- ANY grader failure blocks. The clean-packet assertion above proves
+    // the gate PASSES a valid run; this proves it has TEETH as a gate by feeding it a packet
+    // whose exposure set no longer matches ground truth -> it must BLOCK. (The full
+    // corruption matrix lives in golden-tasks.test.ts; this is the single positive-control
+    // that the live-output path is genuinely gated, not waved through.)
+    const packet = await buildDecisionPacket({ useLiveSignals: false });
+    const suppliers = ingestSeed().suppliers;
+
+    const knownSupplierIds = new Set(suppliers.map((s) => s.id));
+    const evidenceAllowlist = new Set<string>([
+      ...packet.threatCard.evidenceUrls,
+      ...packet.publicSignals.map((s) => s.sourceUrl)
+    ]);
+    // Ground truth that DISAGREES with the run's exposure set: expect an affected id the
+    // packet does not contain -> gradeExposureControl must fail -> the gate blocks.
+    const gtMismatch: ScenarioGroundTruth = {
+      knownSupplierIds,
+      knownProductIds: new Set<string>(),
+      expectedAffectedSupplierIds: new Set([...knownSupplierIds, "SUP-PHANTOM-NOT-IN-RUN"]),
+      evidenceAllowlist,
+      untrustedRawStrings: [],
+      offTaxonomyExpected: false,
+      simInputs: undefined
+    };
+
+    const blockedReport = runGraders(packet, gtMismatch);
+    expect(blockedReport.blocked).toBe(true);
+    expect(blockedReport.failureCount).toBeGreaterThan(0);
+  });
 });

@@ -239,7 +239,7 @@ describe("Dispatcher output-validation firewall (D.7 injection eval)", () => {
         enabled: () => true,
         threatCard: hormuz.packet.threatCard,
         publicSignals: hormuz.packet.publicSignals,
-        generate: async () => dirty
+        generate: async () => ({ object: dirty })
       });
     return emit().then(({ supplierMessages, agentRun }) => {
       expect(agentRun.mode).toBe("FAILED_TO_FALLBACK");
@@ -301,7 +301,7 @@ describe("Dispatcher key-OFF no-network proof (D.7)", () => {
       // key-OFF contract structurally, not just by trusting liveAiEnabled().
       generate: async () => {
         generateCalled = true;
-        return { messages: [] };
+        return { object: { messages: [] } };
       }
     });
 
@@ -319,7 +319,7 @@ describe("Dispatcher key-OFF no-network proof (D.7)", () => {
       enabled: () => true,
       generate: async () => {
         generateCalled = true;
-        return { messages: [] };
+        return { object: { messages: [] } };
       }
     });
     // No exposures -> no draft and the model is never called (no network, no spend).
@@ -338,7 +338,7 @@ describe("Dispatcher end-to-end live path (D.7)", () => {
       enabled: () => true,
       threatCard: hormuz.packet.threatCard,
       publicSignals: hormuz.packet.publicSignals,
-      generate: async () => cleanResult(exposureResults, simulation)
+      generate: async () => ({ object: cleanResult(exposureResults, simulation) })
     });
 
     expect(agentRun.mode).toBe("LIVE_AI");
@@ -364,7 +364,7 @@ describe("Dispatcher end-to-end live path (D.7)", () => {
       enabled: () => true,
       threatCard: hormuz.packet.threatCard,
       publicSignals: hormuz.packet.publicSignals,
-      generate: async () => dirty
+      generate: async () => ({ object: dirty })
     });
 
     expect(agentRun.mode).toBe("FAILED_TO_FALLBACK");

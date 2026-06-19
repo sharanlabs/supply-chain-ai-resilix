@@ -69,7 +69,7 @@ describe("Sentinel deterministic fallback (D.5, key-OFF)", () => {
       // key-OFF contract structurally, not just by trusting liveAiEnabled().
       generate: async () => {
         generateCalled = true;
-        return {};
+        return { object: {} };
       }
     });
 
@@ -217,12 +217,14 @@ describe("Sentinel output-validation firewall (D.5)", () => {
     const { threatCard, agentRun } = await classifyThreatLive(ctx, {
       enabled: () => true,
       generate: async () => ({
-        eventType: "CHOKEPOINT_CLOSURE",
-        severity: "HIGH",
-        location: { chokepoint: "Strait of Hormuz" },
-        summary: "Hormuz disrupted.",
-        evidenceUrls: [INJECTED_URL],
-        confidence: 0.8
+        object: {
+          eventType: "CHOKEPOINT_CLOSURE",
+          severity: "HIGH",
+          location: { chokepoint: "Strait of Hormuz" },
+          summary: "Hormuz disrupted.",
+          evidenceUrls: [INJECTED_URL],
+          confidence: 0.8
+        }
       })
     });
 
@@ -238,12 +240,14 @@ describe("Sentinel output-validation firewall (D.5)", () => {
     const { threatCard, agentRun } = await classifyThreatLive(ctx, {
       enabled: () => true,
       generate: async () => ({
-        eventType: "CHOKEPOINT_CLOSURE",
-        severity: "HIGH",
-        location: { chokepoint: "Strait of Hormuz", country: "OM" },
-        summary: "Strait of Hormuz transit disrupted; lane repriced.",
-        evidenceUrls: [HORMUZ_GDELT_URL, HORMUZ_EIA_URL],
-        confidence: 0.8
+        object: {
+          eventType: "CHOKEPOINT_CLOSURE",
+          severity: "HIGH",
+          location: { chokepoint: "Strait of Hormuz", country: "OM" },
+          summary: "Strait of Hormuz transit disrupted; lane repriced.",
+          evidenceUrls: [HORMUZ_GDELT_URL, HORMUZ_EIA_URL],
+          confidence: 0.8
+        }
       })
     });
 

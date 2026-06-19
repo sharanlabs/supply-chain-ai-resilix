@@ -100,7 +100,7 @@ describe("Strategist deterministic fallback (D.6, key-OFF)", () => {
       // key-OFF contract structurally, not just by trusting liveAiEnabled().
       generate: async () => {
         generateCalled = true;
-        return {};
+        return { object: {} };
       }
     });
 
@@ -118,7 +118,7 @@ describe("Strategist deterministic fallback (D.6, key-OFF)", () => {
       enabled: () => true,
       generate: async () => {
         generateCalled = true;
-        return { playbooks: [] };
+        return { object: { playbooks: [] } };
       }
     });
     // No exposures -> no playbook and the model is never called (no network, no spend).
@@ -236,14 +236,16 @@ describe("Strategist output-validation firewall (D.6)", () => {
     const { playbooks, agentRun } = await classifyPlaybooksLive(ctx, exposures, {
       enabled: () => true,
       generate: async () => ({
-        playbooks: [
-          {
-            role: "Procurement",
-            summary: "Secure routing.",
-            steps: ["Stage 5000 units within 30 days."],
-            groundedClaimIds
-          }
-        ]
+        object: {
+          playbooks: [
+            {
+              role: "Procurement",
+              summary: "Secure routing.",
+              steps: ["Stage 5000 units within 30 days."],
+              groundedClaimIds
+            }
+          ]
+        }
       })
     });
 
@@ -261,17 +263,19 @@ describe("Strategist output-validation firewall (D.6)", () => {
     const { playbooks, agentRun } = await classifyPlaybooksLive(ctx, exposures, {
       enabled: () => true,
       generate: async () => ({
-        playbooks: [
-          {
-            role: "Procurement",
-            summary: "Secure alternate routing for the Gulf-exposed suppliers.",
-            steps: [
-              "Confirm current lead times and backup capacity with the most exposed suppliers.",
-              "Issue contingency RFQs on alternate, non-affected lanes."
-            ],
-            groundedClaimIds
-          }
-        ]
+        object: {
+          playbooks: [
+            {
+              role: "Procurement",
+              summary: "Secure alternate routing for the Gulf-exposed suppliers.",
+              steps: [
+                "Confirm current lead times and backup capacity with the most exposed suppliers.",
+                "Issue contingency RFQs on alternate, non-affected lanes."
+              ],
+              groundedClaimIds
+            }
+          ]
+        }
       })
     });
 

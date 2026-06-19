@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { runActionOpsAgents } from "@/lib/agents/actionops";
 import { computeEffectiveMode, liveAiEnabled } from "@/lib/agents/run";
+import { summarizeCost } from "@/lib/agents/cost-summary";
 import { validateDecisionPacket } from "@/lib/agents/gatekeeper";
 import { getActionOpsScenario } from "@/lib/data/actionops-scenarios";
 import { ingestSeed } from "@/lib/ingest/seed-suppliers";
@@ -37,6 +38,12 @@ export async function buildDecisionPacket(
     scenario.requestedMode ?? (liveAiEnabled() ? "LIVE_AI" : "DETERMINISTIC_RULES");
   const effectiveMode = computeEffectiveMode(result.agentRuns, requestedMode);
 
+  // Packet-level cost summary (D.8, R4-10): the Success_Criteria "<=$5 total LLM
+  // spend" number, summed from the agent runs. Key-OFF every run is deterministic
+  // (costUsd 0) -> totalCostUsd 0 with a stamped pricingVersion; key-ON it is the real
+  // sum the budget cap defends.
+  const cost = summarizeCost(result.agentRuns);
+
   const packet: DecisionPacketV2 = {
     packetVersion: 2,
     id: `DP-${randomUUID()}`,
@@ -51,6 +58,8 @@ export async function buildDecisionPacket(
     actionItems: result.actionItems,
     gatekeeper: result.gatekeeper,
     agentRuns: result.agentRuns,
+    totalCostUsd: cost.totalCostUsd,
+    pricingVersion: cost.pricingVersion,
     requestedMode,
     effectiveMode,
     approvalStatus: "PENDING",

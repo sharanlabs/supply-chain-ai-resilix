@@ -1,5 +1,3 @@
-import { google } from "@ai-sdk/google";
-import { generateObject } from "ai";
 import { z } from "zod";
 import type { AgentRun, ThreatCard, ThreatEventType } from "@/lib/schemas";
 import {
@@ -7,9 +5,17 @@ import {
   SeveritySchema,
   ThreatEventTypeSchema
 } from "@/lib/schemas";
+import type { AgentRunUsage } from "@/lib/agents/actionops/agent-run";
 import { makeAgentRun } from "@/lib/agents/actionops/agent-run";
 import type { ActionOpsContext } from "@/lib/agents/actionops/types";
-import { liveAiEnabled, resolvedGeminiModel } from "@/lib/agents/run";
+import { BudgetExceededError } from "@/lib/agents/budget";
+import {
+  type BudgetContext,
+  estimateLiveCallCostUsd,
+  liveAiEnabled,
+  liveGenerateObject,
+  resolvedGeminiModel
+} from "@/lib/agents/run";
 import {
   MAX_SUMMARY_LEN,
   isSafeHttpUrl,
@@ -235,13 +241,22 @@ export async function classifyThreatLive(
   ctx: ActionOpsContext,
   deps: {
     enabled?: () => boolean;
-    generate?: (prompt: string) => Promise<unknown>;
+    generate?: (a: {
+      model: string;
+      schema: z.ZodTypeAny;
+      prompt: string;
+    }) => Promise<{ object: unknown; usage?: AgentRunUsage }>;
+    // The live-call budget context (spent-so-far + cap). Threaded so the hard-stop
+    // fires at THIS call's boundary. Defaulted to a fresh-budget context so a caller
+    // that does not track spend still gets a guarded call (never an unguarded one).
+    budget?: BudgetContext;
   } = {}
 ): Promise<{ threatCard: ThreatCard; agentRun: AgentRun }> {
   const { scenario, signals, baseDateIso } = ctx;
   const enabled = deps.enabled ?? liveAiEnabled;
 
   // Key-OFF: by-design deterministic. Healthy, NOT degraded -- identical to runSentinel.
+  // The budget guard is NOT reached here (no live call), preserving the no-network contract.
   if (!enabled()) {
     const threatCard = deterministicThreatCard(ctx);
     return {
@@ -257,21 +272,17 @@ export async function classifyThreatLive(
     };
   }
 
-  const generate =
-    deps.generate ??
-    (async (prompt: string) => {
-      const result = await generateObject({
-        model: google(resolvedGeminiModel()),
-        schema: SentinelLlmResultSchema,
-        prompt
-      });
-      return result.object;
-    });
+  const model = resolvedGeminiModel();
+  const budget: BudgetContext = deps.budget ?? {
+    spentUsd: 0,
+    estimatedNextUsd: estimateLiveCallCostUsd(model)
+  };
 
   const startedAt = Date.now();
   // Fall back to the deterministic threat and mark the run degraded. One helper so the
-  // throw path and the firewall-reject path produce the same audit shape.
-  const fallback = (reason: string) => {
+  // throw path and the firewall-reject path produce the same audit shape. errorClass
+  // names the degradation class so the ledger records WHY a live attempt fell back.
+  const fallback = (reason: string, errorClass: string) => {
     const threatCard = deterministicThreatCard(ctx);
     return {
       threatCard,
@@ -282,10 +293,14 @@ export async function classifyThreatLive(
         output: threatCard,
         summary: `${reason} Fell back to the deterministic threat.`,
         createdAt: baseDateIso,
-        model: resolvedGeminiModel(),
+        model,
         mode: "FAILED_TO_FALLBACK" as const,
         latencyMs: Date.now() - startedAt,
-        validationStatus: "FAIL" as const
+        validationStatus: "FAIL" as const,
+        // A fallback path made no billable usage we can trust -> 0-token usage so the
+        // run still carries a (zero) cost + pricingVersion, not an absent ledger.
+        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, finishReason: null },
+        errorClass
       })
     };
   };
@@ -307,15 +322,23 @@ export async function classifyThreatLive(
         2
       );
 
-    const rawObject = await generate(prompt);
+    // liveGenerateObject runs the BUDGET HARD-STOP before the billable call and returns
+    // the object PLUS the provider-reported usage -- the token counts that drive costUsd.
+    const { object: rawObject, usage } = await liveGenerateObject({
+      model,
+      schema: SentinelLlmResultSchema,
+      prompt,
+      budget,
+      generate: deps.generate
+    });
     const parsed = SentinelLlmResultSchema.safeParse(rawObject);
     if (!parsed.success) {
-      return fallback("Sentinel live AI returned an unparseable result.");
+      return fallback("Sentinel live AI returned an unparseable result.", "UNPARSEABLE_OUTPUT");
     }
 
     const outcome = applyThreatFirewall(parsed.data, ctx);
     if (!outcome.ok) {
-      return fallback(outcome.reason);
+      return fallback(outcome.reason, "FIREWALL_REJECT");
     }
 
     return {
@@ -327,12 +350,21 @@ export async function classifyThreatLive(
         output: outcome.threatCard,
         summary: `Classified threat ${outcome.threatCard.eventType} at ${outcome.threatCard.severity} severity.`,
         createdAt: baseDateIso,
-        model: resolvedGeminiModel(),
+        model,
         mode: "LIVE_AI",
-        latencyMs: Date.now() - startedAt
+        latencyMs: Date.now() - startedAt,
+        // The real provider-reported usage -> costUsd computes the dollar cost here.
+        usage
       })
     };
-  } catch {
-    return fallback("Sentinel live AI call failed.");
+  } catch (err) {
+    // A budget hard-stop breach throws from liveGenerateObject BEFORE any bill; surface
+    // it as its own errorClass so the ledger names the breach (not a generic failure).
+    const errorClass = err instanceof BudgetExceededError ? "BUDGET_EXCEEDED" : "LIVE_CALL_THREW";
+    const reason =
+      err instanceof BudgetExceededError
+        ? "Sentinel live call blocked by the budget hard-stop."
+        : "Sentinel live AI call failed.";
+    return fallback(reason, errorClass);
   }
 }

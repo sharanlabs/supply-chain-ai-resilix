@@ -15,6 +15,9 @@ import type {
 } from "@/lib/schemas";
 import { ExecutionDraftSchema } from "@/lib/schemas";
 import { stableHash } from "@/lib/utils";
+import type { AgentRunUsage } from "@/lib/agents/actionops/agent-run";
+import { assertWithinBudget, DEFAULT_BUDGET_CAP_USD } from "@/lib/agents/budget";
+import { costUsd } from "@/lib/agents/pricing";
 
 // Default GA Gemini model. gemini-2.5-flash is the GA best-value model ON THE KEY
 // -- a live ListModels against this project's key (2026-06-18) tops out at the 2.5
@@ -72,6 +75,95 @@ export async function assertConfiguredModelAvailable({
         `Set GEMINI_MODEL to one of these or update DEFAULT_GEMINI_MODEL.`
     );
   }
+}
+
+// The live-call result a classify* path threads into makeAgentRun: the parsed-ready
+// object PLUS the provider-reported usage (token counts + finishReason). The usage
+// drives costUsd; the object is firewall-validated by the agent. Both come back from
+// ONE place (liveGenerateObject), which is also the budget hard-stop boundary.
+export type LiveGenerateResult = {
+  object: unknown;
+  usage: AgentRunUsage;
+};
+
+// The budget context a live call carries: how much has been spent so far this run, an
+// upper-bound estimate of THIS call's cost, and the cap. Threaded as a param (not a
+// global) so the guard is pure + DI-testable. Defaulted so a key-OFF/no-budget caller
+// is unaffected -- the guard only ever fires on a real live call that would breach.
+export type BudgetContext = {
+  spentUsd: number;
+  estimatedNextUsd: number;
+  capUsd?: number;
+};
+
+// liveGenerateObject: the SINGLE live-call boundary for the ActionOps LLM agents.
+// Two jobs, in order:
+//   1. BUDGET HARD-STOP (fail-closed): assertWithinBudget(spent, estimatedNext, cap)
+//      runs BEFORE generateObject, so a would-breach call THROWS and never bills.
+//      Key-OFF this code is never reached (the agent short-circuits earlier), so the
+//      no-network contract holds; key-ON under cap it proceeds.
+//   2. Call generateObject and return the object PLUS the reported usage, so the agent
+//      can thread real token counts into makeAgentRun for costUsd. generateObject's
+//      usage fields are `number | undefined`; they pass straight through (pricing
+//      coerces). model + schema are injected so the call is provider-bound in ONE place.
+// Injected `generate` (the raw SDK call) keeps this unit-reachable without network.
+export async function liveGenerateObject(args: {
+  model: string;
+  schema: z.ZodTypeAny;
+  prompt: string;
+  budget: BudgetContext;
+  generate?: (a: {
+    model: string;
+    schema: z.ZodTypeAny;
+    prompt: string;
+  }) => Promise<{ object: unknown; usage?: AgentRunUsage }>;
+}): Promise<LiveGenerateResult> {
+  const { model, schema, prompt, budget } = args;
+
+  // Fail-closed BEFORE the billable call: a breach throws here, so generateObject is
+  // never invoked and cannot bill. This is the cap as a guard, not a hope.
+  assertWithinBudget(
+    budget.spentUsd,
+    budget.estimatedNextUsd,
+    budget.capUsd ?? DEFAULT_BUDGET_CAP_USD
+  );
+
+  const generate =
+    args.generate ??
+    (async (a: { model: string; schema: z.ZodTypeAny; prompt: string }) => {
+      const result = await generateObject({
+        model: google(a.model),
+        schema: a.schema,
+        prompt: a.prompt
+      });
+      return {
+        object: result.object,
+        usage: {
+          inputTokens: result.usage?.inputTokens,
+          outputTokens: result.usage?.outputTokens,
+          totalTokens: result.usage?.totalTokens,
+          finishReason: result.finishReason ?? null
+        } satisfies AgentRunUsage
+      };
+    });
+
+  const out = await generate({ model, schema, prompt });
+  return { object: out.object, usage: out.usage ?? {} };
+}
+
+// estimateLiveCallCostUsd: a conservative upper-bound dollar estimate for a single
+// live call, used as `estimatedNextUsd` for the budget pre-check (we cannot know the
+// real cost until AFTER the call). Prices a fixed token envelope at the call's model;
+// the envelope is deliberately generous so the guard errs toward blocking, not toward
+// overspending. Pure; reuses the pinned price table.
+export function estimateLiveCallCostUsd(
+  model: string,
+  envelope: { inputTokens: number; outputTokens: number } = {
+    inputTokens: 8_000,
+    outputTokens: 2_000
+  }
+): number {
+  return costUsd(model, envelope.inputTokens, envelope.outputTokens);
 }
 
 type AgentContext = {

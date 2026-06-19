@@ -161,7 +161,35 @@ export const AgentRunSchema = z.object({
   model: z.string(),
   mode: AgentModeSchema,
   latencyMs: z.number().nonnegative(),
+  // The legacy chars/4 heuristic (kept). It is a rough proxy used for relative
+  // sizing/UI only; the D.8 cost ledger below carries the REAL token counts and
+  // the dollar cost. Retained, not removed, so existing readers stay stable.
   tokenEstimate: z.number().nonnegative(),
+  // --- D.8 cost ledger (R4-10), ADDITIVE + back-compat -------------------------
+  // Every new field is .optional() so a pre-D.8 stored AgentRun (which lacks them)
+  // still parses, and -- critically -- an ABSENT field stays absent through parse
+  // (.optional() does NOT inject a default), so the strict round-trip equality the
+  // versioning tests assert on a fields-less fixture holds. Producers (makeAgentRun
+  // and the live classify* paths) ALWAYS stamp these, so live data is never partial.
+  //
+  // API-reported token usage. On the deterministic path these are 0 (no live call);
+  // on the live path they are the provider's reported counts (the AI SDK reports each
+  // as `number | undefined`, so a successful call may still leave one absent).
+  inputTokens: z.number().nonnegative().optional(),
+  outputTokens: z.number().nonnegative().optional(),
+  totalTokens: z.number().nonnegative().optional(),
+  // The provider's finishReason (e.g. "stop", "length") on a live call; "deterministic"
+  // on the by-design no-LLM path. Nullable: a live call may not report one.
+  finishReason: z.string().nullable().optional(),
+  // The error class on a degraded live attempt (e.g. the firewall-reject reason class);
+  // null on a healthy run. Nullable for the same reason.
+  errorClass: z.string().nullable().optional(),
+  // Which pinned price list produced costUsd (PRICING_VERSION). Stamped on every run
+  // the cost ledger touches, so a re-price is an explicit migration, never silent.
+  pricingVersion: z.string().optional(),
+  // The computed USD cost of THIS run. 0 on the deterministic path (no live spend);
+  // costUsd(model, inputTokens, outputTokens) on the live path.
+  costUsd: z.number().nonnegative().optional(),
   inputHash: z.string(),
   outputHash: z.string(),
   validationStatus: z.enum(["PASS", "FAIL"]),
@@ -552,6 +580,15 @@ export const DecisionPacketV2Schema = z.object({
   actionItems: z.array(ActionItemSchema),
   gatekeeper: GatekeeperReportSchema,
   agentRuns: z.array(AgentRunSchema),
+  // --- D.8 packet-level cost summary (R4-10), ADDITIVE + back-compat ----------
+  // The Success_Criteria "<=$5 total LLM spend" number, surfaced at the packet
+  // level: the sum of every agent run's costUsd, plus the pinned price-list version
+  // those costs were computed against. Both .optional() so a pre-D.8 stored V2 packet
+  // (no summary) parses, and an absent field stays absent through parse -- the strict
+  // round-trip equality on the fields-less V2 fixture holds. The producer
+  // (build-packet) ALWAYS stamps both, so a live packet carries a real total.
+  totalCostUsd: z.number().nonnegative().optional(),
+  pricingVersion: z.string().optional(),
   requestedMode: RequestedModeSchema,
   effectiveMode: AgentModeSchema,
   approvalStatus: ApprovalStatusSchema,
