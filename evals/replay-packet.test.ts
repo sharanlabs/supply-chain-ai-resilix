@@ -10,6 +10,11 @@ import { DecisionPacketV2Schema } from "@/lib/schemas";
 // "Replay mode rendering ... never labeled live").
 
 describe("loadReplayPacket -- the landing-surface frozen REPLAY", () => {
+  // NOTE: the negative paths of loadReplayPacket's guards -- a schema-drifted fixture, or a
+  // non-live (deterministic/degraded) fixture -- are NOT exercised here, because the loader
+  // reads a static import, not an injected packet (testing them would need a malformed fixture
+  // file or a DI refactor). The guards are simple fail-loud throws (low silent-no-op risk); the
+  // happy path below confirms the REAL fixture passes both. Add DI if the reject path needs proof.
   it("loads + re-validates the frozen packet (fails loud on fixture drift)", () => {
     const packet = loadReplayPacket();
     // The transformed output must itself be a valid V2 packet.

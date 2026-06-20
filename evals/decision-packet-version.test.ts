@@ -57,6 +57,33 @@ describe("decision packet versioning (R4-7)", () => {
     expect(DecisionPacketV2Schema.safeParse(withoutThreatCard).success).toBe(false);
   });
 
+  it("rejects a NO_ACTION packet that still carries outbound drafts (the refusal invariant BITES)", () => {
+    // The superRefine's whole point: a refusal must withhold outbound action. A packet that
+    // claims NO_ACTION while still carrying playbooks/messages (makeV2Packet is a rich ACT
+    // packet) AND with no missingEvidence violates both arms of the invariant -> it must FAIL
+    // validation, never reach human review. This proves the refine REJECTS, not just accepts.
+    const bad = { ...makeV2Packet(), recommendation: "NO_ACTION" as const };
+    expect(DecisionPacketSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it("accepts a well-formed NO_ACTION packet (outbound withheld + missing-evidence stated)", () => {
+    const good = {
+      ...makeV2Packet(),
+      recommendation: "NO_ACTION" as const,
+      playbooks: [],
+      supplierMessages: [],
+      actionItems: [],
+      missingEvidence: [
+        {
+          requirement: "Independent corroboration",
+          detail: "A single source reports this.",
+          wouldFlipIf: "A second independent source corroborates it."
+        }
+      ]
+    };
+    expect(DecisionPacketSchema.safeParse(good).success).toBe(true);
+  });
+
   it("does not carry the LaunchOps options/executionDraft contract into V2", () => {
     // R4-7's intent: V2 must not silently reuse the V1 shape. Zod strips unknown
     // keys, so a V2 parse of an object that also has options/executionDraft drops
