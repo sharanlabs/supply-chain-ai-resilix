@@ -459,7 +459,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                   ? "approved"
                   : "returned for revision"}
           </p>
-          <h1 className="mt-3 text-[1.625rem] leading-[1.18] font-medium text-ink sm:text-[2rem] sm:leading-[1.16]">
+          <h1 className="mt-3 text-[1.625rem] leading-[1.18] font-semibold tracking-[-0.01em] text-ink sm:text-[2rem] sm:leading-[1.16]">
             {peakRisk !== null ? (
               <>
                 A disruption at {where} puts{" "}

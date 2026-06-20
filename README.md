@@ -83,6 +83,10 @@ Stated up front, because the credibility of an evidence tool depends on it:
 2. ERP integration (NetSuite/Epicor/Dynamics class), email handoff of approved drafts, SSO, multi-tenancy.
 3. Source-authority modelling for refusal (treat an official advisory as corroboration), beyond the threat's own confidence.
 
+## Design
+
+A "calm command center" surface: a cool near-white ground, a single desaturated steel/cobalt accent (color is reserved for meaning — amber→red severity on real risk only), Geist sans, and a tinted two-layer elevation system (soft shadow + contact line + inset highlight) with a fractal-noise grain and a lit-from-above wash. The palette, accent strategy, elevation, and anti-AI-slop posture were validated against the current top-tier 2026 design language (Vercel, Linear, Stripe, Apple's 2026 Liquid Glass guidance) — see `docs/claude/DESIGN-VALIDATION-2026-06-20.md`. Light-only is a deliberate choice (every WCAG 2.2 AA ratio is light-tuned); a dark theme is future scope.
+
 ## Tech stack
 
 Next.js App Router · TypeScript · Tailwind + shadcn-style primitives · Zod · Vercel AI SDK with Gemini · Drizzle ORM over PostgreSQL (node-postgres; in-memory fallback for a zero-setup demo) · Vitest · Playwright.
