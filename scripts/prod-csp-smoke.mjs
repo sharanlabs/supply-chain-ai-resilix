@@ -84,11 +84,29 @@ try {
   failures.push("Exposure tab did not become aria-selected after click -- tablist did not hydrate");
 }
 
-// 4. Any script-level CSP violations recorded during the run?
+// 4. Any script-level CSP violations recorded on `/` during the run?
 const violations = await page.evaluate(() => window.__cspViolations ?? []);
 const scriptViolations = violations.filter((v) => /script/i.test(v.directive));
 
+// 5. A non-existent route must ALSO be fully nonced. Next's DEFAULT 404/error pages are
+//    build-time static, so their framework scripts ship without a nonce and 'strict-dynamic'
+//    blocks them. The custom app/not-found.tsx (dynamic) closes that -- verify it: the 404
+//    document's scripts carry nonces and raise no script-directive violation. addInitScript
+//    re-runs per navigation, so window.__cspViolations resets for this page.
+const notFoundResp = await page.goto(`${BASE}/__no_such_route_csp_smoke__`, { waitUntil: "networkidle" });
+const notFoundStatus = notFoundResp?.status();
+if (notFoundStatus !== 404) failures.push(`expected 404 for a bogus route, got ${notFoundStatus}`);
+const nf404Nonces = await page.$$eval("script", (els) => els.map((e) => e.nonce).filter((n) => n && n.length > 0));
+if (nf404Nonces.length === 0)
+  failures.push("404 page scripts carry no nonce -- the not-found route is static, not dynamic/nonced");
+const nf404Violations = await page.evaluate(() => window.__cspViolations ?? []);
+const nf404ScriptViolations = nf404Violations.filter((v) => /script/i.test(v.directive));
+if (nf404ScriptViolations.length)
+  failures.push(`404 page script-directive CSP violations: ${JSON.stringify(nf404ScriptViolations)}`);
+
 await browser.close();
+
+console.log(`404 route: status ${notFoundStatus}, scripts nonced ${nf404Nonces.length}, script violations ${nf404ScriptViolations.length}`);
 
 console.log(`CSP script-src: ${scriptSrc}`);
 console.log(`scripts carrying a nonce: ${scriptNonces.length}`);
