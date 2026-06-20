@@ -13,6 +13,12 @@
 //   npx next start -p 3011 &
 //   node scripts/prod-csp-smoke.mjs        # SMOKE_URL overrides the default
 //
+// RE-RUN AFTER: a client-bundle dependency bump (Zod/React/Next), a change to
+// lib/schemas.ts (the Zod `jitless` config), or any edit to proxy.ts / the CSP. A green
+// `verify:full` / dev e2e is NOT a substitute -- the dev CSP keeps 'unsafe-eval', so an
+// eval-based prod regression (e.g. the Zod `new Function` JIT) passes them and still
+// white-screens prod. This script is the only check that exercises the real prod policy.
+//
 // Exits non-zero with the specific reasons on any failure.
 
 import { chromium } from "playwright";

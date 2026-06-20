@@ -71,3 +71,13 @@ Re-verified after the fixes: `verify:full` GREEN + the prod smoke PASS (`/`, a p
 
 **Gate stack for these increments: COMPLETE** (verify:full + prod smoke + acceptance-gate +
 security-specialist + Codex cross-model REVISE→fix→closure). Push still HELD (owner action).
+
+## Re-run trigger for the prod CSP smoke (maintenance)
+
+`scripts/prod-csp-smoke.mjs` is the ONLY check that proves the strict CSP still lets scripts
+execute in prod — and it is NOT in `verify` (it needs a prod server). This episode is the proof
+it matters: the Zod `new Function`/`jitless` regression passed both `verify:full` AND the dev
+e2e and would have white-screened prod. So **re-run `npm run build && npx next start -p 3011 &
+&& node scripts/prod-csp-smoke.mjs` after any of:** a dependency bump (especially anything in the
+client bundle — Zod, React, Next), a change to `lib/schemas.ts` (the `jitless` config), or any
+edit to `proxy.ts` / the CSP. A green dev e2e is NOT a substitute (dev CSP keeps `'unsafe-eval'`).
