@@ -88,25 +88,26 @@ try {
 const violations = await page.evaluate(() => window.__cspViolations ?? []);
 const scriptViolations = violations.filter((v) => /script/i.test(v.directive));
 
-// 5. A non-existent route must ALSO be fully nonced. Next's DEFAULT 404/error pages are
+// 5. Non-existent routes must ALSO be fully nonced. Next's DEFAULT 404/error pages are
 //    build-time static, so their framework scripts ship without a nonce and 'strict-dynamic'
-//    blocks them. The custom app/not-found.tsx (dynamic) closes that -- verify it: the 404
-//    document's scripts carry nonces and raise no script-directive violation. addInitScript
-//    re-runs per navigation, so window.__cspViolations resets for this page.
-const notFoundResp = await page.goto(`${BASE}/__no_such_route_csp_smoke__`, { waitUntil: "networkidle" });
-const notFoundStatus = notFoundResp?.status();
-if (notFoundStatus !== 404) failures.push(`expected 404 for a bogus route, got ${notFoundStatus}`);
-const nf404Nonces = await page.$$eval("script", (els) => els.map((e) => e.nonce).filter((n) => n && n.length > 0));
-if (nf404Nonces.length === 0)
-  failures.push("404 page scripts carry no nonce -- the not-found route is static, not dynamic/nonced");
-const nf404Violations = await page.evaluate(() => window.__cspViolations ?? []);
-const nf404ScriptViolations = nf404Violations.filter((v) => /script/i.test(v.directive));
-if (nf404ScriptViolations.length)
-  failures.push(`404 page script-directive CSP violations: ${JSON.stringify(nf404ScriptViolations)}`);
+//    blocks them; the custom app/not-found.tsx (dynamic) closes that. The second path is the
+//    matcher edge: an `api`-prefixed document path (`/apiary*`) must NOT be skipped by the
+//    proxy (the exclusion is `api/`, not `api`), or it would render with no CSP at all.
+//    addInitScript re-runs per navigation, so window.__cspViolations resets per page.
+for (const bogus of ["/__no_such_route_csp_smoke__", "/apiary-not-a-real-route"]) {
+  const resp = await page.goto(`${BASE}${bogus}`, { waitUntil: "networkidle" });
+  const status = resp?.status();
+  if (status !== 404) failures.push(`expected 404 for ${bogus}, got ${status}`);
+  const cspHeader = resp?.headers()["content-security-policy"] ?? "";
+  if (!/'nonce-[^']+'/.test(cspHeader)) failures.push(`${bogus}: response carries no nonce CSP (proxy skipped it?)`);
+  const nonces = await page.$$eval("script", (els) => els.map((e) => e.nonce).filter((n) => n && n.length > 0));
+  if (nonces.length === 0) failures.push(`${bogus}: scripts carry no nonce (route is static, not dynamic/nonced)`);
+  const v = (await page.evaluate(() => window.__cspViolations ?? [])).filter((x) => /script/i.test(x.directive));
+  if (v.length) failures.push(`${bogus}: script-directive CSP violations: ${JSON.stringify(v)}`);
+  console.log(`bogus ${bogus}: status ${status}, scripts nonced ${nonces.length}, script violations ${v.length}`);
+}
 
 await browser.close();
-
-console.log(`404 route: status ${notFoundStatus}, scripts nonced ${nf404Nonces.length}, script violations ${nf404ScriptViolations.length}`);
 
 console.log(`CSP script-src: ${scriptSrc}`);
 console.log(`scripts carrying a nonce: ${scriptNonces.length}`);

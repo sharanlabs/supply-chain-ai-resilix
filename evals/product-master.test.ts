@@ -5,6 +5,7 @@ import { ProductSchema } from "@/lib/schemas";
 import { ACTIONOPS_SCENARIOS } from "@/lib/data/actionops-scenarios";
 import { GOLDEN_SCENARIOS } from "@/evals/golden/scenarios";
 import { makeDemoPacket } from "@/lib/data/demo-packet";
+import { loadReplayPacket } from "@/lib/pipeline/replay-packet";
 
 // The product master is the existence-grader allowlist (KNOWN_PRODUCT_IDS). These
 // are its real teeth: the catalog must COVER every product any demo scenario can
@@ -44,6 +45,11 @@ describe("product master (the existence-grader allowlist)", () => {
       }
     }
     for (const runout of makeDemoPacket().simulation?.productRunouts ?? []) {
+      referenced.add(runout.productId);
+    }
+    // The frozen live REPLAY packet served at `/` is a 4th source: a hand-edited or
+    // regenerated fixture could reference an off-master product while staying schema-valid.
+    for (const runout of loadReplayPacket().simulation?.productRunouts ?? []) {
       referenced.add(runout.productId);
     }
 

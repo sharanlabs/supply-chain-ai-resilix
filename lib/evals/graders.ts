@@ -100,10 +100,11 @@ function ok(grader: GraderId, kind: GraderKind, failures: string[]): GraderResul
 // Every supplier AND product id in any output must exist in the known set
 // (Success_Criteria: "Every entity ID in any output exists in the
 // suppliers/products tables"). The supplier set is the real ingest's output; the
-// product set is the run's declared inventory (see knownProductIds). The only
-// product reference a V2 packet carries is simulation.productRunouts -- graded
-// here for existence, and separately for set/count symmetry in the simulator
-// grader (a fabricated runout fails both).
+// product set is the product master catalog (KNOWN_PRODUCT_IDS, see knownProductIds)
+// -- catalog existence, NOT the run's own inventory. The only product reference a V2
+// packet carries is simulation.productRunouts -- graded here for catalog existence,
+// and separately for run-scoped set/count symmetry in the simulator grader (a
+// fabricated runout fails both).
 export function gradeEntityIds(
   packet: DecisionPacketV2,
   gt: ScenarioGroundTruth

@@ -29,12 +29,15 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Run on document requests only: skip API routes (no script context; they carry the
-  // static security headers from next.config), the _next static/image assets, and the
-  // favicon, and ignore next/link prefetches (which do not render a nonceable document).
+  // Run on document requests only: skip the `/api/` route handlers (no script context;
+  // they carry the static security headers from next.config), the _next static/image
+  // assets, and the favicon, and ignore next/link prefetches (which do not render a
+  // nonceable document). The exclusion is `api/` not `api` on purpose: `api` would also
+  // skip document routes like `/apiary` or a bare `/api` 404, leaving them with NO CSP
+  // (next.config no longer blankets one) -- `api/` skips only the real API namespace.
   matcher: [
     {
-      source: "/((?!api|_next/static|_next/image|favicon.ico).*)",
+      source: "/((?!api/|_next/static|_next/image|favicon.ico).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" }

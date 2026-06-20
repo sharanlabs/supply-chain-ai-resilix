@@ -106,6 +106,11 @@ describe("D.1 -- ActionOps pipeline emits a valid V2 packet (key-OFF, determinis
 
     const blockedReport = runGraders(packet, gtMismatch);
     expect(blockedReport.blocked).toBe(true);
-    expect(blockedReport.failureCount).toBeGreaterThan(0);
+    // Block for the RIGHT reason: assert the exposure-control grader specifically rejects
+    // the phantom supplier -- not merely that SOME grader failed (the packet's simulation
+    // vs simInputs:undefined would also block, which would let this pass vacuously).
+    const exposure = blockedReport.results.find((r) => r.grader === "exposure-control");
+    expect(exposure?.pass, "exposure-control should fail on the phantom supplier").toBe(false);
+    expect(exposure?.failures.join(" ")).toContain("SUP-PHANTOM-NOT-IN-RUN");
   });
 });
