@@ -89,6 +89,10 @@ export async function buildDecisionPacket(
     simulation: result.simulation,
     dataTier: scenario.dataTier,
     dataGaps: result.dataGaps,
+    // The act/refuse decision + (on NO_ACTION) the missing-evidence list. Stamped on
+    // every packet; readers treat an absent recommendation as ACT (back-compat).
+    recommendation: result.recommendation,
+    missingEvidence: result.missingEvidence,
     playbooks: result.playbooks,
     supplierMessages: result.supplierMessages,
     actionItems: result.actionItems,

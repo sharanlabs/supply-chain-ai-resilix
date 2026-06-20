@@ -8,8 +8,10 @@ import type { DataTier, PublicSignal, RequestedMode, ThreatCard } from "@/lib/sc
 // spec but is its own source of truth; the golden test grades a frozen snapshot,
 // the live pipeline produces from these.
 //
-// All six scenarios (seven records -- the zero-exposure + off-taxonomy controls are
-// the two halves of scenario 6) ship end-to-end. Supplier ids are NOT hard-coded --
+// Seven scenarios (eight records) ship end-to-end: the six disruption-coverage scenarios
+// (the zero-exposure + off-taxonomy controls are the two halves of scenario 6) PLUS the
+// thin-evidence refusal control (scenario 7), which proves the NO_ACTION path. Supplier
+// ids are NOT hard-coded --
 // a scenario declares a MATCH RULE (country / sector / region / risk-tier filter)
 // that Atlas applies to the real ingested seed, so a scenario can never reference an
 // id the pipeline could not produce.
@@ -419,6 +421,53 @@ const OFF_TAXONOMY_SCENARIO: ActionOpsScenario = {
   dataTier: "TIER_1"
 };
 
+// --- 7. Thin-evidence refusal control (single UNVERIFIED, low-confidence source) -------
+// The accountability differentiator made runnable: a real, mapped, actionable disruption
+// (US logistics) reported by ONE unverified, low-confidence source. corroborated is false
+// (a single source) AND confidence is in the "low" band (< the action floor) AND a real
+// sector is exposed -> the pipeline emits recommendation NO_ACTION, WITHHOLDS the playbooks
+// + drafted messages, and states what evidence is missing (decideRecommendation). Distinct
+// from the zero-exposure control (no exposure at all) and the off-taxonomy control
+// (OTHER_UNMAPPED): here there IS an actionable exposure, we just refuse to act on a lone
+// unverified source. The signal is written OVERTLY unverified so the LIVE Sentinel also
+// reads it low-confidence -- the live leg confirms what the deterministic leg (hardcoded
+// 0.35 confidence) guarantees. This is the demo's "Run B" (refuses).
+const THIN_EVIDENCE_GDELT_URL =
+  "https://api.gdeltproject.org/api/v2/doc/doc?query=west+coast+port+shutdown+rumor&mode=artlist&format=json";
+
+const THIN_EVIDENCE_SCENARIO: ActionOpsScenario = {
+  id: "SCN-THIN-EVIDENCE",
+  name: "Thin-evidence refusal control (single unverified source)",
+  threat: {
+    eventType: "PORT_DISRUPTION",
+    severity: "MEDIUM",
+    location: { region: "US West Coast", country: "US" },
+    summary:
+      "An unconfirmed report alleges a major US West Coast container port has abruptly halted operations. The claim is single-source and unverified; no official authority or second source has corroborated it.",
+    evidenceUrls: [THIN_EVIDENCE_GDELT_URL],
+    // Below the action confidence floor (the "low" band): a single unverified source is
+    // too weak to draft outbound action on. Guarantees the deterministic refusal.
+    confidence: 0.35
+  },
+  match: { countries: ["US"], sectors: ["LOGISTICS"] },
+  replaySignals: [
+    replaySignal({
+      id: "SIG-THIN-EVIDENCE-GDELT",
+      source: "GDELT DOC 2.0",
+      sourceUrl: THIN_EVIDENCE_GDELT_URL,
+      eventType: "PORT_RUMOR",
+      severity: "MEDIUM",
+      summary:
+        "A single unconfirmed social-media post alleges a major US West Coast container port has abruptly halted all operations. There is no official Port Authority, US Coast Guard, or carrier confirmation and no corroborating wire report -- the claim is unverified and may be inaccurate.",
+      location: { region: "US West Coast", country: "US" }
+    })
+  ],
+  dataGaps: [
+    "Single unverified source: the disruption is reported by one uncorroborated, low-confidence signal."
+  ],
+  dataTier: "TIER_1"
+};
+
 const SCENARIOS: Record<string, ActionOpsScenario> = {
   [HORMUZ_SCENARIO.id]: HORMUZ_SCENARIO,
   [TARIFF_SCENARIO.id]: TARIFF_SCENARIO,
@@ -426,7 +475,8 @@ const SCENARIOS: Record<string, ActionOpsScenario> = {
   [HURRICANE_SCENARIO.id]: HURRICANE_SCENARIO,
   [BANKRUPTCY_SCENARIO.id]: BANKRUPTCY_SCENARIO,
   [ZERO_EXPOSURE_SCENARIO.id]: ZERO_EXPOSURE_SCENARIO,
-  [OFF_TAXONOMY_SCENARIO.id]: OFF_TAXONOMY_SCENARIO
+  [OFF_TAXONOMY_SCENARIO.id]: OFF_TAXONOMY_SCENARIO,
+  [THIN_EVIDENCE_SCENARIO.id]: THIN_EVIDENCE_SCENARIO
 };
 
 // The ordered scenario list (flagship first) -- the UI's scenario picker and any
@@ -438,7 +488,8 @@ export const ACTIONOPS_SCENARIOS: readonly ActionOpsScenario[] = [
   HURRICANE_SCENARIO,
   BANKRUPTCY_SCENARIO,
   ZERO_EXPOSURE_SCENARIO,
-  OFF_TAXONOMY_SCENARIO
+  OFF_TAXONOMY_SCENARIO,
+  THIN_EVIDENCE_SCENARIO
 ];
 
 export const DEFAULT_SCENARIO_ID = HORMUZ_SCENARIO.id;

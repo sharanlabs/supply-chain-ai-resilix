@@ -1,6 +1,8 @@
+import { makeAgentRun } from "@/lib/agents/actionops/agent-run";
 import { runActionOpsGatekeeper } from "@/lib/agents/actionops/gatekeeper";
 import { runAtlas } from "@/lib/agents/actionops/atlas";
 import { classifyMessagesLive, runDispatcher } from "@/lib/agents/actionops/dispatcher";
+import { decideRecommendation } from "@/lib/agents/actionops/recommendation";
 import { classifyThreatLive, runSentinel } from "@/lib/agents/actionops/sentinel";
 import { runSimulator } from "@/lib/agents/actionops/simulator";
 import { classifyPlaybooksLive, runStrategist } from "@/lib/agents/actionops/strategist";
@@ -12,6 +14,7 @@ import {
   liveAiEnabled,
   resolvedGeminiModel
 } from "@/lib/agents/run";
+import type { ActionItem, AgentRun, Playbook, SupplierMessageDraft } from "@/lib/schemas";
 import type { ActionOpsContext, ActionOpsResult } from "@/lib/agents/actionops/types";
 
 export type { ActionOpsContext, ActionOpsResult } from "@/lib/agents/actionops/types";
@@ -60,35 +63,85 @@ export async function runActionOpsAgents(ctx: ActionOpsContext): Promise<ActionO
     : runSentinel(ctx);
   spentUsd += sentinelRun.costUsd ?? 0;
 
-  const { agentRun: verifierRun } = runVerifier(ctx, threatCard);
+  const { checks: verifierChecks, agentRun: verifierRun } = runVerifier(ctx, threatCard);
   const { exposureResults, dataGaps: atlasDataGaps, agentRun: atlasRun } = runAtlas(ctx, threatCard);
   const { simulation, dataGaps: simulatorDataGaps, agentRun: simulatorRun } = runSimulator(ctx, exposureResults);
   // Atlas's gaps (a rejected/misclassified handoff) come first, then the Simulator's
   // (Tier-1 no-inventory note). The packet's dataGaps is the union.
   const dataGaps = [...atlasDataGaps, ...simulatorDataGaps];
 
-  // Strategist (LLM #2 when live): playbooks grounded ONLY in the structured exposures.
-  const { playbooks, agentRun: strategistRun } = live
-    ? await classifyPlaybooksLive(ctx, exposureResults, { budget: budgetForNext() })
-    : runStrategist(ctx, exposureResults);
-  spentUsd += strategistRun.costUsd ?? 0;
+  // The act / refuse gate (deterministic). NO_ACTION = refuse to draft outbound action
+  // on a lone uncorroborated, low-confidence source -- the refusal itself is the output,
+  // not an error. Drives off the Verifier's corroboration, the threat's own confidence,
+  // and whether a real-sector exposure exists (decideRecommendation owns the rule).
+  const { recommendation, missingEvidence } = decideRecommendation({
+    corroborated: verifierChecks.corroborated,
+    confidence: threatCard.confidence,
+    exposureResults
+  });
 
-  // Dispatcher (LLM #3 when live): the most security-critical -- its drafts are the only
-  // thing that leaves the building. threatCard + publicSignals are passed for the
-  // firewall's citation root ONLY; the prompt itself sees just the structured whitelist
-  // (see dispatcher.ts -- the laundering cut keeps that prose out of the prompt).
-  const {
-    supplierMessages,
-    actionItems,
-    agentRun: dispatcherRun
-  } = live
-    ? await classifyMessagesLive(ctx, exposureResults, simulation, {
-        budget: budgetForNext(),
-        threatCard,
-        publicSignals: signals
-      })
-    : runDispatcher(ctx, exposureResults, simulation);
-  spentUsd += dispatcherRun.costUsd ?? 0;
+  // The outbound agents (Strategist -> playbooks, Dispatcher -> drafts) are the action.
+  // ACT runs them; NO_ACTION WITHHOLDS them. On a withhold the exposure + runway already
+  // computed stay in the packet but are flagged CONTINGENT (situational awareness while
+  // the analyst corroborates, never an endorsed assessment). Each agent still emits an
+  // audit run -- mode DETERMINISTIC_RULES, $0, validationStatus PASS -- so the six-run
+  // trail stays complete AND a live NO_ACTION run (Sentinel LIVE_AI, these deterministic)
+  // resolves to effectiveMode LIVE_AI, never mislabeled FAILED_TO_FALLBACK.
+  let playbooks: Playbook[];
+  let supplierMessages: SupplierMessageDraft[];
+  let actionItems: ActionItem[];
+  let strategistRun: AgentRun;
+  let dispatcherRun: AgentRun;
+
+  if (recommendation === "NO_ACTION") {
+    playbooks = [];
+    supplierMessages = [];
+    actionItems = [];
+    strategistRun = makeAgentRun({
+      id: "RUN-STRATEGIST",
+      agentName: "Strategist",
+      input: { recommendation },
+      output: { withheld: true },
+      summary: "Withheld: NO_ACTION -- no playbook drafted until the disruption is corroborated.",
+      createdAt: baseDateIso
+    });
+    dispatcherRun = makeAgentRun({
+      id: "RUN-DISPATCHER",
+      agentName: "Dispatcher",
+      input: { recommendation },
+      output: { withheld: true },
+      summary:
+        "Withheld: NO_ACTION -- no outbound supplier message drafted until the disruption is corroborated.",
+      createdAt: baseDateIso
+    });
+    dataGaps.push(
+      "NO_ACTION: outbound action is withheld pending corroboration. The exposure and runway below are shown for situational awareness only -- they are contingent on the disruption being confirmed, not an endorsed assessment."
+    );
+  } else {
+    // Strategist (LLM #2 when live): playbooks grounded ONLY in the structured exposures.
+    const strat = live
+      ? await classifyPlaybooksLive(ctx, exposureResults, { budget: budgetForNext() })
+      : runStrategist(ctx, exposureResults);
+    playbooks = strat.playbooks;
+    strategistRun = strat.agentRun;
+    spentUsd += strategistRun.costUsd ?? 0;
+
+    // Dispatcher (LLM #3 when live): the most security-critical -- its drafts are the only
+    // thing that leaves the building. threatCard + publicSignals are passed for the
+    // firewall's citation root ONLY; the prompt itself sees just the structured whitelist
+    // (see dispatcher.ts -- the laundering cut keeps that prose out of the prompt).
+    const disp = live
+      ? await classifyMessagesLive(ctx, exposureResults, simulation, {
+          budget: budgetForNext(),
+          threatCard,
+          publicSignals: signals
+        })
+      : runDispatcher(ctx, exposureResults, simulation);
+    supplierMessages = disp.supplierMessages;
+    actionItems = disp.actionItems;
+    dispatcherRun = disp.agentRun;
+    spentUsd += dispatcherRun.costUsd ?? 0;
+  }
 
   // Assemble the runs BEFORE the gatekeeper so it can fail closed on any agent that
   // reported a validation failure (e.g. an Atlas-rejected misclassified handoff, or a
@@ -116,6 +169,8 @@ export async function runActionOpsAgents(ctx: ActionOpsContext): Promise<ActionO
     exposureResults,
     simulation,
     dataGaps,
+    recommendation,
+    missingEvidence,
     playbooks,
     supplierMessages,
     actionItems,

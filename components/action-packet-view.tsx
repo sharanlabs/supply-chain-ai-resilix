@@ -15,10 +15,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCountUp } from "@/lib/use-count-up";
+import { ACTION_CONFIDENCE_FLOOR } from "@/lib/agents/actionops/recommendation";
 import { HttpUrlSchema } from "@/lib/schemas";
 import type {
   AuditTrailEntry,
   DecisionPacketV2,
+  MissingEvidence,
   PublicSignal
 } from "@/lib/schemas";
 import { formatCurrency } from "@/lib/utils";
@@ -56,11 +58,14 @@ function tierFromRationale(rationale: string): Severity | null {
 }
 
 // A plain-English confidence word for the prose, so a layperson reads "high
-// confidence", not a bare percentage. The number still appears beside it.
+// confidence", not a bare percentage. The number still appears beside it. The
+// "low" boundary is the SAME ACTION_CONFIDENCE_FLOOR the refusal logic uses (scaled
+// to a percentage here, since this takes 0-100): "low confidence" on screen and "too
+// low to act on a lone source" in the pipeline are one boundary, never divergent.
 function confidenceWord(pct: number) {
   if (pct >= 85) return "high";
   if (pct >= 65) return "moderate";
-  if (pct >= 45) return "limited";
+  if (pct >= ACTION_CONFIDENCE_FLOOR * 100) return "limited";
   return "low";
 }
 
@@ -194,6 +199,64 @@ function threatHeadline(threat: DecisionPacketV2["threatCard"]) {
   return where ? `${event} -- ${where}` : event;
 }
 
+// The NO_ACTION refusal, rendered as a FIRST-CLASS packet element -- not an error, not a
+// degraded badge. A calm, deliberate decision ("we chose not to act, and here is exactly
+// what is missing"), the accountability differentiator the genre does not show. It states
+// the withhold, then enumerates each missing-evidence item: what is required, what is
+// absent, and what would flip the decision to ACT. The exposure/runway sections still
+// render below, flagged contingent by a dataGaps line.
+function RefusalCard({ missingEvidence }: { missingEvidence: MissingEvidence[] }) {
+  return (
+    <section
+      className="reveal panel rounded-(--radius-card) p-6 sm:p-7"
+      style={{ "--d": 80 } as React.CSSProperties}
+      aria-labelledby="refusal-h"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="flex items-center gap-2 text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
+          <CircleSlash aria-hidden="true" className="size-4 text-accent" />
+          Recommendation
+        </span>
+        <Badge tone="medium">NO ACTION</Badge>
+      </div>
+      <h2
+        id="refusal-h"
+        className="mt-4 max-w-[44ch] text-[1.25rem] leading-[1.22] font-semibold text-ink sm:text-[1.4375rem]"
+      >
+        Outbound action withheld -- the evidence is too thin to act on.
+      </h2>
+      <p className="mt-4 max-w-[64ch] text-[0.9375rem] leading-7 text-ink-muted">
+        RESILIX will not draft outbound supplier action on the strength of a single
+        uncorroborated, low-confidence source. The exposure and runway below are shown for
+        situational awareness only -- they are contingent on the disruption being confirmed,
+        not an endorsed assessment.
+      </p>
+      {missingEvidence.length > 0 ? (
+        <div className="mt-5 border-t border-line pt-5">
+          <p className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
+            What evidence is missing
+          </p>
+          <ul className="mt-3 flex flex-col gap-4">
+            {missingEvidence.map((item) => (
+              <li key={item.requirement} className="max-w-[64ch]">
+                <p className="text-[0.9375rem] font-semibold text-ink">
+                  {item.requirement}
+                </p>
+                <p className="mt-1 text-[0.9375rem] leading-7 text-ink-muted">
+                  {item.detail}
+                </p>
+                <p className="mt-1 text-[0.875rem] leading-6 text-ink-faint">
+                  Would change if: {item.wouldFlipIf}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // The Action Packet -- the primary screen, read start-to-end like a war-room
 // briefing a layperson and an industry pro both follow.
@@ -223,6 +286,11 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
 
   const degraded = packet.effectiveMode === "FAILED_TO_FALLBACK";
   const { threatCard, simulation, gatekeeper } = packet;
+  // The act/refuse decision (absent => ACT, back-compat). On NO_ACTION the pipeline
+  // withheld the playbooks + drafts; the RefusalCard states what evidence is missing.
+  const recommendation = packet.recommendation ?? "ACT";
+  const isNoAction = recommendation === "NO_ACTION";
+  const missingEvidence = packet.missingEvidence ?? [];
   const honesty = signalHonesty(packet.publicSignals);
   // WCAG 2.2 SC 4.1.3 Status Messages: the live region below announces a runtime
   // mode change without moving focus. Empty while live; set when the packet is
@@ -310,13 +378,19 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
   // impossible from the UI -- both the control and the handler are gated, so the
   // gate can never be bypassed. (Return-for-revision stays available while
   // PENDING; only the approve path is gatekeeper-gated.)
+  // A NO_ACTION packet has nothing to approve -- the pipeline withheld every outbound
+  // draft. Approval is unavailable until the disruption is corroborated (which would
+  // re-run the pipeline to ACT). The other gates still apply on an ACT packet.
   const canApprove =
-    approval.status === "PENDING" && gatekeeper.approvedForHumanReview === true;
+    !isNoAction &&
+    approval.status === "PENDING" &&
+    gatekeeper.approvedForHumanReview === true;
 
   // Why approval is blocked, surfaced under the disabled control. Derived from
-  // the real gatekeeper verdict -- never hardcoded.
-  const approveBlockedReason =
-    approval.status !== "PENDING"
+  // the real gatekeeper verdict (or the refusal) -- never hardcoded.
+  const approveBlockedReason = isNoAction
+    ? "No outbound action to approve -- the disruption must be corroborated first."
+    : approval.status !== "PENDING"
       ? null // already decided -- the status pill already communicates this
       : gatekeeper.approvedForHumanReview
         ? null
@@ -377,11 +451,13 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               className="size-1.5 rounded-full bg-accent"
             />
             Decision packet ·{" "}
-            {approval.status === "PENDING"
-              ? "awaiting your approval"
-              : approval.status === "APPROVED"
-                ? "approved"
-                : "returned for revision"}
+            {isNoAction
+              ? "no action recommended"
+              : approval.status === "PENDING"
+                ? "awaiting your approval"
+                : approval.status === "APPROVED"
+                  ? "approved"
+                  : "returned for revision"}
           </p>
           <h1 className="mt-3 text-[1.625rem] leading-[1.18] font-medium text-ink sm:text-[2rem] sm:leading-[1.16]">
             {peakRisk !== null ? (
@@ -403,7 +479,12 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               threatHeadline(threatCard)
             )}
           </h1>
-          {peakRisk !== null ? (
+          {isNoAction ? (
+            <p className="mt-3 max-w-[46ch] text-[0.9375rem] leading-7 text-ink-muted">
+              Here is what we know and who it would hit -- but the evidence is too
+              thin to act on, so we have drafted nothing for sign-off.
+            </p>
+          ) : peakRisk !== null ? (
             <p className="mt-3 max-w-[46ch] text-[0.9375rem] leading-7 text-ink-muted">
               Here is what we know, who it hits, how fast it bites, and the
               response we have drafted for your sign-off.
@@ -431,6 +512,10 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
           </div>
         </div>
       </header>
+
+      {/* NO_ACTION refusal -- a first-class, full-width packet element above the war
+          room. Renders ONLY when the pipeline refused; on an ACT packet it is absent. */}
+      {isNoAction ? <RefusalCard missingEvidence={missingEvidence} /> : null}
 
       {/* The two-column war room: the briefing spine on the left, the human
           decision rail sticky on the right. Collapses to one column under lg. */}
@@ -782,12 +867,15 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               </h2>
             </header>
             <p className="mt-1 mb-4 max-w-[60ch] text-sm leading-6 text-ink-muted">
-              We have written the outreach for you. These are drafts only --
-              nothing leaves the building until a person sends them.
+              {isNoAction
+                ? "No outreach was drafted -- outbound action is withheld until the disruption is corroborated (see the recommendation above)."
+                : "We have written the outreach for you. These are drafts only -- nothing leaves the building until a person sends them."}
             </p>
             {packet.supplierMessages.length === 0 ? (
               <p className="text-sm text-ink-muted">
-                No supplier drafts generated.
+                {isNoAction
+                  ? "Drafting withheld pending corroboration."
+                  : "No supplier drafts generated."}
               </p>
             ) : (
               <div className="grid gap-3 lg:grid-cols-2">

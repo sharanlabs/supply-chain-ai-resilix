@@ -5,6 +5,7 @@ import { ACTIONOPS_SCENARIOS, getActionOpsScenario } from "@/lib/data/actionops-
 import { describeFailures, runGraders } from "@/lib/evals/run-graders";
 import type { ScenarioGroundTruth, SimInputs } from "@/lib/evals/graders";
 import { judgeNoUnsupportedClaims, resolvedJudgeModel } from "@/lib/evals/judge";
+import { ACTION_CONFIDENCE_FLOOR } from "@/lib/agents/actionops/recommendation";
 import { estimateLiveCallCostUsd } from "@/lib/agents/run";
 import { DEFAULT_BUDGET_CAP_USD } from "@/lib/agents/budget";
 import { KNOWN_SUPPLIER_IDS } from "@/evals/golden/seed-ids";
@@ -36,7 +37,8 @@ const EXPECTED_EVENT_TYPE: Record<string, string> = {
   "SCN-HURRICANE": "NATURAL_DISASTER",
   "SCN-BANKRUPTCY": "SUPPLIER_BANKRUPTCY",
   "SCN-ZERO-EXPOSURE": "PORT_DISRUPTION",
-  "SCN-OFF-TAXONOMY": "OTHER_UNMAPPED"
+  "SCN-OFF-TAXONOMY": "OTHER_UNMAPPED",
+  "SCN-THIN-EVIDENCE": "PORT_DISRUPTION"
 };
 
 function groundTruthFor(scenarioId: string, live: DecisionPacketV2, det: DecisionPacketV2): ScenarioGroundTruth {
@@ -87,6 +89,10 @@ describe.skipIf(!LIVE)("D.9 live Gemini pass -- all scenarios (BILLS, gated)", (
         const strategist = runById(live, "RUN-STRATEGIST");
         const dispatcher = runById(live, "RUN-DISPATCHER");
         const hasExposures = live.exposureResults.length > 0;
+        // The deterministic leg is the oracle for "is this a refusal scenario": Atlas +
+        // the Verifier are not LLMs, and the thin-evidence scenario's confidence is fixed,
+        // so a NO_ACTION here means the live leg SHOULD also refuse (confirmatory).
+        const detRefuses = det.recommendation === "NO_ACTION";
 
         // --- Eyeball log (printed before assertions) ---
         console.log(`\n===== ${scenario.id} LIVE =====`);
@@ -102,8 +108,28 @@ describe.skipIf(!LIVE)("D.9 live Gemini pass -- all scenarios (BILLS, gated)", (
         // Sentinel ALWAYS runs live (it reads the signals). A silent FAILED fails the eval.
         expect(sentinel?.mode, `Sentinel: ${sentinel?.summary ?? ""}`).toBe("LIVE_AI");
 
-        if (hasExposures) {
-          // With exposures, the Strategist + Dispatcher run live too.
+        if (detRefuses) {
+          // Refusal scenario (thin evidence). The live Sentinel still runs (asserted above),
+          // but confidence is stochastic, so whether it ALSO refuses is a SOFT/confirmatory
+          // check -- the deterministic NO_ACTION in actionops-no-action.test.ts is the gate.
+          console.log(`  refusal scenario: live recommendation=${live.recommendation} confidence=${live.threatCard.confidence.toFixed(2)} (floor ${ACTION_CONFIDENCE_FLOOR})`);
+          if (live.recommendation === "NO_ACTION") {
+            // Confirmed: outbound action withheld, missing-evidence stated, drafts suppressed.
+            expect(live.supplierMessages).toEqual([]);
+            expect(live.missingEvidence?.length ?? 0).toBeGreaterThan(0);
+            // Withheld is deliberate, never a degraded fallback.
+            expect(strategist?.mode).not.toBe("FAILED_TO_FALLBACK");
+            expect(dispatcher?.mode).not.toBe("FAILED_TO_FALLBACK");
+          } else {
+            // The materialized risk the advisor named: the live Sentinel read the thin signal
+            // ABOVE the floor and acted. The deterministic leg still gates the refusal; this
+            // is the signal to strengthen the wording or move to count-based corroboration.
+            console.warn(
+              `  [calibration] ${scenario.id}: live Sentinel did NOT refuse (confidence ${live.threatCard.confidence.toFixed(2)} >= ${ACTION_CONFIDENCE_FLOOR}). Deterministic leg still gates NO_ACTION.`
+            );
+          }
+        } else if (hasExposures) {
+          // With exposures and an ACT decision, the Strategist + Dispatcher run live too.
           expect(strategist?.mode, `Strategist: ${strategist?.summary ?? ""}`).toBe("LIVE_AI");
           expect(dispatcher?.mode, `Dispatcher: ${dispatcher?.summary ?? ""}`).toBe("LIVE_AI");
         } else {

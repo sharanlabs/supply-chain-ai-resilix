@@ -392,6 +392,25 @@ export const ActionItemSchema = z.object({
   dueDate: z.string().optional()
 });
 
+// The packet-level act/refuse decision. ACT = the pipeline produced playbooks +
+// drafted outbound messages for human approval. NO_ACTION = RESILIX REFUSED to draft
+// outbound supplier action because the evidence is too thin to justify it (a lone
+// uncorroborated, low-confidence source). The refusal is itself a first-class output:
+// it states what evidence is missing and what would flip the decision. The differentiator
+// the competitive analysis names "the agent that refuses when it can't prove it."
+export const RecommendationSchema = z.enum(["ACT", "NO_ACTION"]);
+
+// One missing-evidence item on a NO_ACTION packet: what corroboration is required,
+// what is absent now, and what specifically would flip the decision to ACT. All three
+// are NUMERAL-FREE prose by construction (templated from the deterministic Verifier
+// checks, no model figure) so a refusal packet carries zero unsourced claims -- the
+// same citation honesty the action path enforces, applied to the refusal.
+export const MissingEvidenceSchema = z.object({
+  requirement: z.string(),
+  detail: z.string(),
+  wouldFlipIf: z.string()
+});
+
 // Tiered CSV schema (Phase 2): Tier-1 unlocks exposure mapping only; Tier-2
 // unlocks runway. SEEDED = the demo dataset path.
 export const DataTierSchema = z.enum(["TIER_1", "TIER_2", "SEEDED"]);
@@ -582,6 +601,14 @@ export const DecisionPacketV2Schema = z.object({
   // Human-readable reasons a section is missing (e.g. "no runway: Tier-1 upload
   // has no inventory columns"). Makes a thin packet self-explaining.
   dataGaps: z.array(z.string()),
+  // --- Act / refuse decision, ADDITIVE + back-compat ------------------------
+  // recommendation defaults to ACT when absent so a pre-refusal stored V2 packet and
+  // the frozen golden/live fixtures (captured before this field existed) still parse --
+  // identical to the D.8 cost-field pattern below. The producer (build-packet) ALWAYS
+  // stamps it. On a NO_ACTION packet, missingEvidence enumerates the corroboration gap;
+  // on an ACT packet it is absent. Readers treat an absent recommendation as ACT.
+  recommendation: RecommendationSchema.optional(),
+  missingEvidence: z.array(MissingEvidenceSchema).optional(),
   playbooks: z.array(PlaybookSchema),
   supplierMessages: z.array(SupplierMessageDraftSchema),
   actionItems: z.array(ActionItemSchema),
@@ -640,6 +667,8 @@ export type Playbook = z.infer<typeof PlaybookSchema>;
 export type Claim = z.infer<typeof ClaimSchema>;
 export type SupplierMessageDraft = z.infer<typeof SupplierMessageDraftSchema>;
 export type ActionItem = z.infer<typeof ActionItemSchema>;
+export type Recommendation = z.infer<typeof RecommendationSchema>;
+export type MissingEvidence = z.infer<typeof MissingEvidenceSchema>;
 export type DataTier = z.infer<typeof DataTierSchema>;
 // Sector/country and master-data (P2.4) types.
 export type Sector = z.infer<typeof SectorSchema>;

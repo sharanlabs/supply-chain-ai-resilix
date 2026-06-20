@@ -58,16 +58,16 @@ Hard rules, no exceptions:
 - **Synthetic enterprise data:** a seeded ~150-row US supplier dataset, disclosed as such; seed-derived figures are stamped and never mixed into results from your own upload.
 - **Your data:** a tiered CSV upload — Tier-1 columns unlock exposure mapping, optional inventory columns unlock runway simulation. Every upload gets a per-row matched/unmatched report; a silent zero-match is structurally impossible. Uploaded names are formula-injection-sanitized and canonicalized to internal IDs before any agent sees them.
 
-## The six scenarios
+## The scenarios
 
-Hormuz chokepoint closure (flagship) · tariff-deadline countdown · Red Sea / Suez diversion · hurricane on a single-source plant (replay) · supplier bankruptcy · a zero-exposure control (valid event, no match → "no direct exposure", no invented findings) paired with an off-taxonomy control (out-of-vocabulary event → `OTHER_UNMAPPED`, never force-fit). All six run end-to-end live and deterministically.
+Hormuz chokepoint closure (flagship) · tariff-deadline countdown · Red Sea / Suez diversion · hurricane on a single-source plant (replay) · supplier bankruptcy · a zero-exposure control (valid event, no match → "no direct exposure", no invented findings) paired with an off-taxonomy control (out-of-vocabulary event → `OTHER_UNMAPPED`, never force-fit) · and a **thin-evidence refusal control** (a real exposure reported by one unverified, low-confidence source → `NO_ACTION`, with the missing-evidence list). All run end-to-end live and deterministically.
 
 ## Limitations
 
 Stated up front, because the credibility of an evidence tool depends on it:
 
 - **Episodic, not continuous.** Runs are on-demand; there is no background monitoring. The "packet ready at 2 a.m." workflow is roadmap, gated on scheduled scans.
-- **Calibrated refusal is partial.** The system declines to invent findings (the zero-exposure control) and discloses degradation (the mode taxonomy + badge), but an explicit "NO_ACTION, here's exactly what evidence is missing" refusal *packet* is roadmap, not shipped.
+- **Calibrated refusal fires on a corroboration + confidence rule.** When a real exposure is reported by a single uncorroborated, low-confidence source, the pipeline emits a `NO_ACTION` packet with the missing-evidence list (shipped, deterministic + a confirmatory live leg). It does not yet model *source authority* beyond the threat's own confidence — an authoritative single source (e.g. an official weather warning) is treated as actionable.
 - **The default home view renders the deterministic packet.** A frozen live-quality packet served as labelled `REPLAY` on the landing surface is captured (`evals/fixtures/live/`) but not yet wired to the home route.
 - **Your CSV goes stale.** Exposure results are only as current as the last upload.
 - **Single-instance idempotency.** Concurrent-run de-duplication is authoritative within one Node instance; cross-instance reservation is post-MVP.
@@ -75,14 +75,13 @@ Stated up front, because the credibility of an evidence tool depends on it:
 
 ## Status
 
-**The ActionOps pipeline runs end-to-end** — live (Gemini) and deterministic — across all six scenarios, gated increment by increment (each through `npm run verify` + an independent acceptance gate + a cross-model review). Built from the LaunchOps predecessor per [PLAN.md](PLAN.md): the data layer at scale (node-postgres, atomic approval, idempotency, CSV ingestion, ~150-row seed, fail-closed auth), the GDELT + NWS signal layer, the six-agent core, the cost ledger, the evals harness (deterministic graders + golden-task BLOCK + calibrated judge), and a WCAG 2.2 AA accessibility pass. Full review trail: [PLAN-REVIEW-LOG.md](PLAN-REVIEW-LOG.md).
+**The ActionOps pipeline runs end-to-end** — live (Gemini) and deterministic — across all seven scenarios, gated increment by increment (each through `npm run verify` + an independent acceptance gate + a cross-model review). Built from the LaunchOps predecessor per [PLAN.md](PLAN.md): the data layer at scale (node-postgres, atomic approval, idempotency, CSV ingestion, ~150-row seed, fail-closed auth), the GDELT + NWS signal layer, the six-agent core, the `NO_ACTION` refusal path, the cost ledger, the evals harness (deterministic graders + golden-task BLOCK + calibrated judge), and a WCAG 2.2 AA accessibility pass. Full review trail: [PLAN-REVIEW-LOG.md](PLAN-REVIEW-LOG.md).
 
 ## Roadmap (post-MVP, in trigger order)
 
-1. An explicit `NO_ACTION` refusal packet (declines with the missing-evidence list) — the sharpest remaining accountability differentiator.
-2. The frozen live-quality packet wired to the landing surface as labelled `REPLAY`.
-3. Scheduled scans — unlocks the 2 a.m. packet positioning.
-4. ERP integration (NetSuite/Epicor/Dynamics class), email handoff of approved drafts, SSO, multi-tenancy.
+1. The frozen live-quality packet wired to the landing surface as labelled `REPLAY`.
+2. Scheduled scans — unlocks the 2 a.m. packet positioning.
+3. ERP integration (NetSuite/Epicor/Dynamics class), email handoff of approved drafts, SSO, multi-tenancy.
 
 ## Tech stack
 

@@ -7,10 +7,11 @@ import { DecisionPacketV2Schema } from "@/lib/schemas";
 // Production scenario coverage (Success_Criteria "scenario coverage 6 of 6"). Every
 // registered scenario builds a schema-valid V2 packet through the DETERMINISTIC pipeline
 // (live:false -> the scenario's own replay signals, no live AI, no network), with the
-// tier / simulation / exposure shape its config implies. This is the 6-of-6 proof AND the
+// tier / simulation / exposure shape its config implies. This is the coverage proof AND the
 // guard that a new scenario's match + sim config is wired correctly BEFORE any live spend.
-// The six scenarios are seven records: the zero-exposure + off-taxonomy controls are the
-// two halves of scenario 6.
+// Seven scenarios, eight records: the six disruption-coverage scenarios (the zero-exposure
+// + off-taxonomy controls are the two halves of scenario 6) PLUS the thin-evidence refusal
+// control (scenario 7), which proves the NO_ACTION path.
 
 const EXPECTED_IDS = [
   "SCN-HORMUZ",
@@ -19,11 +20,12 @@ const EXPECTED_IDS = [
   "SCN-HURRICANE",
   "SCN-BANKRUPTCY",
   "SCN-ZERO-EXPOSURE",
-  "SCN-OFF-TAXONOMY"
+  "SCN-OFF-TAXONOMY",
+  "SCN-THIN-EVIDENCE"
 ];
 
-describe("ActionOps production scenarios: deterministic coverage (6 of 6)", () => {
-  it("registers all six scenarios (seven records, flagship first)", () => {
+describe("ActionOps production scenarios: deterministic coverage", () => {
+  it("registers all seven scenarios (eight records, flagship first)", () => {
     expect(ACTIONOPS_SCENARIOS.map((s) => s.id)).toEqual(EXPECTED_IDS);
   });
 
@@ -67,6 +69,18 @@ describe("ActionOps production scenarios: deterministic coverage (6 of 6)", () =
     const packet = await buildDecisionPacket({ scenarioId: "SCN-OFF-TAXONOMY", live: false });
     expect(packet.exposureResults.length).toBeGreaterThan(0);
     expect(packet.exposureResults.every((e) => e.sector === "OTHER_UNMAPPED")).toBe(true);
+  });
+
+  it("thin-evidence control: NO_ACTION with a real-but-contingent exposure, no drafts", async () => {
+    const packet = await buildDecisionPacket({ scenarioId: "SCN-THIN-EVIDENCE", live: false });
+    // A lone low-confidence source on a real-sector exposure -> the pipeline REFUSES.
+    expect(packet.recommendation).toBe("NO_ACTION");
+    // The exposure is real (US logistics), kept for situational awareness...
+    expect(packet.exposureResults.length).toBeGreaterThan(0);
+    // ...but every outbound draft is withheld, and the gap is stated.
+    expect(packet.supplierMessages).toEqual([]);
+    expect(packet.playbooks).toEqual([]);
+    expect(packet.dataGaps.join(" ")).toMatch(/withheld pending corroboration/i);
   });
 
   it("single-source scenarios match exactly one supplier (the declarative region/tier filter)", async () => {

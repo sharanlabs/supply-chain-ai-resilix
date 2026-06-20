@@ -3,8 +3,10 @@ import type {
   AgentRun,
   ExposureResult,
   GatekeeperReport,
+  MissingEvidence,
   Playbook,
   PublicSignal,
+  Recommendation,
   Simulation,
   Supplier,
   SupplierMessageDraft,
@@ -39,6 +41,11 @@ export type ActionOpsResult = {
   exposureResults: ExposureResult[];
   simulation?: Simulation;
   dataGaps: string[];
+  // The act/refuse decision (decideRecommendation). NO_ACTION = the pipeline refused
+  // to draft outbound action on a lone uncorroborated low-confidence source; playbooks
+  // and supplierMessages are then withheld and missingEvidence states the gap.
+  recommendation: Recommendation;
+  missingEvidence: MissingEvidence[];
   playbooks: Playbook[];
   supplierMessages: SupplierMessageDraft[];
   actionItems: ActionItem[];
