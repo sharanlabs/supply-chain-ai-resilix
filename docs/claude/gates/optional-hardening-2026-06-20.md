@@ -61,10 +61,11 @@ read-only over commits `936c6ef` + `d0eaf17`/`149f18d`.
      `exposure-control` grader specifically fails (was "blocked for any reason").
   3. [Low] `product-master.test.ts`: added `loadReplayPacket` as a 4th drift-guard source.
   4. [Low] `graders.ts`: stale "run inventory" comment → "product master catalog existence".
-- **Closure: REVISE(1 nit)** — a stale "three sources" test comment after fix #3 added a
-  fourth; corrected in `8a44ae9`. Codex functionally verified all 4 fixes (matcher via Next's
-  `unstable_doesMiddlewareMatch`, the exposure assertion, the replay-fixture load, the comment).
-  The lone open item was a comment, so no further cross-model round was spent (primary-model-final).
+- **Closure 1: REVISE(1 nit)** — a stale "three sources" test comment after fix #3 added a
+  fourth; corrected in `8a44ae9`. Codex functionally verified all 4 substantive fixes (matcher via
+  Next's `unstable_doesMiddlewareMatch`, the exposure assertion, the replay-fixture load, the comment).
+- **Closure 2: APPROVE** (clean, no findings) — confirmed the comment fix and that nothing across
+  `936c6ef..8a44ae9` is outstanding. The gate ends on a clean cross-model APPROVE.
 
 Re-verified after the fixes: `verify:full` GREEN + the prod smoke PASS (`/`, a plain 404, and an
 `api`-prefixed 404 all 404 + fully nonced, zero violations, interactive).
