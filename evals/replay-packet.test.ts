@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { loadReplayPacket } from "@/lib/pipeline/replay-packet";
-import { DecisionPacketV2Schema } from "@/lib/schemas";
+import { DecisionPacketSchema } from "@/lib/schemas";
 
 // The landing-surface REPLAY loader. This is the DRIFT GUARD: loadReplayPacket parses the
-// frozen evals/fixtures/live/SCN-HORMUZ.json through DecisionPacketV2Schema and throws on
+// frozen evals/fixtures/live/SCN-HORMUZ.json through the canonical DecisionPacketSchema and throws on
 // any drift, so a fixture that no longer matches the schema fails HERE (in npm test), not
 // silently in production. It also pins the replay-honesty contract (Success_Criteria
 // "Replay mode rendering ... never labeled live").
@@ -18,7 +18,7 @@ describe("loadReplayPacket -- the landing-surface frozen REPLAY", () => {
   it("loads + re-validates the frozen packet (fails loud on fixture drift)", () => {
     const packet = loadReplayPacket();
     // The transformed output must itself be a valid V2 packet.
-    const parsed = DecisionPacketV2Schema.safeParse(packet);
+    const parsed = DecisionPacketSchema.safeParse(packet);
     expect(
       parsed.success,
       parsed.success ? "" : JSON.stringify(parsed.error?.issues, null, 2)

@@ -432,8 +432,9 @@ export async function classifyThreatLive(
         model,
         mode: "LIVE_AI",
         latencyMs: Date.now() - startedAt,
-        // The FINAL attempt's provider-reported usage -> costUsd. Earlier rejected attempts
-        // (if any) are a documented, negligible ledger undercount (see liveGenerateValidated).
+        // The AGGREGATE usage across all attempts -> costUsd: liveGenerateValidated sums
+        // every billed attempt (the resolved one plus any rejected retries), so this is the
+        // EXACT gross spend, not a final-attempt-only lower bound.
         usage: result.usage
       })
     };

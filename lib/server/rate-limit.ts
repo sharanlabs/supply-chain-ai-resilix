@@ -40,6 +40,20 @@ export const MUTATION_RATE_LIMIT = { limit: 30, windowMs: 60_000 } as const;
 // (one noisy upload caller cannot exhaust the approve budget).
 const buckets = new Map<string, WindowState>();
 
+// Soft cap on distinct keys before we sweep. Without it a key-rotating caller (rotating a
+// spoofable client id) could grow the Map unbounded (Codex LOW). We sweep fully-elapsed
+// windows only when bucket CREATION crosses this cap, so the common path stays O(1) and
+// the Map stays bounded (60s windows expire fast, so the sweep reclaims aggressively).
+const MAX_TRACKED_KEYS = 10_000;
+
+function pruneExpired(now: number, windowMs: number): void {
+  for (const [key, state] of buckets) {
+    if (now - state.windowStartMs >= windowMs) {
+      buckets.delete(key);
+    }
+  }
+}
+
 // Core decision. Pure aside from the module Map; `now` is injected for tests.
 export function checkRateLimit(
   bucketKey: string,
@@ -52,6 +66,9 @@ export function checkRateLimit(
   // This is the "window resets" behavior: once now >= windowStart + windowMs the
   // count is discarded, not decayed.
   if (!existing || now - existing.windowStartMs >= windowMs) {
+    if (buckets.size >= MAX_TRACKED_KEYS) {
+      pruneExpired(now, windowMs);
+    }
     buckets.set(bucketKey, { count: 1, windowStartMs: now });
     return { allowed: true, retryAfterSeconds: 0, remaining: limit - 1, limit };
   }

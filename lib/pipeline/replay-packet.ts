@@ -1,5 +1,5 @@
 import frozenHormuz from "@/evals/fixtures/live/SCN-HORMUZ.json";
-import { DecisionPacketV2Schema } from "@/lib/schemas";
+import { DecisionPacketSchema } from "@/lib/schemas";
 import type { DecisionPacketV2 } from "@/lib/schemas";
 
 // The landing demo serves a FROZEN, real live-captured packet as a REPLAY: rich
@@ -16,16 +16,20 @@ import type { DecisionPacketV2 } from "@/lib/schemas";
 // createdAt) is preserved and surfaced (the dashboard reads the CACHED signals' fetchedAt
 // + the packet createdAt), so a viewer always sees a dated recording, not a live fetch.
 //
-// The frozen JSON is parsed through DecisionPacketV2Schema and FAILS LOUD on any drift
-// (the codebase's "a malformed versioned packet fails loudly" rule) rather than serving a
-// malformed packet. The page-level caller keeps a demo fallback so production never blanks,
+// The frozen JSON is parsed through the CANONICAL DecisionPacketSchema union and FAILS LOUD
+// on any drift (the codebase's "a malformed versioned packet fails loudly" rule). Using the
+// union -- not the raw V2 member -- means the fixture must also satisfy the union's NO_ACTION
+// superRefine (Codex MED): a malformed NO_ACTION fixture carrying drafts can no longer slip
+// through the loader. The page-level caller keeps a demo fallback so production never blanks,
 // but the loud parse is what the replay unit + e2e tests assert against.
 export function loadReplayPacket(): DecisionPacketV2 {
-  const parsed = DecisionPacketV2Schema.safeParse(frozenHormuz);
-  if (!parsed.success) {
+  const parsed = DecisionPacketSchema.safeParse(frozenHormuz);
+  if (!parsed.success || parsed.data.packetVersion !== 2) {
     throw new Error(
-      `Replay fixture SCN-HORMUZ.json failed DecisionPacketV2 validation ` +
-        `(regenerate via evals/record-live-packets.test.ts): ${parsed.error.message}`
+      `Replay fixture SCN-HORMUZ.json failed canonical DecisionPacket validation ` +
+        `(expected a valid packetVersion 2; regenerate via evals/record-live-packets.test.ts): ${
+          parsed.success ? `got packetVersion ${parsed.data.packetVersion}` : parsed.error.message
+        }`
     );
   }
   const captured = parsed.data;

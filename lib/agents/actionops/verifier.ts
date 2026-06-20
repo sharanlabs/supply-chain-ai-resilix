@@ -50,7 +50,13 @@ function computeChecks(signals: PublicSignal[], threatCard: ThreatCard): Verifie
   // exactly the accountability the NO_ACTION path exists to prevent. Source identity is the
   // normalized `source` label (the outlet); the closely-named "Reuters (via GDELT)" vs
   // "GDELT DOC 2.0" stay distinct, while two raw "GDELT DOC 2.0" hits collapse to one.
-  const distinctSources = new Set(signals.map((s) => s.source.trim().toLowerCase()));
+  // Filter BLANK/whitespace source labels before counting: a sourceless signal is not an
+  // independent outlet, and counting "" as a distinct source would let one real source plus
+  // a blank-source signal reach sourceCount=2 -> corroborated -> bypass the NO_ACTION gate
+  // (Codex MED). Only genuinely-labeled, distinct outlets count toward corroboration.
+  const distinctSources = new Set(
+    signals.map((s) => s.source.trim().toLowerCase()).filter((s) => s.length > 0)
+  );
   const sourceCount = distinctSources.size;
   return {
     sourceCount,

@@ -381,7 +381,8 @@ export async function classifyPlaybooksLive(
         model,
         mode: "LIVE_AI",
         latencyMs: Date.now() - startedAt,
-        // The FINAL attempt's usage -> costUsd (rejected attempts are the documented undercount).
+        // The AGGREGATE usage across all attempts -> costUsd (liveGenerateValidated sums every
+        // billed attempt; exact gross spend, not a final-attempt-only lower bound).
         usage: result.usage
       })
     };

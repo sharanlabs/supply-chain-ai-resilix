@@ -76,4 +76,17 @@ describe("Verifier corroboration counts independent sources (Codex BLOCKER-1)", 
     );
     expect(checks.corroborated).toBe(false);
   });
+
+  it("a BLANK/whitespace source does NOT count as a second outlet (Codex MED)", () => {
+    // One real source + a blank-source signal must stay single-source -> not corroborated,
+    // or a sourceless signal could bypass the NO_ACTION gate.
+    for (const blank of ["", "   "]) {
+      const { checks } = runVerifier(
+        ctx([sig("a", "Reuters", "https://r/1"), sig("b", blank, "https://x/1")]),
+        threat()
+      );
+      expect(checks.sourceCount).toBe(1);
+      expect(checks.corroborated).toBe(false);
+    }
+  });
 });

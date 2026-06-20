@@ -3,7 +3,8 @@ import {
   applyApprovalDecision,
   approvalHttpStatus
 } from "@/lib/server/decision-packet-service";
-import { apiError, noStoreJson, parseJsonRequest } from "@/lib/server/http";
+import { apiError, noStoreJson, parseJsonRequest, rateLimited } from "@/lib/server/http";
+import { enforceMutationRateLimit } from "@/lib/server/rate-limit";
 import {
   validateRecentIsoTimestamp,
   verifyN8nCallbackSecret
@@ -28,6 +29,14 @@ export async function POST(request: Request) {
       },
       { status: 401 }
     );
+  }
+
+  // This callback also mutates (applyApprovalDecision), so it gets the same brake as the
+  // three core mutation routes -- after the secret check, before any body parse. Secret-gated
+  // so lower risk, but a mutating POST is rate-limited regardless.
+  const rate = enforceMutationRateLimit("n8n-approval-callback", request);
+  if (!rate.allowed) {
+    return rateLimited(rate.retryAfterSeconds);
   }
 
   const parsed = await parseJsonRequest(request, CallbackSchema);
