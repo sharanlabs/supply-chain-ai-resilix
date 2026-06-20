@@ -16,7 +16,7 @@ import type {
 import { ExecutionDraftSchema } from "@/lib/schemas";
 import { stableHash } from "@/lib/utils";
 import type { AgentRunUsage } from "@/lib/agents/actionops/agent-run";
-import { assertWithinBudget, DEFAULT_BUDGET_CAP_USD } from "@/lib/agents/budget";
+import { assertWithinBudget, DEFAULT_BUDGET_CAP_USD, LIVE_RETRY_RESERVE } from "@/lib/agents/budget";
 import { costUsd } from "@/lib/agents/pricing";
 
 // Default GA Gemini model. gemini-2.5-flash is the GA best-value model ON THE KEY
@@ -199,6 +199,99 @@ export async function liveGenerateObject(args: {
 
   const out = await generate({ model, schema, prompt });
   return { object: out.object, usage: out.usage ?? {} };
+}
+
+// A RUN-LEVEL retry reserve: a SHARED pool of extra live attempts the agents draw from when
+// an output fails its firewall/parse. tryConsume() decrements and returns true while attempts
+// remain, false when the pool is empty. One object is threaded to all three LLM agents, so the
+// total retries -- and thus the worst-case billed call count -- is bounded run-wide, never
+// per-agent (which would let three agents each retry and blow the call-count ceiling).
+export type RetryReserve = { tryConsume: () => boolean };
+
+export function makeRetryReserve(total: number = LIVE_RETRY_RESERVE): RetryReserve {
+  let remaining = Math.max(0, Math.floor(total));
+  return {
+    tryConsume: () => {
+      if (remaining > 0) {
+        remaining -= 1;
+        return true;
+      }
+      return false;
+    }
+  };
+}
+
+// The caller's validation of a raw live object: a clean parse + firewall pass yields the typed
+// value; a failure names the reason + class and whether it is worth a retry. A stochastic slip
+// (a numeral in a numeral-free field, a unit off the whitelist) IS retryable; a structural
+// problem is not. The errorClass flows straight into the agent's FAILED_TO_FALLBACK ledger.
+export type LiveValidateResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; reason: string; errorClass: string; retryable: boolean };
+
+// liveGenerateValidated: liveGenerateObject + the caller's validate(), with a BOUNDED retry on
+// a RETRYABLE validation failure, drawn from a SHARED run-level reserve. Why: a live agent
+// occasionally emits a stochastic slip the firewall rightly rejects; a single re-ask usually
+// clears it, keeping the run all-LIVE instead of degrading to FAILED_TO_FALLBACK. Bounded:
+// each retry consumes from the shared reserve (so the three agents cannot each retry and blow
+// the "3 (+2 reserve)" call ceiling), and the cumulative spend rises by the per-call estimate
+// each attempt so the budget hard-stop still fires across retries. A THROW (a budget breach or
+// a failed call) is NOT retried -- it propagates to the caller's catch, which classifies
+// BUDGET_EXCEEDED vs LIVE_CALL_THREW exactly as before. Returns the LAST attempt's usage; an
+// earlier billed-but-rejected attempt's cost is NOT folded into the final AgentRun.costUsd -- a
+// documented, negligible ledger undercount (<=2 extra calls run-wide, ~$0.01 against the $5 cap).
+export async function liveGenerateValidated<T>(args: {
+  model: string;
+  schema: z.ZodTypeAny;
+  prompt: string;
+  budget: BudgetContext;
+  validate: (object: unknown) => LiveValidateResult<T>;
+  retry?: RetryReserve;
+  generate?: (a: {
+    model: string;
+    schema: z.ZodTypeAny;
+    prompt: string;
+  }) => Promise<{ object: unknown; usage?: AgentRunUsage }>;
+}): Promise<
+  | { ok: true; value: T; usage: AgentRunUsage }
+  | { ok: false; reason: string; errorClass: string; usage: AgentRunUsage }
+> {
+  const { model, schema, prompt, budget, validate, retry, generate } = args;
+  const perCallEstimate = estimateLiveCallCostUsd(model);
+
+  // Cumulative spend across THIS agent's attempts so attempt N's hard-stop accounts for the
+  // earlier (billed) attempts -- a retry can never silently overshoot the cap.
+  let retrySpent = 0;
+  // Defensive per-agent attempt ceiling (1 base + the reserve) even if a mis-wired reserve
+  // never reports empty. The real bound in normal operation is retry.tryConsume() going false.
+  for (let attempt = 0; attempt <= LIVE_RETRY_RESERVE; attempt++) {
+    const { object, usage } = await liveGenerateObject({
+      model,
+      schema,
+      prompt,
+      budget: { ...budget, spentUsd: budget.spentUsd + retrySpent },
+      generate
+    });
+    retrySpent += perCallEstimate;
+
+    const result = validate(object);
+    if (result.ok) {
+      return { ok: true, value: result.value, usage: usage ?? {} };
+    }
+    // A retryable slip: re-ask only if the SHARED reserve still has an attempt; else fall back.
+    if (result.retryable && retry?.tryConsume()) {
+      continue;
+    }
+    return { ok: false, reason: result.reason, errorClass: result.errorClass, usage: usage ?? {} };
+  }
+  // Unreachable in normal operation (the reserve goes empty first); a fail-safe so a mis-wired
+  // reserve degrades to fallback rather than looping.
+  return {
+    ok: false,
+    reason: "Live AI exceeded the retry reserve without a clean result.",
+    errorClass: "RETRY_EXHAUSTED",
+    usage: {}
+  };
 }
 
 // estimateLiveCallCostUsd: a conservative upper-bound dollar estimate for a single

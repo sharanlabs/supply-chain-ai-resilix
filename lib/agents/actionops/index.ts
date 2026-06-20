@@ -12,6 +12,7 @@ import {
   type BudgetContext,
   estimateLiveCallCostUsd,
   liveAiEnabled,
+  makeRetryReserve,
   resolvedGeminiModel
 } from "@/lib/agents/run";
 import type { ActionItem, AgentRun, Playbook, SupplierMessageDraft } from "@/lib/schemas";
@@ -56,10 +57,16 @@ export async function runActionOpsAgents(ctx: ActionOpsContext): Promise<ActionO
     capUsd: DEFAULT_BUDGET_CAP_USD
   });
 
+  // The SHARED run-level retry reserve (the "+2 reserve"): ONE pool the three LLM agents
+  // draw from when an output fails its firewall/parse, so a stochastic slip costs a re-ask
+  // (keeping the run all-LIVE) without three agents each retrying and blowing the
+  // "3 (+2 reserve)" = 5-call ceiling. Threaded into each live agent below.
+  const retryReserve = makeRetryReserve();
+
   // Sentinel (LLM #1 when live): the injection firewall + the ONLY agent that reads raw
   // signal text. Key-OFF/live:false -> the deterministic threat (unchanged from D.1).
   const { threatCard, agentRun: sentinelRun } = live
-    ? await classifyThreatLive(ctx, { budget: budgetForNext() })
+    ? await classifyThreatLive(ctx, { budget: budgetForNext(), retry: retryReserve })
     : runSentinel(ctx);
   spentUsd += sentinelRun.costUsd ?? 0;
 
@@ -120,7 +127,10 @@ export async function runActionOpsAgents(ctx: ActionOpsContext): Promise<ActionO
   } else {
     // Strategist (LLM #2 when live): playbooks grounded ONLY in the structured exposures.
     const strat = live
-      ? await classifyPlaybooksLive(ctx, exposureResults, { budget: budgetForNext() })
+      ? await classifyPlaybooksLive(ctx, exposureResults, {
+          budget: budgetForNext(),
+          retry: retryReserve
+        })
       : runStrategist(ctx, exposureResults);
     playbooks = strat.playbooks;
     strategistRun = strat.agentRun;
@@ -133,6 +143,7 @@ export async function runActionOpsAgents(ctx: ActionOpsContext): Promise<ActionO
     const disp = live
       ? await classifyMessagesLive(ctx, exposureResults, simulation, {
           budget: budgetForNext(),
+          retry: retryReserve,
           threatCard,
           publicSignals: signals
         })

@@ -12,6 +12,14 @@
 // override per deployment, but the default IS the contract.
 export const DEFAULT_BUDGET_CAP_USD = 5;
 
+// The RUN-LEVEL retry reserve: the total number of EXTRA live attempts the whole pipeline
+// run may spend when an agent's output fails its firewall/parse (a stochastic slip) before
+// it degrades to FAILED_TO_FALLBACK. SHARED across the three LLM agents (a single pool, not
+// per-agent) so the worst-case billed call count stays at the three base calls plus this
+// reserve = the Success_Criteria "LLM calls per pipeline run: 3 (+2 retry reserve)" = 5
+// ceiling. A per-agent reserve would let three agents each retry and blow that ceiling.
+export const LIVE_RETRY_RESERVE = 2;
+
 // Thrown when a live call would push cumulative spend past the cap. A distinct error
 // type so a caller can catch THIS (the budget breach) without swallowing unrelated
 // throws -- and so the audit/log can name it as a budget event, not a generic failure.

@@ -11,9 +11,11 @@ import type { ActionOpsContext } from "@/lib/agents/actionops/types";
 import { BudgetExceededError } from "@/lib/agents/budget";
 import {
   type BudgetContext,
+  type LiveValidateResult,
+  type RetryReserve,
   estimateLiveCallCostUsd,
   liveAiEnabled,
-  liveGenerateObject,
+  liveGenerateValidated,
   resolvedGeminiModel
 } from "@/lib/agents/run";
 import {
@@ -303,6 +305,9 @@ export async function classifyThreatLive(
     // fires at THIS call's boundary. Defaulted to a fresh-budget context so a caller
     // that does not track spend still gets a guarded call (never an unguarded one).
     budget?: BudgetContext;
+    // The SHARED run-level retry reserve (threaded by the orchestrator). When the live
+    // output fails the firewall/parse, the agent re-asks from this pool before degrading.
+    retry?: RetryReserve;
   } = {}
 ): Promise<{ threatCard: ThreatCard; agentRun: AgentRun }> {
   const { scenario, signals, baseDateIso } = ctx;
@@ -379,39 +384,52 @@ export async function classifyThreatLive(
         2
       );
 
-    // liveGenerateObject runs the BUDGET HARD-STOP before the billable call and returns
-    // the object PLUS the provider-reported usage -- the token counts that drive costUsd.
-    const { object: rawObject, usage } = await liveGenerateObject({
+    // liveGenerateValidated runs the BUDGET HARD-STOP before each billable call, validates
+    // the output (parse + firewall), and re-asks on a stochastic slip from the SHARED run
+    // reserve before giving up -- so a single bad draw does not needlessly degrade the run.
+    const result = await liveGenerateValidated({
       model,
       schema: SentinelLlmResultSchema,
       prompt,
       budget,
-      generate: deps.generate
+      retry: deps.retry,
+      generate: deps.generate,
+      validate: (raw): LiveValidateResult<ThreatCard> => {
+        const parsed = SentinelLlmResultSchema.safeParse(raw);
+        if (!parsed.success) {
+          return {
+            ok: false,
+            reason: "Sentinel live AI returned an unparseable result.",
+            errorClass: "UNPARSEABLE_OUTPUT",
+            retryable: true
+          };
+        }
+        const outcome = applyThreatFirewall(parsed.data, ctx);
+        if (!outcome.ok) {
+          return { ok: false, reason: outcome.reason, errorClass: "FIREWALL_REJECT", retryable: true };
+        }
+        return { ok: true, value: outcome.threatCard };
+      }
     });
-    const parsed = SentinelLlmResultSchema.safeParse(rawObject);
-    if (!parsed.success) {
-      return fallback("Sentinel live AI returned an unparseable result.", "UNPARSEABLE_OUTPUT");
-    }
-
-    const outcome = applyThreatFirewall(parsed.data, ctx);
-    if (!outcome.ok) {
-      return fallback(outcome.reason, "FIREWALL_REJECT");
+    if (!result.ok) {
+      return fallback(result.reason, result.errorClass);
     }
 
     return {
-      threatCard: outcome.threatCard,
+      threatCard: result.value,
       agentRun: makeAgentRun({
         id: "RUN-SENTINEL",
         agentName: "Sentinel",
         input: { signalCount: signals.length, scenarioId: scenario.id },
-        output: outcome.threatCard,
-        summary: `Classified threat ${outcome.threatCard.eventType} at ${outcome.threatCard.severity} severity.`,
+        output: result.value,
+        summary: `Classified threat ${result.value.eventType} at ${result.value.severity} severity.`,
         createdAt: baseDateIso,
         model,
         mode: "LIVE_AI",
         latencyMs: Date.now() - startedAt,
-        // The real provider-reported usage -> costUsd computes the dollar cost here.
-        usage
+        // The FINAL attempt's provider-reported usage -> costUsd. Earlier rejected attempts
+        // (if any) are a documented, negligible ledger undercount (see liveGenerateValidated).
+        usage: result.usage
       })
     };
   } catch (err) {
