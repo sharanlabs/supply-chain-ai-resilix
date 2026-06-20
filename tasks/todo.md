@@ -17,7 +17,9 @@
 
 **Codex cross-model gate on the optional-hardening commits — DISCHARGED 2026-06-20 (backup account):** REVISE(4: matcher `api`→`api/`, exposure-control test assertion, replay drift-guard source, stale comment) → fixed `d1d9200` → closure REVISE(1 comment nit) → fixed `8a44ae9`. Gate stack COMPLETE. Evidence in the gate doc.
 
-**Deferred (with reason, NOT silently dropped):** observability/pino + CODEOWNERS/PR-template (prod/team-scope) · deps-hygiene vite→esbuild `npm ls` warning (cosmetic; upstream fix) · `Cross-Origin-Opener-Policy` + a CSP report endpoint (security-specialist's optional polish, NOT gaps for this artifact). **Owner/local:** the manual screen-reader a11y pass · the **PUSH** of the optional-hardening commits (`936c6ef`→`8a44ae9`, all gated; push held per project default).
+**Security pass DONE 2026-06-20 (`84963e7`):** COOP + CORP (both same-origin) added to the static headers (verify:full GREEN + prod smoke confirms they ship + page renders under CORP). The CSP **report endpoint is DEFERRED WITH REASON** — a consumer-less report sink on an unmonitored, push-held portfolio artifact is theater + a new unauthenticated surface; the prod CSP smoke is the active drift detector. Codex BANKED for this increment (two pre-vetted static headers are below the cross-model threshold). Detail in the gate doc.
+
+**Deferred (with reason, NOT silently dropped):** observability/pino + CODEOWNERS/PR-template (prod/team-scope) · deps-hygiene vite→esbuild `npm ls` warning (cosmetic; upstream fix) · the CSP report endpoint (above; add only if real prod monitoring lands). **Owner/local:** the manual screen-reader a11y pass.
 
 **Pipeline checklist** (docs/PIPELINE.md):
 - [x] **brainstorm** — direction owner-fixed (complete reorientation to ActionOps; uniqueness = action automation, not detection). Owner's autonomous-optimisation note assessed 2026-06-11: absorb financial-distress event type + 2am positioning + graduated-autonomy roadmap; reject prediction/sensors/auto-execution/demand-side for MVP.

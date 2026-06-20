@@ -73,6 +73,24 @@ Re-verified after the fixes: `verify:full` GREEN + the prod smoke PASS (`/`, a p
 **Gate stack for these increments: COMPLETE** (verify:full + prod smoke + acceptance-gate +
 security-specialist + Codex cross-model REVISE→fix→closure). Push still HELD (owner action).
 
+## Follow-on security pass (2026-06-20, `84963e7`)
+
+Applied the security review's flagged items, scoped by judgment:
+- **COOP + CORP (both `same-origin`)** added to `buildSecurityHeaders` — XS-Leak / cross-window
+  hardening, safe here (nothing cross-origin is embedded or hot-linked). COEP omitted (no isolation
+  requirement). Unit test asserts both; the prod smoke asserts they ship on the live response AND
+  the page still renders under CORP. verify:full GREEN + prod smoke PASS.
+- **CSP report endpoint — DEFERRED WITH REASON** (not silently dropped). A `report-to` collector on
+  a single-instance, push-held, unmonitored portfolio artifact logs into the void and adds an
+  unauthenticated POST surface to a fail-closed app — the inverse of this project's "no control
+  without a consumer" ethos. The ACTIVE drift detector already exists: `scripts/prod-csp-smoke.mjs`
+  (deterministic, fails loud, caught the Zod regression). Add the endpoint only if real prod
+  monitoring lands.
+- **Codex cross-model: BANKED for this increment** (not run). Two pre-vetted static headers (one is
+  the security-specialist's own recommendation) sit below the cross-model threshold; auto-running the
+  backup account on them would be standing-authorization creep. Banked per the established pattern;
+  the owner can call it. (The nonce-CSP rewrite, where cross-model genuinely paid off, WAS gated.)
+
 ## Re-run trigger for the prod CSP smoke (maintenance)
 
 `scripts/prod-csp-smoke.mjs` is the ONLY check that proves the strict CSP still lets scripts
