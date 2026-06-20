@@ -1,11 +1,11 @@
 import type { NextConfig } from "next";
 import { buildSecurityHeaders } from "./lib/server/security-headers";
 
-// Security headers come from a pure, unit-tested builder (lib/server/security-headers.ts) so
-// the production-only CSP -- which the dev-server e2e never exercises -- is still covered by a
-// test. The CSP is prod-scoped because `next dev` (the Playwright target) needs 'unsafe-eval'
-// for HMR; a dev CSP would break HMR or be theater.
-const securityHeaders = buildSecurityHeaders({ isProd: process.env.NODE_ENV === "production" });
+// The always-on, request-independent security headers come from a pure, unit-tested
+// builder. The Content-Security-Policy is NOT set here: it needs a per-request nonce
+// and is set in proxy.ts (buildCspWithNonce), so the strict nonce-based CSP can drop
+// 'unsafe-inline' from script-src.
+const securityHeaders = buildSecurityHeaders();
 
 const nextConfig: NextConfig = {
   typedRoutes: false,

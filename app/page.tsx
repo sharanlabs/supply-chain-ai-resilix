@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { LaunchOpsDashboard } from "@/components/launchops-dashboard";
 import { loadReplayPacket } from "@/lib/pipeline/replay-packet";
 import { makeDemoPacket } from "@/lib/data/demo-packet";
@@ -7,11 +8,18 @@ import type { DecisionPacketV2 } from "@/lib/schemas";
 // (loadReplayPacket): rich live-quality output -- the full Hormuz exposures, playbooks,
 // and drafted messages from a real Gemini run -- reproducibly, at $0, with NO network and
 // NO LLM call. It is relabeled REPLAY end-to-end and never claims live; the capture date is
-// surfaced from the fixture. Because the packet is FROZEN, the route renders STATICALLY:
-// the old force-dynamic rationale (buildDecisionPacket stamping a fresh createdAt/id per
-// request) no longer applies -- a replay's "compiled" instant IS its dated, recorded
-// capture instant, which a static prerender serves correctly and instantly (< 15s, trivially).
-export default function Home() {
+// surfaced from the fixture.
+//
+// The route renders DYNAMICALLY (`await connection()` below). The packet is still the same
+// frozen fixture -- $0, no network, no LLM, REPLAY semantics unchanged -- but the strict
+// nonce-based CSP (proxy.ts) requires a per-request nonce, which only a dynamically rendered
+// page receives; a static prerender would ship scripts with no nonce and 'strict-dynamic'
+// would block them. This supersedes the earlier static-prerender micro-optimization (reading
+// a local fixture per request is sub-second either way); the security control wins the trade.
+export default async function Home() {
+  // Opt into dynamic rendering so proxy.ts's per-request CSP nonce is applied to this page.
+  await connection();
+
   let packet: DecisionPacketV2;
   try {
     packet = loadReplayPacket();

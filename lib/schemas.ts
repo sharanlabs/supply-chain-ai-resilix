@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+// CSP compatibility: Zod v4 JIT-compiles validators with `new Function`, which the
+// strict nonce-based CSP (proxy.ts, no 'unsafe-eval' in production) blocks -- the
+// caught probe still fires a securitypolicyviolation and, in the client bundle, broke
+// hydration of the schema-using components. `jitless` is Zod's documented switch for
+// strict-CSP environments: it skips the eval path for the interpreted validator. The
+// perf cost is immaterial here (a handful of packet validations per request, not a hot
+// loop). Set on the central schema module so it applies before any parse, client + server.
+z.config({ jitless: true });
+
 export const SeveritySchema = z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]);
 export const SignalStatusSchema = z.enum(["LIVE", "CACHED", "FAILED"]);
 // A url safe to render as a link: http/https only (no javascript:/data: link
