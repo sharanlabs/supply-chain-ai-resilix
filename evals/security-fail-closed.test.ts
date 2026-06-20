@@ -12,6 +12,7 @@ import { POST as approvePacket } from "@/app/api/decision-packets/[id]/approve/r
 import { POST as runException } from "@/app/api/run-exception/route";
 import { POST as n8nCallback } from "@/app/api/n8n/approval-callback/route";
 import { __resetMemorySuppliersForTest } from "@/lib/server/supplier-store";
+import { __resetRateLimitForTest } from "@/lib/server/rate-limit";
 
 // P2.7 (R4-4) fail-closed auth. The centerpiece guard: secure mode + a missing
 // token must DENY, not pass (the fail-open inversion this increment prevents).
@@ -211,7 +212,10 @@ describe("P2.7 route gates (secure mode via REQUIRE_APPROVAL_TOKEN, in-memory)",
     process.env.REQUIRE_APPROVAL_TOKEN = "true";
     process.env.APPROVAL_TOKEN = TOKEN;
   });
-  afterEach(() => __resetMemorySuppliersForTest());
+  afterEach(() => {
+    __resetMemorySuppliersForTest();
+    __resetRateLimitForTest();
+  });
 
   it("approve: no token -> 401 (route was previously unauthenticated)", async () => {
     const res = await approvePacket(

@@ -1,0 +1,4 @@
+# Fast staged-files-only gate. lint-staged runs ESLint on just the staged
+# *.ts/*.tsx files (see the "lint-staged" config in package.json) -- intentionally
+# light: NO full test/build on commit, so the hook stays sub-second on small diffs.
+npx lint-staged

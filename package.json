@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "next typegen && node scripts/clean-next-dev-types.mjs && tsc --noEmit",
     "test": "vitest run",
     "test:db": "vitest run evals/db-persistence.test.ts evals/db-concurrency-integrity.test.ts evals/db-supplier-store.test.ts evals/db-supplier-seed.test.ts",
@@ -21,7 +23,11 @@
     "verify:full": "npm run verify && npm run test:e2e",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "seed:suppliers": "node -e \"if(!process.env.DATABASE_URL){console.error('seed:suppliers requires DATABASE_URL (the Postgres cluster to seed)');process.exit(1)}\" && RUN_DB_INTEGRATION_TESTS=true vitest run evals/db-supplier-seed.test.ts"
+    "seed:suppliers": "node -e \"if(!process.env.DATABASE_URL){console.error('seed:suppliers requires DATABASE_URL (the Postgres cluster to seed)');process.exit(1)}\" && RUN_DB_INTEGRATION_TESTS=true vitest run evals/db-supplier-seed.test.ts",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": "eslint --max-warnings=0"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.11",
@@ -57,8 +63,12 @@
     "drizzle-kit": "^0.31.7",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.6",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
     "jsdom": "^27.2.0",
+    "lint-staged": "^17.0.7",
     "playwright": "^1.57.0",
+    "prettier": "^3.8.4",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.9.3",
     "vitest": "^4.0.14"

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { POST as uploadSuppliers } from "@/app/api/suppliers/upload/route";
 import { RETENTION_DISCLOSURE } from "@/lib/ingest/supplier-csv";
 import { __resetMemorySuppliersForTest } from "@/lib/server/supplier-store";
+import { __resetRateLimitForTest } from "@/lib/server/rate-limit";
 
 const HEADER = "name,country,region,risk_tier,sector,standard_lead_time_days";
 
@@ -25,6 +26,9 @@ function uploadRequest(
 describe("P2.5 POST /api/suppliers/upload", () => {
   afterEach(() => {
     __resetMemorySuppliersForTest();
+    // The mutation routes now flow through a module-level rate limiter; reset it
+    // between cases so this file's call volume cannot accumulate into a 429.
+    __resetRateLimitForTest();
   });
 
   it("ingests a valid Tier-1 CSV and returns a matched report", async () => {

@@ -2,8 +2,9 @@ import {
   MAX_CSV_BYTES,
   ingestSupplierCsv
 } from "@/lib/ingest/supplier-csv";
-import { apiError, noStoreJson } from "@/lib/server/http";
+import { apiError, noStoreJson, rateLimited } from "@/lib/server/http";
 import { verifyApprovalToken } from "@/lib/server/security";
+import { enforceMutationRateLimit } from "@/lib/server/rate-limit";
 import { getSupplierStore } from "@/lib/server/supplier-store";
 
 // ---------------------------------------------------------------------------
@@ -25,6 +26,14 @@ export async function POST(request: Request) {
   const auth = verifyApprovalToken(request);
   if (!auth.ok) {
     return apiError(auth.code, auth.message, auth.status);
+  }
+
+  // (1b) Rate limit AFTER auth (so unauthorized 401/503 callers never consume a
+  // bucket) but BEFORE any body read/parse work -- a flood is braked before it
+  // can cost CPU. Single-instance brake; distributed limiting is the prod path.
+  const rate = enforceMutationRateLimit("suppliers-upload", request);
+  if (!rate.allowed) {
+    return rateLimited(rate.retryAfterSeconds);
   }
 
   // (2a) Byte cap via Content-Length FIRST: reject an over-cap upload without

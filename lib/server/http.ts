@@ -25,6 +25,18 @@ export function apiError(
   );
 }
 
+// HTTP 429 in the project's apiError shape, carrying the standard Retry-After
+// header (seconds) so a well-behaved client knows exactly when to retry. Used by
+// the mutation routes' rate-limit chokepoint.
+export function rateLimited(retryAfterSeconds: number) {
+  return apiError(
+    "RATE_LIMITED",
+    "Too many requests; retry after the window resets",
+    429,
+    { "Retry-After": String(retryAfterSeconds) }
+  );
+}
+
 export async function parseJsonRequest<T>(
   request: Request,
   schema: z.ZodType<T>,

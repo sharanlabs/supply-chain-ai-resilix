@@ -34,3 +34,18 @@ The two new test files compile against the real `GraderResult` / `GraderId` type
 - Recheck source: Cisco FAPO deep-mine + discovery-scout vendor sweep (2026-06-18/19), digested in claude-os `knowledge/evals_kb/RAW/2026-06-18_cisco-fapo.md`.
 - All payloads handled as DATA (Law 11); nothing executed. No `main` files touched; branch not pushed (pushes are owner-ordered).
 - Fold this note into `decision_log.md` at your discretion (kept as a separate file to avoid a merge conflict with the live session).
+
+## Deps-hygiene finding: the `npm ls` esbuild ELSPROBLEMS (2026-06-20 -- investigated, SKIPPED)
+`npm ls` reports one invalid-peer problem (it does NOT affect `npm ci`, build, test, or e2e -- those are all green):
+```
+vitest > vite@8.0.16 > esbuild   wants "^0.27.0 || ^0.28.0"
+but the HOISTED node_modules/esbuild is 0.25.12 (pulled up to satisfy
+drizzle-kit's esbuild ^0.25.4), so npm dedups vite onto 0.25.12 = "invalid".
+```
+Three esbuild consumers with incompatible ranges sit in the tree: `@esbuild-kit/core-utils` (`~0.18.20`, via drizzle-kit, unmaintained), `drizzle-kit` (`^0.25.4`), `tsx` (`~0.27.0`), and `vite@8` (`^0.27.0 || ^0.28.0`). npm hoists a single esbuild that cannot satisfy both the 0.25 and 0.27 floors at once.
+
+Tried and REJECTED, in this order:
+1. **Scoped override** `"overrides": { "vite": { "esbuild": "^0.27.0" } }` -- npm still deduped vite onto the hoisted 0.25.12; `npm ls` stayed invalid. No effect.
+2. **Blanket override** `"overrides": { "esbuild": "^0.27.0" }` -- DID yield a clean `npm ls` and `npm ci`/`drizzle-kit generate` passed, BUT it forced `@esbuild-kit/core-utils`'s `~0.18.20` up to 0.27.7 (a major jump on an unmaintained transitive) and the `package-lock.json` diff ballooned (~1100 changed lines, a sweeping re-resolve touching unrelated packages -- sharp/scheduler/semver/source-map/etc.). That is the exact "risky regen" the task says NOT to force.
+
+**Decision: SKIPPED, reverted to the dev-dep-only lockfile.** The warning is cosmetic (`npm ci` + build + test + e2e all green with it present). The real fix is upstream: when drizzle-kit drops the legacy `@esbuild-kit/*` chain (or pins esbuild ^0.27), or vitest's vite peer relaxes, the floors will align and the blanket override becomes safe. Re-evaluate then.

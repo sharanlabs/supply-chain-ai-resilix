@@ -3,8 +3,9 @@ import {
   applyApprovalDecision,
   approvalHttpStatus
 } from "@/lib/server/decision-packet-service";
-import { apiError, noStoreJson, parseJsonRequest } from "@/lib/server/http";
+import { apiError, noStoreJson, parseJsonRequest, rateLimited } from "@/lib/server/http";
 import { verifyApprovalToken } from "@/lib/server/security";
+import { enforceMutationRateLimit } from "@/lib/server/rate-limit";
 
 const ApprovalRequestSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
@@ -21,6 +22,12 @@ export async function POST(
   const auth = verifyApprovalToken(request);
   if (!auth.ok) {
     return apiError(auth.code, auth.message, auth.status);
+  }
+
+  // Rate limit after auth, before any work (single-instance brake; see rate-limit.ts).
+  const rate = enforceMutationRateLimit("packet-approve", request);
+  if (!rate.allowed) {
+    return rateLimited(rate.retryAfterSeconds);
   }
 
   const { id } = await params;

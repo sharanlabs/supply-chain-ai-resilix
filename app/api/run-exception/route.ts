@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { runExceptionPipeline } from "@/lib/pipeline/run-exception";
 import { hasActionOpsScenario } from "@/lib/data/actionops-scenarios";
-import { apiError, noStoreJson, parseJsonRequest } from "@/lib/server/http";
+import { apiError, noStoreJson, parseJsonRequest, rateLimited } from "@/lib/server/http";
 import { IDEMPOTENCY_KEY_HEADER, verifyApprovalToken } from "@/lib/server/security";
+import { enforceMutationRateLimit } from "@/lib/server/rate-limit";
 
 const RunRequestSchema = z.object({
   // No default here: an omitted scenarioId must flow to getActionOpsScenario's
@@ -33,6 +34,14 @@ export async function POST(request: Request) {
   const auth = verifyApprovalToken(request);
   if (!auth.ok) {
     return apiError(auth.code, auth.message, auth.status);
+  }
+
+  // Rate limit after auth, before pipeline work. This route can spend the live-AI
+  // budget, so the brake also caps how fast a single caller can drive billed runs.
+  // Single-instance brake; distributed limiting is the prod path (see rate-limit.ts).
+  const rate = enforceMutationRateLimit("run-exception", request);
+  if (!rate.allowed) {
+    return rateLimited(rate.retryAfterSeconds);
   }
 
   const parsed = await parseJsonRequest(request, RunRequestSchema);
