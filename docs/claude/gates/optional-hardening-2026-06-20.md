@@ -21,8 +21,11 @@ Replaced the honest `script-src 'unsafe-inline'` residual with the official Next
 nonce pattern: `proxy.ts` mints a per-request nonce, sets the CSP on request + response
 headers; `script-src 'self' 'nonce-..' 'strict-dynamic'` (no 'unsafe-inline'; 'unsafe-eval'
 dev-only). `style-src 'unsafe-inline'` kept on purpose (dynamic inline `style=` attributes a
-nonce cannot cover — the one documented divergence from the guide). `/`, `/_not-found`, and
-the error boundary are all dynamic so every document route is nonced. `lib/schemas.ts` sets
+nonce cannot cover — the one documented divergence from the guide). `/` and `/_not-found` are
+dynamic and empirically smoke-tested nonced (below); the error boundary (`app/error.tsx`) is a
+Client Component, dynamically rendered by the SAME mechanism, so it inherits the nonce — reasoned,
+not separately smoke-tested (an error boundary is not reachable from a URL, and it fails closed if
+the reasoning were wrong). `lib/schemas.ts` sets
 Zod `jitless` (Zod v4's `new Function` JIT is blocked by the eval-free prod CSP — this broke
 client hydration; jitless is Zod's documented strict-CSP switch).
 
