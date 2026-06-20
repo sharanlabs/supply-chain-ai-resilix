@@ -271,7 +271,14 @@ export async function classifyPlaybooksLive(
   // Fall back to the deterministic playbook and mark the run degraded. One helper so
   // the throw path and the firewall-reject path produce the same audit shape. errorClass
   // names the degradation class so the ledger records WHY a live attempt fell back.
-  const fallback = (reason: string, errorClass: string) => {
+  // usage defaults 0-token (the catch path -- a budget breach / thrown call bills nothing
+  // we can trust). The validation-failure path passes the REAL aggregate usage of the
+  // billed-but-rejected live attempts, so a degraded run still ledgers its true spend.
+  const fallback = (
+    reason: string,
+    errorClass: string,
+    usage: AgentRunUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0, finishReason: null }
+  ) => {
     const playbooks = deterministicPlaybooks(exposureResults);
     return {
       playbooks,
@@ -286,7 +293,7 @@ export async function classifyPlaybooksLive(
         mode: "FAILED_TO_FALLBACK" as const,
         latencyMs: Date.now() - startedAt,
         validationStatus: "FAIL" as const,
-        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, finishReason: null },
+        usage,
         errorClass
       })
     };
@@ -353,7 +360,7 @@ export async function classifyPlaybooksLive(
       }
     });
     if (!result.ok) {
-      return fallback(result.reason, result.errorClass);
+      return fallback(result.reason, result.errorClass, result.usage);
     }
 
     // Count the DISTINCT exposure ids the emitted plan actually grounded in (the

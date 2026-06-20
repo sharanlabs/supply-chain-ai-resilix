@@ -340,7 +340,14 @@ export async function classifyThreatLive(
   // Fall back to the deterministic threat and mark the run degraded. One helper so the
   // throw path and the firewall-reject path produce the same audit shape. errorClass
   // names the degradation class so the ledger records WHY a live attempt fell back.
-  const fallback = (reason: string, errorClass: string) => {
+  // usage defaults to 0-token (the catch path -- a budget breach / thrown call bills nothing
+  // we can trust). The validation-failure path passes the REAL aggregate usage of the
+  // billed-but-rejected live attempts, so a degraded run still ledgers its true spend.
+  const fallback = (
+    reason: string,
+    errorClass: string,
+    usage: AgentRunUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0, finishReason: null }
+  ) => {
     const threatCard = deterministicThreatCard(ctx);
     return {
       threatCard,
@@ -355,9 +362,7 @@ export async function classifyThreatLive(
         mode: "FAILED_TO_FALLBACK" as const,
         latencyMs: Date.now() - startedAt,
         validationStatus: "FAIL" as const,
-        // A fallback path made no billable usage we can trust -> 0-token usage so the
-        // run still carries a (zero) cost + pricingVersion, not an absent ledger.
-        usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0, finishReason: null },
+        usage,
         errorClass
       })
     };
@@ -412,7 +417,7 @@ export async function classifyThreatLive(
       }
     });
     if (!result.ok) {
-      return fallback(result.reason, result.errorClass);
+      return fallback(result.reason, result.errorClass, result.usage);
     }
 
     return {

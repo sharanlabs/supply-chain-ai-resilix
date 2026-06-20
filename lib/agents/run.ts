@@ -237,14 +237,10 @@ export type LiveValidateResult<T> =
 // the "3 (+2 reserve)" call ceiling), and the cumulative spend rises by the per-call estimate
 // each attempt so the budget hard-stop still fires across retries. A THROW (a budget breach or
 // a failed call) is NOT retried -- it propagates to the caller's catch, which classifies
-// BUDGET_EXCEEDED vs LIVE_CALL_THREW exactly as before. Returns the LAST attempt's usage; an
-// earlier billed-but-rejected attempt's cost is NOT folded into the final AgentRun.costUsd, so
-// the packet's totalCostUsd (and the orchestrator's running spend) is a LOWER BOUND on gross
-// billed spend, short by at most the rejected retries (<=2 calls run-wide, ~$0.01). This does
-// NOT weaken the cap: the fail-closed guarantee rests on the call-count ceiling (<=5) and
-// MAX_LIVE_OUTPUT_TOKENS, not on the dollar sum -- the $5 cap is unreachable as configured, so
-// the undercount cannot push spend past a ceiling nothing approaches. Revisit (sum usage across
-// attempts for an exact total) only if that token ceiling or the call count grows materially.
+// BUDGET_EXCEEDED vs LIVE_CALL_THREW exactly as before. Returns the AGGREGATE usage across all
+// attempts (the resolved one plus any billed-but-rejected retries), so AgentRun.costUsd and the
+// packet's totalCostUsd are the EXACT gross spend, not a lower bound. (A budget breach or thrown
+// call is the one path that does not bill -- the caller's catch-path fallback records it 0-token.)
 export async function liveGenerateValidated<T>(args: {
   model: string;
   schema: z.ZodTypeAny;
@@ -264,6 +260,23 @@ export async function liveGenerateValidated<T>(args: {
   const { model, schema, prompt, budget, validate, retry, generate } = args;
   const perCallEstimate = estimateLiveCallCostUsd(model);
 
+  // Aggregate the provider-reported usage across EVERY attempt (the resolved one PLUS any
+  // billed-but-rejected retries) so the returned usage -> AgentRun.costUsd is the EXACT gross
+  // spend, not just the final attempt. This closes the retry ledger undercount: a packet's
+  // totalCostUsd and the orchestrator's running spend then reflect what every attempt billed.
+  // (The caller's catch-path fallback -- a budget breach or thrown call -- stays 0-token: a
+  // breach is blocked BEFORE it bills, so nothing was spent on the call that threw.)
+  let agg: AgentRunUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0, finishReason: null };
+  const fold = (u: AgentRunUsage) => {
+    agg = {
+      inputTokens: (agg.inputTokens ?? 0) + (u.inputTokens ?? 0),
+      outputTokens: (agg.outputTokens ?? 0) + (u.outputTokens ?? 0),
+      totalTokens: (agg.totalTokens ?? 0) + (u.totalTokens ?? 0),
+      // The latest attempt's finish reason is the operative one for the emitted run.
+      finishReason: u.finishReason ?? agg.finishReason ?? null
+    };
+  };
+
   // Cumulative spend across THIS agent's attempts so attempt N's hard-stop accounts for the
   // earlier (billed) attempts -- a retry can never silently overshoot the cap.
   let retrySpent = 0;
@@ -277,17 +290,18 @@ export async function liveGenerateValidated<T>(args: {
       budget: { ...budget, spentUsd: budget.spentUsd + retrySpent },
       generate
     });
+    fold(usage ?? {});
     retrySpent += perCallEstimate;
 
     const result = validate(object);
     if (result.ok) {
-      return { ok: true, value: result.value, usage: usage ?? {} };
+      return { ok: true, value: result.value, usage: agg };
     }
     // A retryable slip: re-ask only if the SHARED reserve still has an attempt; else fall back.
     if (result.retryable && retry?.tryConsume()) {
       continue;
     }
-    return { ok: false, reason: result.reason, errorClass: result.errorClass, usage: usage ?? {} };
+    return { ok: false, reason: result.reason, errorClass: result.errorClass, usage: agg };
   }
   // Unreachable in normal operation (the reserve goes empty first); a fail-safe so a mis-wired
   // reserve degrades to fallback rather than looping.
@@ -295,7 +309,7 @@ export async function liveGenerateValidated<T>(args: {
     ok: false,
     reason: "Live AI exceeded the retry reserve without a clean result.",
     errorClass: "RETRY_EXHAUSTED",
-    usage: {}
+    usage: agg
   };
 }
 

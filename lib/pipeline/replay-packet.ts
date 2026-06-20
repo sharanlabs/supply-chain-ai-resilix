@@ -30,6 +30,19 @@ export function loadReplayPacket(): DecisionPacketV2 {
   }
   const captured = parsed.data;
 
+  // Semantic guard (not just schema): the fixture must be what we CLAIM to replay -- a
+  // SUCCESSFUL LIVE capture, not a deterministic or degraded packet that happens to parse.
+  // Without this, a regeneration that captured a key-OFF/fallback run could be relabeled
+  // "live-quality REPLAY" and shown as the rich demo when it is not. effectiveMode LIVE_AI
+  // (at least one agent genuinely ran live) + a real metered cost are the evidence; fail loud.
+  if (captured.effectiveMode !== "LIVE_AI" || (captured.totalCostUsd ?? 0) <= 0) {
+    throw new Error(
+      `Replay fixture SCN-HORMUZ.json is not a successful LIVE capture ` +
+        `(effectiveMode=${captured.effectiveMode}, totalCostUsd=${captured.totalCostUsd ?? 0}); ` +
+        `regenerate via evals/record-live-packets.test.ts.`
+    );
+  }
+
   // Re-present the captured live packet as a recorded REPLAY. Content is preserved
   // verbatim; only the mode/cost provenance is normalized so nothing claims live or cost.
   return {

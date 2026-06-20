@@ -633,11 +633,36 @@ export const DecisionPacketV2Schema = z.object({
 });
 
 // The canonical packet contract. Discriminated on `packetVersion` so reads are
-// unambiguous and the compiler forces every consumer to handle both versions.
-export const DecisionPacketSchema = z.discriminatedUnion("packetVersion", [
-  DecisionPacketV1Schema,
-  DecisionPacketV2Schema
-]);
+// unambiguous and the compiler forces every consumer to handle both versions. The
+// superRefine makes the NO_ACTION refusal a STRUCTURAL invariant, not just producer
+// behaviour: a V2 packet that recommends NO_ACTION must withhold ALL outbound action
+// (no playbooks / messages / action items) and state at least one missingEvidence item.
+// So a persisted or future-produced packet that claims a refusal while still carrying
+// drafts -- or a refusal with no stated gap -- fails validation rather than reaching human
+// review. (The refine is on the UNION, not a member, so the discriminatedUnion stays valid.)
+export const DecisionPacketSchema = z
+  .discriminatedUnion("packetVersion", [DecisionPacketV1Schema, DecisionPacketV2Schema])
+  .superRefine((packet, ctx) => {
+    if (packet.packetVersion === 2 && packet.recommendation === "NO_ACTION") {
+      if (
+        packet.playbooks.length > 0 ||
+        packet.supplierMessages.length > 0 ||
+        packet.actionItems.length > 0
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "NO_ACTION packet must withhold all playbooks, supplier messages, and action items."
+        });
+      }
+      if (!packet.missingEvidence || packet.missingEvidence.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "NO_ACTION packet must list at least one missingEvidence item."
+        });
+      }
+    }
+  });
 
 export const ScenarioSchema = z.object({
   id: z.string(),

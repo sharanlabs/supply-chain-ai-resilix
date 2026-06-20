@@ -44,9 +44,17 @@ function computeChecks(signals: PublicSignal[], threatCard: ThreatCard): Verifie
   const threatCountry = threatCard.location.country;
   const geoAgrees =
     threatCountry != null && signals.some((s) => s.location.country === threatCountry);
+  // Corroboration counts INDEPENDENT sources, not raw signals: two articles from the SAME
+  // source (same `source` label) are one outlet, not two-source agreement. Counting raw
+  // signals would let duplicated same-source items flip the refusal gate to ACT, which is
+  // exactly the accountability the NO_ACTION path exists to prevent. Source identity is the
+  // normalized `source` label (the outlet); the closely-named "Reuters (via GDELT)" vs
+  // "GDELT DOC 2.0" stay distinct, while two raw "GDELT DOC 2.0" hits collapse to one.
+  const distinctSources = new Set(signals.map((s) => s.source.trim().toLowerCase()));
+  const sourceCount = distinctSources.size;
   return {
-    sourceCount: signals.length,
-    corroborated: signals.length >= 2,
+    sourceCount,
+    corroborated: sourceCount >= 2,
     freshestMinutes,
     geoAgrees
   };
