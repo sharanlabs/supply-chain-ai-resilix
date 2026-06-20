@@ -48,12 +48,12 @@ Hard rules, no exceptions:
 - **Only Sentinel ever sees raw article text.** Fetched articles are untrusted data, never instructions.
 - **Every claim is evidence-linked.** Supplier names cross agent boundaries only as validated IDs; URLs only from the fetched-evidence allowlist; each draft carries a `claims[]` list the gatekeeper cross-checks both directions.
 - **Nothing sends without human approval** — atomic, audited.
-- **Three LLM calls per run (two in reserve).** Per-call tokens, finish reason, and computed cost are persisted; the whole build is budgeted at ≤ $5 of API spend, enforced as a fail-closed hard stop.
+- **Three LLM calls per run (two in reserve).** Per-call tokens, finish reason, and computed cost are persisted; **each run** is hard-stopped before it can exceed the $5 cap (a fail-closed pre-call check), and total build spend (≤ $5, metered ≈ $1.0–1.3) is tracked via the persisted cost ledger — the runtime guard is per-run, the build total is the ledger sum.
 
 ## Live, replay, synthetic — all disclosed
 
 - **Live signals:** GDELT DOC 2.0 (primary) and the National Weather Service API, replay-first and resilient (a fetch outage surfaces a `CACHED`/`FAILED` marker, never a faked live read).
-- **Live AI:** the three LLM agents call Gemini (`gemini-2.5-flash` default, GA, with a ListModels preflight that fails loud if the configured model is unavailable). Off by default (`ENABLE_LIVE_AI`); the deterministic spine runs identically with the key off.
+- **Live AI:** the three LLM agents call Gemini (`gemini-2.5-flash` default, GA, with a ListModels preflight that fails loud if the configured model is unavailable). Model + pricing verified as-of 2026-06-18; Gemini 2.5 retires no earlier than 2026-10-16, and the preflight + single `GEMINI_MODEL` config point make a retirement a one-line bump, never a silent mid-run fallback. Off by default (`ENABLE_LIVE_AI`); the deterministic spine runs identically with the key off.
 - **Replay-first demo:** each scenario carries dated, synthetic signal fixtures; replay is always labelled, never presented as live. The landing page itself serves a frozen, real live-captured packet relabelled `REPLAY` ($0, reproducible).
 - **Synthetic enterprise data:** a seeded ~150-row US supplier dataset, disclosed as such; seed-derived figures are stamped and never mixed into results from your own upload.
 - **Your data:** a tiered CSV upload — Tier-1 columns unlock exposure mapping, optional inventory columns unlock runway simulation. Every upload gets a per-row matched/unmatched report; a silent zero-match is structurally impossible. Uploaded names are formula-injection-sanitized and canonicalized to internal IDs before any agent sees them.
