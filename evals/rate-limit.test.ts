@@ -7,6 +7,7 @@ import {
   enforceMutationRateLimit
 } from "@/lib/server/rate-limit";
 import { POST as uploadSuppliers } from "@/app/api/suppliers/upload/route";
+import { POST as n8nCallback } from "@/app/api/n8n/approval-callback/route";
 import { __resetMemorySuppliersForTest } from "@/lib/server/supplier-store";
 
 // Item 1: dependency-free fixed-window rate limiter on the mutation surface.
@@ -143,5 +144,25 @@ describe("rate-limit: route-level 429 (authless demo, in-memory)", () => {
     expect(Number(retryAfter)).toBeGreaterThanOrEqual(1);
     const body = await blocked.json();
     expect(body.error).toBe("RATE_LIMITED");
+  });
+
+  it("rate-limits the n8n approval-callback route too (the 4th mutating route)", async () => {
+    // The limiter runs AFTER the (demo-authless) secret check and BEFORE the body parse, so the
+    // first <=limit calls fall through (not 429 -- they reach body/mutation and 4xx there), and
+    // the next is braked at 429. Unique x-forwarded-for isolates this client's bucket.
+    function n8nReq(): Request {
+      return new Request("http://localhost/api/n8n/approval-callback", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-forwarded-for": "203.0.113.8" },
+        body: JSON.stringify({ decisionPacketId: "DP-rl-probe", approvalStatus: "APPROVED" })
+      });
+    }
+    for (let i = 0; i < MUTATION_RATE_LIMIT.limit; i++) {
+      const r = await n8nCallback(n8nReq());
+      expect(r.status).not.toBe(429);
+    }
+    const blocked = await n8nCallback(n8nReq());
+    expect(blocked.status).toBe(429);
+    expect(Number(blocked.headers.get("Retry-After"))).toBeGreaterThanOrEqual(1);
   });
 });

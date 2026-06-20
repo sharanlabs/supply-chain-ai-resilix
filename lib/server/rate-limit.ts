@@ -1,7 +1,8 @@
 // ---------------------------------------------------------------------------
 // Dependency-free fixed-window rate limiter for the mutation surface (supplier
-// upload, packet approve, run-exception). Keyed per client so one abusive caller
-// cannot starve the others, with a deny -> HTTP 429 + Retry-After contract.
+// upload, packet approve, run-exception, and the n8n approval callback). Keyed per
+// client so one abusive caller cannot starve the others, with a deny -> HTTP 429 +
+// Retry-After contract.
 //
 // WHY a fixed window (not a token bucket / sliding log): the goal here is a cheap,
 // predictable abuse brake on three low-QPS mutation routes, not precise traffic
