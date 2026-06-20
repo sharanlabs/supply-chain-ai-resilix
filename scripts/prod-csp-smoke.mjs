@@ -60,6 +60,14 @@ if (scriptSrc.includes("'unsafe-inline'"))
 if (scriptSrc.includes("'unsafe-eval'"))
   failures.push("PROD script-src allows 'unsafe-eval' (must be dev-only)");
 
+// 1b. The cross-origin isolation headers ship on the document (and the page still renders
+//     under them -- step 3 below proves interactivity, so CORP did not break loading).
+const h = resp?.headers() ?? {};
+if (h["cross-origin-opener-policy"] !== "same-origin")
+  failures.push(`COOP not same-origin: "${h["cross-origin-opener-policy"]}"`);
+if (h["cross-origin-resource-policy"] !== "same-origin")
+  failures.push(`CORP not same-origin: "${h["cross-origin-resource-policy"]}"`);
+
 // 2. The rendered framework scripts carry a nonce (Next stamped it from the request CSP).
 //    Browsers hide the nonce content attribute, but the IDL `.nonce` property is readable.
 const scriptNonces = await page.$$eval("script", (els) =>

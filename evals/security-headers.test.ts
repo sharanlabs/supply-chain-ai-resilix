@@ -20,6 +20,8 @@ describe("static security headers (next.config)", () => {
     expect(h.get("X-Frame-Options")).toBe("DENY");
     expect(h.get("Referrer-Policy")).toBe("strict-origin-when-cross-origin");
     expect(h.get("Permissions-Policy")).toContain("geolocation=()");
+    expect(h.get("Cross-Origin-Opener-Policy")).toBe("same-origin");
+    expect(h.get("Cross-Origin-Resource-Policy")).toBe("same-origin");
   });
 
   it("does NOT carry the CSP -- the CSP is per-request (proxy.ts), not static", () => {

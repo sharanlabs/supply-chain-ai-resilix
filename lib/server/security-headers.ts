@@ -47,6 +47,15 @@ export function buildSecurityHeaders(): { key: string; value: string }[] {
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "X-Frame-Options", value: "DENY" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-    { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" }
+    { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+    // Cross-origin isolation hardening (XS-Leak / cross-window). COOP severs the
+    // window.opener relationship so a cross-origin opener cannot reach this window;
+    // CORP keeps other origins from embedding this app's responses as no-cors
+    // subresources. Both are safe here -- the app embeds nothing cross-origin and
+    // nothing cross-origin loads its resources (the prod smoke confirms `/` still
+    // renders). COEP is deliberately omitted: it would force every subresource to
+    // opt in for no real isolation requirement here.
+    { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+    { key: "Cross-Origin-Resource-Policy", value: "same-origin" }
   ];
 }
