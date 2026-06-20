@@ -1,9 +1,11 @@
 import { Slot } from "@radix-ui/react-slot";
 import { cn } from "@/lib/utils";
 
-// Restyled to the calm-command-center tokens. API unchanged (variant/size/
-// asChild) so every caller and test stays valid. The :active translate gives a
-// small tactile push without any continuous motion — calm, not cinematic.
+// Restyled to the 2026 "Command Surface" tokens. API unchanged (variant/size/
+// asChild) so every caller and test stays valid. Backgrounds are SOLID (not
+// gradients) so axe composites them to a single color and the AA scan stays
+// clean; depth comes from a tinted shadow + an inset top highlight, and the
+// :active translate gives a small tactile push -- calm, not cinematic, no loop.
 export function Button({
   children,
   className,
@@ -20,16 +22,18 @@ export function Button({
   return (
     <Comp
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md border font-medium transition-colors duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55",
+        "inline-flex items-center justify-center gap-2 rounded-lg border font-medium transition-[background-color,box-shadow,transform] duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none",
         size === "sm" ? "h-8 px-3 text-xs" : "h-10 px-4 text-sm",
+        // Primary -- the steel accent with elevation + a top highlight; the
+        // accent-ink label clears AA on both the resting and hover fills.
         variant === "primary" &&
-          "border-accent-strong bg-accent text-accent-ink hover:bg-accent-strong",
+          "border-accent-strong bg-accent text-accent-ink shadow-[var(--shadow-e2),inset_0_1px_0_oklch(1_0_0/0.18)] hover:bg-accent-strong hover:shadow-[var(--shadow-e3),inset_0_1px_0_oklch(1_0_0/0.18)]",
         variant === "secondary" &&
-          "border-line-strong bg-surface text-ink hover:bg-sink",
+          "border-line-strong bg-surface text-ink shadow-[var(--shadow-e1)] hover:bg-sink hover:shadow-[var(--shadow-e2)]",
         variant === "ghost" &&
           "border-transparent bg-transparent text-ink-muted hover:bg-sink hover:text-ink",
         variant === "danger" &&
-          "border-danger bg-danger text-accent-ink hover:opacity-90",
+          "border-danger bg-danger text-accent-ink shadow-[var(--shadow-e2),inset_0_1px_0_oklch(1_0_0/0.14)] hover:opacity-90",
         className
       )}
       {...props}

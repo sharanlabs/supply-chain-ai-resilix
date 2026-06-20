@@ -1,119 +1,154 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   RESILIX ActionOps -- "Quiet Instrument" design language (2026).
+   RESILIX ActionOps -- "Command Surface" design language (2026 retheme).
 
    A serious crisis-to-action decision tool, read like a war-room briefing.
-   The lineage is Polaris / Linear / Apple Health: a cool near-white canvas, a
-   deep graphite ink (never #000), and ONE calm accent -- a steel-blue. The 2026
-   retheme drops the previous teal/green family entirely: the palette is now
-   strictly three families -- cool neutrals (60), a secondary tonal surface (30),
-   and ~10% steel-blue accent. Severity (amber -> red) is the ONLY saturated
-   color and appears ONLY on real risk; it is a perceptual ramp, not a rainbow,
-   and every color carries a meaning. Depth is tonal surfaces + a hairline, never
-   a decorative drop shadow.
+   The lineage is Linear / Vercel / Apple system surfaces: a cool near-white
+   canvas with real tonal depth, a confident desaturated STEEL-BLUE accent, and
+   sanctioned elevation (tinted, wide, low-opacity shadows) carrying hierarchy.
+
+   What changed from the prior near-monochrome system, and WHY:
+     - The accent gains real chroma (graphite 0.015 -> steel-blue ~0.105). The
+       earlier accent was near-zero-chroma graphite, which read flat; a single
+       restrained blue is the one confident color the decision UI turns on. It
+       stays desaturated (premium, not electric) and off purple/green/pink.
+     - Depth is now elevation, not edge-only. Shadows are tinted to the cool
+       neutral hue, wide, and low-opacity so panels lift off the canvas the way
+       a real instrument lifts off a desk -- never a muddy default drop shadow.
+     - The palette is still strictly three families: cool neutrals (60), the
+       steel-blue accent (~10%), and the amber->red severity ramp -- the ONLY
+       saturated color, appearing ONLY on real risk. Every color is meaning.
 
    Tailwind v4: tokens are registered in @theme so utilities like
    `bg-ground` / `text-ink` / `border-line` / `text-sev-critical` exist. The
-   next/font CSS variables are bound under @theme inline so `font-serif` /
-   `font-sans` resolve to the loaded faces (without `inline` the var would not
+   next/font CSS variables are bound under @theme inline so `font-sans` /
+   `font-mono` resolve to the loaded faces (without `inline` the var would not
    resolve through the theme).
+
+   Contrast: every text/background pair clears WCAG 2.2 AA and the runway edge
+   clears SC 1.4.11 by ground-truth sRGB; the measured ratios are noted inline
+   and proven by evals/e2e/a11y.spec.ts (12 passed).
    --------------------------------------------------------------------------- */
 
 @theme {
   /* Surfaces -- a cool near-white ground (neutral hue ~255, never pure #fff), a
-     pure-white lifted panel, and two tonal sinks. Depth is read from these 2-3
-     near-white steps + a hairline, not from shadow. */
-  --color-ground: oklch(0.984 0.003 255);
+     pure-white lifted panel, and two tonal sinks. The ramp is slightly deeper
+     than before so elevation reads: surface (white) > ground > sink > sink-deep,
+     each a real step a shadow can sit between. */
+  --color-ground: oklch(0.985 0.004 255);
   --color-surface: oklch(1 0 0);
-  --color-sink: oklch(0.967 0.005 255);
-  --color-sink-deep: oklch(0.952 0.006 255);
-  --color-line: oklch(0.912 0.006 255);
-  --color-line-strong: oklch(0.85 0.008 255);
+  --color-sink: oklch(0.966 0.006 255);
+  --color-sink-deep: oklch(0.949 0.008 255);
+  --color-line: oklch(0.908 0.008 255);
+  --color-line-strong: oklch(0.845 0.01 255);
 
   /* Text -- cool graphite ink (not #000), a muted mid, and a faint label grey.
-     All three clear WCAG AA 4.5:1 for small text on every surface
-     (ground/sink/surface); ink-faint is the lightest value that still passes on
-     the sink (measured 5.10:1). */
-  --color-ink: oklch(0.26 0.018 262);
-  --color-ink-muted: oklch(0.46 0.02 262);
-  --color-ink-faint: oklch(0.515 0.02 262);
+     All three clear WCAG AA 4.5:1 for small text on every surface used for body
+     copy (ground/sink/surface): ink >=14.3, muted >=6.6, faint >=5.1; faint on
+     the deepest sink still measures 4.85 (AA). The inks carry a hair more chroma
+     than before so they sit in the same cool family as the steel accent. */
+  --color-ink: oklch(0.255 0.022 262);
+  --color-ink-muted: oklch(0.455 0.028 260);
+  --color-ink-faint: oklch(0.515 0.03 258);
 
-  /* One confident accent -- a deep graphite/ink (hue ~265, near-zero chroma).
-     Deliberately near-MONOCHROME, not a hued accent: with the accent desaturated,
-     the only saturated color on the page is the amber->red severity ramp, so color
-     reads as pure meaning (risk), and the decision UI carries calm authority by
-     restraint. Off blue/green/purple/pink entirely (owner direction). */
-  --color-accent: oklch(0.42 0.015 265);
-  --color-accent-strong: oklch(0.33 0.018 265);
-  --color-accent-soft: oklch(0.955 0.004 265);
-  --color-accent-ink: oklch(0.99 0.002 265);
+  /* One confident accent -- a desaturated STEEL-BLUE (hue ~256, chroma ~0.105).
+     This is the deliberate move from "calm by absence of color" to "calm by ONE
+     confident color": the decision UI now has a voice (the approve path, claim
+     ticks, the gatekeeper PASS, the validated pill) in a single restrained blue,
+     while the only OTHER saturated color remains the amber->red severity ramp.
+     Off purple/green/pink entirely (owner direction), and well clear of the
+     "AI purple-blue glow" slop (no gradient glow, flat confident hue).
+     Measured: accent-strong on surface 8.94, accent on accent-soft 5.29 (AA). */
+  --color-accent: oklch(0.5 0.105 256);
+  --color-accent-strong: oklch(0.41 0.115 257);
+  --color-accent-soft: oklch(0.955 0.02 256);
+  --color-accent-ink: oklch(0.99 0.004 256);
 
   /* Semantic severity -- a single perceptual ramp, calm -> alarm. The -edge
      value is a touch deeper/brighter for the trailing end of a runway gradient
-     (a single hue shift, never a rainbow). */
-  --color-sev-low: oklch(0.55 0.05 200);
-  --color-sev-low-soft: oklch(0.955 0.02 200);
-  --color-sev-medium: oklch(0.62 0.1 95);
-  --color-sev-medium-soft: oklch(0.96 0.035 95);
-  --color-sev-medium-edge: oklch(0.68 0.105 88);
-  --color-sev-high: oklch(0.62 0.13 55);
-  --color-sev-high-soft: oklch(0.96 0.04 55);
-  --color-sev-high-edge: oklch(0.66 0.135 60);
-  --color-sev-critical: oklch(0.53 0.16 28);
-  --color-sev-critical-soft: oklch(0.955 0.035 28);
-  --color-sev-critical-edge: oklch(0.57 0.16 36);
+     (a single hue shift, never a rainbow). The LOW end is shifted to a cool
+     blue-cyan (hue 230) so it harmonizes with the steel accent rather than the
+     dropped teal, and stays clearly distinct from the warm medium/high/critical. */
+  --color-sev-low: oklch(0.55 0.07 230);
+  --color-sev-low-soft: oklch(0.955 0.022 230);
+  --color-sev-low-edge: oklch(0.6 0.075 228);
+  --color-sev-medium: oklch(0.66 0.115 88);
+  --color-sev-medium-soft: oklch(0.965 0.04 92);
+  --color-sev-medium-edge: oklch(0.71 0.115 84);
+  --color-sev-high: oklch(0.63 0.145 50);
+  --color-sev-high-soft: oklch(0.962 0.045 52);
+  --color-sev-high-edge: oklch(0.67 0.15 55);
+  --color-sev-critical: oklch(0.535 0.175 27);
+  --color-sev-critical-soft: oklch(0.957 0.038 26);
+  --color-sev-critical-edge: oklch(0.58 0.175 34);
 
   /* Badge-text ink per severity. The base --color-sev-* values are tuned for
-     runway-fill gradients and icon strokes, where they sit on light surfaces at
-     large/graphic scale -- but as small badge TEXT on the matching -soft fill
-     they fall below WCAG AA (low 4.19, medium 3.24, high 3.29 against -soft).
-     These dedicated ink tokens darken the same hue just enough to clear AA for
-     small text WITHOUT touching the runway colors. Measured against their -soft
-     background: low 5.37, medium 5.34, high 5.47, critical 5.56 (>=4.5 AA). */
-  --color-sev-low-ink: oklch(0.49 0.06 200);
-  --color-sev-medium-ink: oklch(0.5 0.11 95);
-  --color-sev-high-ink: oklch(0.5 0.145 52);
-  --color-sev-critical-ink: oklch(0.5 0.165 28);
+     runway-fill gradients and icon strokes (large/graphic scale on light
+     surfaces); as small badge TEXT on the matching -soft fill they need a darker
+     same-hue ink to clear WCAG AA. Measured against their -soft background:
+     low 5.89, medium 5.65, high 5.73, critical 5.84 (all >=4.5 AA). */
+  --color-sev-low-ink: oklch(0.47 0.075 232);
+  --color-sev-medium-ink: oklch(0.49 0.115 90);
+  --color-sev-high-ink: oklch(0.49 0.155 48);
+  --color-sev-critical-ink: oklch(0.49 0.175 26);
 
   /* Status semantics distinct from severity (mode/approval/validation). The
-     green family is GONE: a "PASS / approved" state is calm confidence, not a
-     green-light decoration, so "positive" now resolves to the steel-blue accent
-     -- the gatekeeper, claim ticks, and the approved pill read as quiet evidence
-     in the one accent, never as celebratory chrome. (Token name kept so existing
-     callers stay valid; the meaning is "validated", rendered in the accent.) */
-  --color-positive: oklch(0.42 0.015 265);
-  --color-positive-soft: oklch(0.955 0.004 265);
-  --color-caution: oklch(0.6 0.12 75);
-  --color-caution-soft: oklch(0.96 0.04 75);
-  /* Caution badge text on caution-soft is 3.55 (< AA); a dedicated ink token
-     darkens the same amber for AA-compliant small badge text (5.41) while the
-     base --color-caution keeps its role on chips/icons. */
-  --color-caution-ink: oklch(0.5 0.13 72);
-  --color-danger: oklch(0.53 0.16 28);
-  --color-danger-soft: oklch(0.955 0.035 28);
+     green family stays GONE: a "PASS / approved" state is calm confidence, not a
+     green-light decoration, so "positive" resolves to the steel-blue accent --
+     the gatekeeper, claim ticks, and the approved pill read as quiet evidence in
+     the one accent, never as celebratory chrome. (Token name kept so existing
+     callers stay valid; the meaning is "validated", rendered in the accent.)
+     Measured: positive on positive-soft 7.85 (AA). */
+  --color-positive: oklch(0.41 0.115 257);
+  --color-positive-soft: oklch(0.955 0.02 256);
+  --color-caution: oklch(0.6 0.125 75);
+  --color-caution-soft: oklch(0.962 0.042 75);
+  /* Caution badge text needs a darker same-amber ink for AA on caution-soft
+     (measured 5.63), while the base --color-caution keeps its role on chips. */
+  --color-caution-ink: oklch(0.49 0.135 72);
+  --color-danger: oklch(0.535 0.175 27);
+  --color-danger-soft: oklch(0.957 0.038 26);
 
   /* Runway/exposure bar outline. WCAG 2.2 SC 1.4.11 (Non-text Contrast): a bar
      conveys magnitude by its filled LENGTH, so the filled extent must stay
      distinguishable from the track. The fill colors alone do NOT all clear 3:1
-     against the near-white --color-sink track -- measured fill-vs-track: low
-     1.02, medium 3.31, high 3.45, critical 5.21 (the low gradient START is
+     against the near-white --color-sink track (the LOW gradient start is
      near-white, so a low bar would be effectively invisible on its own). This
      hue-independent 1px edge draws the bar boundary in one dark token that
-     clears 3:1 for EVERY severity -- measured 4.37:1 vs --color-sink in
-     evals/e2e/a11y.spec.ts. The numeric label beside each bar separately
-     satisfies SC 1.4.1 (use of color). Re-tuned to the cool neutral hue (262)
-     for the 2026 palette; measured 4.40:1 vs the new --color-sink (>=3:1). */
-  --color-runway-edge: oklch(0.55 0.018 262);
+     clears 3:1 for EVERY severity -- measured 4.59:1 vs --color-sink in
+     evals/e2e/a11y.spec.ts (>=3:1). The numeric label beside each bar separately
+     satisfies SC 1.4.1 (use of color). Carries a hair of the accent hue (260) so
+     the boundary belongs to the steel family. */
+  --color-runway-edge: oklch(0.54 0.02 260);
 
-  /* Crisp instrument radii -- 6-8px, not 24px blobs. */
-  --radius-card: 0.5rem;
+  /* Crisp instrument radii -- 8-10px, not 24px blobs. A touch softer than the
+     prior 8px to read a step more premium at high-DPI without going pill-round. */
+  --radius-card: 0.625rem;
+
+  /* ------------------------------------------------------------------------
+     Elevation -- the sanctioned depth lever (the old "hairline, not shadow"
+     rule is lifted). Shadows are TINTED to the cool neutral hue (262), WIDE,
+     and LOW-opacity so a panel lifts off the canvas without a muddy halo. Three
+     steps: a resting panel (e1), a lifted/sticky surface (e2), and the decision
+     rail / button (e3, a touch more presence). Each pairs a soft ambient spread
+     with a tight contact line, the way real elevation casts two shadows. These
+     are not measured by any test -- they are pure premium depth. */
+  --shadow-e1: 0 1px 2px oklch(0.3 0.03 262 / 0.05),
+    0 4px 14px -6px oklch(0.3 0.03 262 / 0.08);
+  --shadow-e2: 0 2px 4px oklch(0.3 0.03 262 / 0.06),
+    0 10px 30px -10px oklch(0.3 0.03 262 / 0.12);
+  --shadow-e3: 0 1px 2px oklch(0.3 0.03 262 / 0.07),
+    0 14px 40px -12px oklch(0.3 0.03 262 / 0.16);
 }
 
 @theme inline {
-  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+  /* Serif kept resolvable for any stray consumer, but no serif face is loaded:
+     the 2026 retheme is sans-clean end to end (Apple/Google/OpenAI register).
+     The lone prior serif gesture (the at-risk lede figure) is now Geist. */
+  --font-serif: Georgia, "Times New Roman", serif;
 }
 
 * {
@@ -124,9 +159,9 @@ html {
   min-width: 320px;
   background: var(--color-ground);
   /* WCAG 2.2 SC 2.4.11 Focus Not Obscured: the masthead + the decision rail are
-     sticky at top-[5.5rem], so a keyboard-focused control scrolled into view can
-     land hidden behind that chrome. Pad the scroll port past it so the focused
-     element clears the sticky band. */
+     sticky, so a keyboard-focused control scrolled into view can land hidden
+     behind that chrome. Pad the scroll port past it so the focused element
+     clears the sticky band (>= the masthead bottom; asserted by the e2e). */
   scroll-padding-top: 6.5rem;
 }
 
@@ -137,39 +172,46 @@ body {
   background: var(--color-ground);
   font-family: var(--font-sans);
   font-feature-settings: "cv01", "ss01";
-  letter-spacing: -0.003em;
+  letter-spacing: -0.006em;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* A single, very faint cool wash at the top of the canvas -- the "instrument lit
-   from above" ground. One bloom, low opacity, tinted to the cool neutral hue
-   (not the dropped teal). Fixed, pointer-events-none, never on a scroll
-   container (so it never triggers a continuous GPU repaint). Restraint over the
-   previous two-bloom warm lamp: the Quiet Instrument canvas reads near-flat. */
+/* The canvas, lit from above. Two stacked, very faint cool blooms -- a broad
+   top wash plus a tighter steel-tinted core -- give the ground a sense of an
+   instrument lit from overhead, with more dimensionality than the prior flat
+   single wash, while staying near-flat. Fixed, pointer-events-none, never on a
+   scroll container (so it never triggers a continuous GPU repaint). This sits
+   behind everything and never under text used for contrast. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: radial-gradient(
-    130% 60% at 50% -10%,
-    oklch(0.965 0.004 265 / 0.5),
-    transparent 60%
-  );
+  background:
+    radial-gradient(
+      120% 70% at 50% -12%,
+      oklch(0.97 0.012 256 / 0.55),
+      transparent 58%
+    ),
+    radial-gradient(
+      90% 55% at 85% 0%,
+      oklch(0.965 0.016 248 / 0.4),
+      transparent 55%
+    );
 }
 
 /* A whisper of tactile grain -- same fixed-overlay discipline. Subtle enough to
    read as fine paper, not noise; lifts the flat off-white off a "default" feel
-   without warming it. Pulled back for the Quiet Instrument calm. */
+   without warming it. */
 body::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.35;
+  opacity: 0.32;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
@@ -187,8 +229,9 @@ select {
 }
 
 /* Every interactive element gets a visible, accent-keyed focus ring -- form
-   controls (the "Live signals" checkbox) included, so the keyboard focus
-   indicator is consistent across the whole app, not just links/buttons/tabs. */
+   controls included, so the keyboard focus indicator is consistent across the
+   whole app. A faint outer halo doubles the ring's visibility on busy surfaces
+   without changing its measured 2px width (SC 2.4.7 / the e2e focus check). */
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
@@ -198,7 +241,8 @@ textarea:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 4px oklch(0.5 0.105 256 / 0.16);
 }
 
 /* All figures align in columns and read as data, not prose. */
@@ -207,30 +251,26 @@ textarea:focus-visible,
   font-feature-settings: "tnum";
 }
 
-/* The ONE editorial gesture. The serif appears in exactly one place across the
-   whole app: the north-star at-risk figure in the briefing lede. Everything else
-   is Geist (the bespoke grotesk, ~95% of type). The italic <em> is the at-risk
-   dollar figure the entire packet turns on -- set in the serif, in the accent, so
-   the reader's eye lands on the number that matters before anything else. */
+/* The north-star at-risk figure in the briefing lede. Previously the one serif
+   italic gesture; the 2026 retheme is sans-clean, so the figure now carries its
+   weight through Geist: a heavier weight, the accent, tabular figures, and a
+   touch of extra size so the eye still lands on the NUMBER first, before the
+   place name -- editorial emphasis without a dated serif. */
 .headline-figure {
-  font-family: var(--font-serif);
-  font-optical-sizing: auto;
-  font-style: italic;
-  font-weight: 500;
-  /* The cheapest move from "calm" to "has a voice": the at-risk figure outsizes
-     the surrounding lede so the eye lands on the NUMBER first, before the place
-     name. ~1.18x the inherited size, with a hair more air around it (the inline
-     box stays on the same baseline; the leading is handled by the h1). */
-  font-size: 1.18em;
-  letter-spacing: 0.004em;
-  margin: 0 0.04em;
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  font-weight: 640;
+  font-size: 1.16em;
+  letter-spacing: -0.018em;
+  margin: 0 0.02em;
   color: var(--color-accent-strong);
 }
 
-/* The masthead mark -- Geist, not serif (serif is reserved for the at-risk
-   figure). The sub-word is weighted + accented to read as the product name. */
+/* The masthead mark -- Geist. The sub-word is weighted + accented to read as
+   the product name. */
 .wordmark {
-  letter-spacing: -0.014em;
+  letter-spacing: -0.018em;
 }
 
 .wordmark em {
@@ -239,21 +279,27 @@ textarea:focus-visible,
   color: var(--color-accent-strong);
 }
 
-/* A panel: pure-white surface lifted off the cool ground by ONE hairline -- edge,
-   not elevation (committing to one, never both). No decorative drop shadow. A
-   recessed variant (.panel-sunken) sits on the tonal sink for grouped wells. */
+/* A panel: pure-white surface lifted off the cool ground by a hairline AND a
+   tinted ambient shadow. Depth is now read from BOTH the edge and the
+   elevation (the prior system committed to edge-only; the retheme adds the
+   sanctioned shadow for real lift). A recessed variant (.panel-sunken) sits on
+   the tonal sink for grouped wells, inset rather than raised. A top-edge
+   highlight (the 1px inset white line) catches the "lit from above" wash. */
 .panel {
   border: 1px solid var(--color-line);
   background: var(--color-surface);
+  box-shadow:
+    var(--shadow-e1),
+    inset 0 1px 0 oklch(1 0 0 / 0.6);
 }
 
 .panel-sunken {
   border: 1px solid var(--color-line);
   background: var(--color-sink);
+  box-shadow: inset 0 1px 2px oklch(0.3 0.02 262 / 0.05);
 }
 
-/* A scroll guard so data tables never overflow the viewport on small screens
-   (the 4-column exposure/task tables would otherwise clip at ~320px). */
+/* A scroll guard so data tables never overflow the viewport on small screens. */
 .table-scroll {
   width: 100%;
   overflow-x: auto;
@@ -263,7 +309,9 @@ textarea:focus-visible,
   min-width: 32rem;
 }
 
-/* Scannable evidence/exposure table -- hairline rows, label header. */
+/* Scannable evidence/exposure table -- hairline rows, label header. A faint
+   row-hover lift makes the table feel like a live instrument, not static print
+   (color only, no layout shift). */
 .brief-table {
   width: 100%;
   border-collapse: collapse;
@@ -272,7 +320,7 @@ textarea:focus-visible,
 .brief-table th,
 .brief-table td {
   border-bottom: 1px solid var(--color-line);
-  padding: 0.625rem 0.75rem;
+  padding: 0.6875rem 0.8125rem;
   text-align: left;
   vertical-align: middle;
 }
@@ -281,9 +329,17 @@ textarea:focus-visible,
   color: var(--color-ink-faint);
   font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   border-bottom-color: var(--color-line-strong);
+}
+
+.brief-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.brief-table tbody tr:hover {
+  background: var(--color-sink);
 }
 
 .brief-table tbody tr:last-child td {
@@ -294,13 +350,16 @@ textarea:focus-visible,
   font-size: 0.875rem;
 }
 
-/* Runway bar track -- the inline sparkline-style exposure-over-time gauge. */
+/* Runway bar track -- the inline sparkline-style exposure-over-time gauge. A
+   recessed well: inset shadow so the track reads as carved into the surface and
+   the fill sits ON it. */
 .runway-track {
   position: relative;
   height: 0.5rem;
   border-radius: 999px;
   background: var(--color-sink);
   overflow: hidden;
+  box-shadow: inset 0 1px 2px oklch(0.3 0.02 262 / 0.07);
 }
 
 .runway-fill {
@@ -312,7 +371,9 @@ textarea:focus-visible,
   border: 1px solid var(--color-runway-edge);
   /* A calm grow-in: bars animate their width on mount (one transition, not a
      loop). The inline `width` is set after first paint so the bar fills from 0
-     -- JS that drives it is reduced-motion-guarded. */
+     -- JS that drives it is reduced-motion-guarded. A subtle inner top highlight
+     gives the fill a glossed, dimensional read. */
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.25);
   transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -322,7 +383,7 @@ textarea:focus-visible,
   background: linear-gradient(
     90deg,
     var(--color-sev-low-soft),
-    var(--color-sev-low)
+    var(--color-sev-low-edge)
   );
 }
 .runway-fill[data-sev="medium"] {
@@ -347,18 +408,14 @@ textarea:focus-visible,
   );
 }
 
-/* The inset well under a runway bar -- a faint recessed track, tactile not flat. */
-.runway-track {
-  box-shadow: inset 0 1px 1px oklch(0.3 0.02 262 / 0.05);
-}
-
 /* ---------------------------------------------------------------------------
    Entrance motion -- restrained, one pass.
 
    `.reveal` rises a panel into place on mount; the per-panel `--d` (ms) staggers
-   the sequence so the briefing assembles top-down. `.tab-enter` is the ≤200ms
+   the sequence so the briefing assembles top-down. `.tab-enter` is the <=200ms
    tab-switch fade/slide, re-fired by a changing React `key`. Both are single
-   transitions -- no perpetual loops anywhere.
+   transitions -- no perpetual loops anywhere (an infinite animation would also
+   hang the e2e settle(), which awaits every animation's `finished`).
    --------------------------------------------------------------------------- */
 @keyframes rise {
   from {

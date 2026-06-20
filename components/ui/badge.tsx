@@ -48,7 +48,11 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex h-[1.375rem] items-center gap-1 rounded border px-2 text-[0.6875rem] font-semibold tracking-wide uppercase",
+        // A crisp uppercase chip. The inset top highlight catches the canvas's
+        // "lit from above" wash so the badge reads as a tactile token, not flat
+        // ink; the tone classes (border/bg/text) are untouched so contrast and
+        // the severity meaning stay exactly as measured.
+        "inline-flex h-[1.375rem] items-center gap-1 rounded-md border px-2 text-[0.6875rem] font-semibold tracking-wide uppercase shadow-[inset_0_1px_0_oklch(1_0_0/0.35)]",
         tones[tone],
         className
       )}

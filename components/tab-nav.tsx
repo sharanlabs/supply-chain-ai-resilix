@@ -14,8 +14,8 @@ export const PANEL_ID = "actionops-tabpanel";
 
 // Accessible tablist: roving focus with arrow-key navigation, aria-selected,
 // and tab/panel wiring. The 4-tab spine of the ActionOps flow. Styled to the
-// iter-3 command-center bar — a mono section index, a teal underline on the
-// selected tab, and an optional status pip (e.g. the packet's READY).
+// command-surface bar -- a mono section index, a steel-blue accent underline on
+// the selected tab, and an optional status pip (e.g. the packet's READY).
 export function TabNav({
   tabs,
   active,

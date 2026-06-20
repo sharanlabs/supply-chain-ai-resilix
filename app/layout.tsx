@@ -1,21 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Newsreader } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-// Editorial pairing for the "calm command center" language:
-//   Newsreader — a refined serif with optical sizing, for briefing-document
-//     headlines (the threat headline reads like a wire-service lede).
-//   Geist / Geist Mono — a clean grotesk for body, labels, and all figures
-//     (tabular-nums via the `.tnum` utility). Arial/Helvetica are deliberately
-//     dropped (an AI-slop tell); the faces bind to CSS vars consumed in
-//     globals.css under @theme inline.
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-newsreader",
-  style: ["normal", "italic"]
-});
-
+// Type system for the 2026 "Command Surface" language -- sans-clean end to end,
+// in the Apple SF / Google Sans / OpenAI / Geist register:
+//   Geist -- a bespoke grotesk for headlines, body, labels, and all figures
+//     (tabular-nums via the `.tnum` utility). It carries the editorial calm
+//     through scale, weight, and tracking rather than a second display face.
+//   Geist Mono -- machine provenance: event codes, source paths, the audit mode
+//     token. Arial/Helvetica/Inter are deliberately dropped (AI-slop tells).
+//   The prior Newsreader serif is dropped: a single serif gesture read dated
+//     against the sans-minimal references, so the at-risk lede figure is now
+//     Geist (heavier, accented, tabular -- see .headline-figure in globals.css).
+//   The faces bind to CSS vars consumed in globals.css under @theme inline.
 const geist = Geist({
   subsets: ["latin"],
   display: "swap",
@@ -42,7 +39,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geist.variable} ${geistMono.variable} ${newsreader.variable}`}
+      className={`${geist.variable} ${geistMono.variable}`}
     >
       <body>
         <div className="app-shell">{children}</div>

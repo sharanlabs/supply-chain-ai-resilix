@@ -53,6 +53,33 @@ function signalTone(status: PublicSignal["status"]) {
   return "neutral" as const;
 }
 
+// Map a severity token to the runway-fill gradient key. Mirrors the same helper
+// in action-packet-view.tsx so the exposure/simulation bars on the dashboard tabs
+// read in the SAME per-tier heat ramp (blue -> amber -> red) as the packet view,
+// instead of a flat single color -- one consistent severity grammar app-wide.
+function severityKey(
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
+): "low" | "medium" | "high" | "critical" {
+  if (severity === "LOW") return "low";
+  if (severity === "MEDIUM") return "medium";
+  if (severity === "HIGH") return "high";
+  return "critical";
+}
+
+// Recover a supplier row's risk tier from the leading token of its Atlas
+// rationale ("CRITICAL risk tier; ..."), the SAME field the packet view reads --
+// the exposureScore alone cannot recover the tier (base+lead ranges overlap), so
+// bar color and any tier label can never disagree. Presentational only (the
+// gradient key); falls back to a neutral mid if a rationale ever drops its token.
+function tierFromRationale(
+  rationale: string
+): "low" | "medium" | "high" | "critical" {
+  const match = /^\s*(LOW|MEDIUM|HIGH|CRITICAL)\b/i.exec(rationale);
+  return match
+    ? severityKey(match[1].toUpperCase() as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL")
+    : "medium";
+}
+
 // D.1 V2 cutover: the dashboard renders the REAL ActionOps packet assembled by the
 // pipeline (passed from the `/` server component), not a hardcoded demo. The
 // makeDemoPacket() fallback only fires if the prop is ever absent, so the surface
@@ -75,17 +102,23 @@ export function LaunchOpsDashboard({ packet }: { packet?: DecisionPacketV2 }) {
 
   return (
     <div className="min-h-[100dvh]">
-      <header className="sticky top-0 z-20 border-b border-line bg-ground/85 backdrop-blur-md">
+      {/* The masthead -- a translucent, blurred sticky band lifted off the canvas
+          by a tinted shadow (axe composites the alpha-over-solid background, so
+          the blur stays a11y-clean). A hairline-strong divider grounds it. */}
+      <header className="sticky top-0 z-20 border-b border-line bg-ground/80 shadow-[var(--shadow-e2)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-3.5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div className="flex items-center gap-3.5">
-            <div className="flex size-9 items-center justify-center rounded-md bg-ink text-ground">
+            {/* The brand mark -- a deep graphite tile with a steel top-edge
+                highlight, so it catches the same "lit from above" light as the
+                panels. The accent shield reads as the product's quiet authority. */}
+            <div className="flex size-9 items-center justify-center rounded-lg bg-ink text-ground shadow-[var(--shadow-e2),inset_0_1px_0_oklch(1_0_0/0.12)]">
               <ShieldCheck className="size-[1.125rem]" aria-hidden="true" />
             </div>
             <div className="flex items-baseline gap-3">
               <p className="wordmark text-[1.1875rem] font-semibold text-ink">
                 RESILIX <em>ActionOps</em>
               </p>
-              <span className="hidden font-mono text-[0.625rem] tracking-[0.16em] text-ink-faint uppercase sm:inline">
+              <span className="hidden font-mono text-[0.625rem] tracking-[0.18em] text-ink-faint uppercase sm:inline">
                 War Room
               </span>
             </div>
@@ -95,14 +128,16 @@ export function LaunchOpsDashboard({ packet }: { packet?: DecisionPacketV2 }) {
             <span className="hidden font-mono text-[0.6875rem] tracking-[0.02em] text-ink-faint sm:inline">
               OP · RX-2614
             </span>
-            {/* Honest provenance -- recorded signals, never labeled live. */}
+            {/* Honest provenance -- recorded signals, never labeled live. Lifted
+                on the white surface with a soft shadow so it reads as a status
+                chip, not flat text. */}
             <span
-              className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-ink-muted"
+              className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-ink-muted shadow-[var(--shadow-e1)]"
               title="Signals served from dated recorded fixtures -- not a live fetch"
             >
               <span
                 aria-hidden="true"
-                className="size-[0.4375rem] rounded-full bg-ink-faint shadow-[0_0_0_3px_var(--color-sink)]"
+                className="size-[0.4375rem] rounded-full bg-accent shadow-[0_0_0_3px_var(--color-accent-soft)]"
               />
               Recorded signals
               {recordedAt ? (
@@ -223,8 +258,13 @@ function ExposureTab({ packet }: { packet: DecisionPacketV2 }) {
               <td>
                 <div className="flex items-center gap-3">
                   <div className="runway-track flex-1">
+                    {/* Per-tier gradient (data-sev), the same heat ramp the packet
+                        view draws -- so a CRITICAL row reads red, a LOW row blue,
+                        never a flat amber. The hue-independent edge keeps SC
+                        1.4.11 green for every tier. */}
                     <div
-                      className="runway-fill bg-sev-high"
+                      className="runway-fill"
+                      data-sev={tierFromRationale(result.rationale)}
                       style={{
                         width: `${(result.exposureScore / max) * 100}%`
                       }}
@@ -280,11 +320,17 @@ function SimulationTab({ packet }: { packet: DecisionPacketV2 }) {
               {horizon.days}-day
             </span>
             <div className="runway-track">
+              {/* Day-horizon -> severity, the SAME mapping the packet runway
+                  uses (>=14 critical, >=7 high, else medium), rendered as the
+                  per-tier gradient so the runway reads as one calm heat ramp. */}
               <div
-                className={
+                className="runway-fill"
+                data-sev={
                   horizon.days >= 14
-                    ? "runway-fill bg-sev-critical"
-                    : "runway-fill bg-sev-high"
+                    ? "critical"
+                    : horizon.days >= 7
+                      ? "high"
+                      : "medium"
                 }
                 style={{
                   width: `${(horizon.revenueAtRiskUsd / max) * 100}%`
