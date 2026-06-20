@@ -46,18 +46,28 @@ client hydration; jitless is Zod's documented strict-CSP switch).
   Optional polish it noted (NOT gaps for this artifact): `Cross-Origin-Opener-Policy: same-origin`,
   a CSP report endpoint.
 
-## Remaining gate — Codex cross-model (owner-gated)
+## Codex cross-model — DISCHARGED (2026-06-20, owner's BACKUP account)
 
-The mandatory cross-model leg has NOT run on these 3 commits (every prior Codex stamp is
-≤ `48033b1`). Account-constrained: the existing ChatGPT Codex seat is capped to ~Jun 24; the
-backup account is owner-called. Banked command (run when an account is available):
+The owner released the backup-account switch ("run on backup now"). Ran `codex-guarded`
+read-only over commits `936c6ef` + `d0eaf17`/`149f18d`.
 
-```
-bash ~/claude-os/bin/codex-guarded exec -s read-only --json -o /tmp/codex-optional-resilix.txt \
-  "Cross-model devil's advocate on commits 936c6ef (product-master allowlist) + d0eaf17/149f18d \
-   (strict nonce CSP). For A: probe un-nonced/static routes, the style-src residual, the Zod jitless \
-   trade-off. For B: does the allowlist swap weaken any grader; do the membership/corruption tests \
-   have real teeth. Refute correctness or APPROVE." < /dev/null
-```
+- **Round 1: REVISE(4)** — all 4 weighed and accepted (primary-model-final), all fixed in
+  `d1d9200`:
+  1. [Med] `proxy.ts` matcher `api` → `api/`: the `api` lookahead also excluded `/apiary`,
+     `/apis`, and a bare `/api` 404, leaving those documents with NO CSP (a real gap the
+     local security review rated as fine — the cross-model leg earning its keep). Prod smoke
+     extended to assert an `api`-prefixed bogus document path is 404 + fully nonced.
+  2. [Med] `actionops-pipeline.test.ts`: the corrupted-packet gate test now asserts the
+     `exposure-control` grader specifically fails (was "blocked for any reason").
+  3. [Low] `product-master.test.ts`: added `loadReplayPacket` as a 4th drift-guard source.
+  4. [Low] `graders.ts`: stale "run inventory" comment → "product master catalog existence".
+- **Closure: REVISE(1 nit)** — a stale "three sources" test comment after fix #3 added a
+  fourth; corrected in `8a44ae9`. Codex functionally verified all 4 fixes (matcher via Next's
+  `unstable_doesMiddlewareMatch`, the exposure assertion, the replay-fixture load, the comment).
+  The lone open item was a comment, so no further cross-model round was spent (primary-model-final).
 
-Primary-model-final on the output.
+Re-verified after the fixes: `verify:full` GREEN + the prod smoke PASS (`/`, a plain 404, and an
+`api`-prefixed 404 all 404 + fully nonced, zero violations, interactive).
+
+**Gate stack for these increments: COMPLETE** (verify:full + prod smoke + acceptance-gate +
+security-specialist + Codex cross-model REVISE→fix→closure). Push still HELD (owner action).
