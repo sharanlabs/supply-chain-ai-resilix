@@ -12,12 +12,12 @@
 > - **The 4 post-D.9 follow-ups** -- NO_ACTION refusal · home->frozen REPLAY · bounded +2 retry · Codex closure-2 re-confirm. SHIP primary-model-final.
 > - **D.9 live-AI showcase** (`d8d6348`).
 >
-> ### REMAINING ROADMAP (the owner's "complete all optional fixes + reconcile + whole-project review" program -- each a gated increment: maker -> `npm run verify` -> commit -> push)
-> 1. Content + anti-AI/de-slop pass (UI copy + README + docs).
-> 2. Whole-project blindspot + claude-os doctrine-completeness review (guidelines-monitor + the gate panel + a doctrine pass) -> apply real fixes.
-> 3. Remaining optional fixes: rate-limiting on the 3 mutation routes · real-HTTP upload e2e · deps-hygiene (vite->esbuild ELSPROBLEMS) · playbook-step prose numeral grading · Prettier config + `format` script (NOT the mass reformat) · pre-commit hooks · product-master allowlist (if cheap).
-> 4. Reconcile `tasks/todo.md` (the phase checklist is STALE -- marks Phase 3 IN PROGRESS + D/P7/P8/P9 as future when they shipped; the gate docs are accurate).
-> 5. Codex (LOCAL / owner -- needs the cap reset ~1:39 AM Jun 20 + local auth): the closure re-run + a batched pass over the new optional-fix work. Weigh primary-model-final.
+> ### REMAINING ROADMAP -- mostly COMPLETE (updated 2026-06-20)
+> 1. Content + anti-AI/de-slop pass -- DONE (the redesign de-slopped the UI; guidelines-monitor confirmed no AI tells; docs written honestly).
+> 2. Whole-project blindspot + doctrine review -- DONE (guidelines-monitor verdict: top-decile, exceeds the bar on injection security / judge / deterministic architecture / frontend craft; real findings applied: testable CSP, budget-claim precision, model-freshness note).
+> 3. Optional fixes -- DONE: rate-limiting on the 3 mutation routes · real-HTTP upload e2e · Prettier + pre-commit · CSP/HSTS + callback-secret min-length · playbook-step numeral grading (already in `gradeCitationCoverage`). DEFERRED (with reason): product-master allowlist (needs a products seed -- "only if cheap") · deps-hygiene vite->esbuild `npm ls` warning (cosmetic, upstream fix).
+> 4. Reconcile `tasks/todo.md` -- DONE (a CURRENT STATUS block now supersedes the stale per-phase markers).
+> 5. **STILL OPEN -- owner / local only:** the Codex closure re-run (after the cap reset) + a batched Codex over this session's optional-fix + redesign work (weigh primary-model-final); the manual screen-reader a11y pass; optionally a nonce-based CSP (the documented `unsafe-inline` residual). The cloud resume routine (`trig_01C6miYEDB4xrJFMzZx7DmeB`) is currently DISABLED (paused while working live) -- re-enable it only if more autonomous work is wanted.
 >
 > ### SKIPPED with reason (don't build): recorded demo VIDEO (can't produce video) · tier-2 features (scheduled scans, ERP, SSO, multi-tenancy, source-authority refusal) · CODEOWNERS/PR-template (solo repo) · observability/pino (prod-scope).
 >
