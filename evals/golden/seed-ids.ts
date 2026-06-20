@@ -7,6 +7,7 @@
 // pin the joint cells" discipline applied to the eval fixtures).
 
 import { ingestSeed } from "@/lib/ingest/seed-suppliers";
+import { PRODUCT_MASTER } from "@/lib/data/product-master";
 import type { Supplier } from "@/lib/schemas";
 
 const seed = ingestSeed();
@@ -15,6 +16,14 @@ export const ALL_SUPPLIERS: readonly Supplier[] = seed.suppliers;
 
 export const KNOWN_SUPPLIER_IDS: ReadonlySet<string> = new Set(
   seed.suppliers.map((s) => s.id)
+);
+
+// The product allowlist, derived from the single product master (lib/data/product-master.ts)
+// the SAME way KNOWN_SUPPLIER_IDS is derived from the supplier seed -- so the existence grader
+// checks a real catalog, not the run's own declared inventory, and cannot drift from the
+// master. evals/product-master.test.ts asserts every scenario productId is in here.
+export const KNOWN_PRODUCT_IDS: ReadonlySet<string> = new Set(
+  PRODUCT_MASTER.map((p) => p.id)
 );
 
 // The Hormuz exposure set: Gulf-origin suppliers. In this seed every Gulf supplier

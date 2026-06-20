@@ -22,7 +22,7 @@ import {
   type ScenarioGroundTruth,
   type SimInputs
 } from "@/lib/evals/graders";
-import { KNOWN_SUPPLIER_IDS } from "@/evals/golden/seed-ids";
+import { KNOWN_PRODUCT_IDS, KNOWN_SUPPLIER_IDS } from "@/evals/golden/seed-ids";
 
 // Per-fixture traceability (Success_Criteria "fixture traceability" row): where the
 // scenario's facts came from, when, and which values are illustrative and must not
@@ -178,15 +178,15 @@ export function buildGolden(spec: GoldenSpec): GoldenScenario {
     ...spec.threat.evidenceUrls,
     ...(spec.signals ?? []).map((s) => s.sourceUrl)
   ]);
-  // Pre-key the known products ARE the run's inventory (products are not seeded yet
-  // -- Phase 4/5). A runout for a product the run never declared is fabricated.
-  const knownProductIds = new Set<string>(
-    (spec.simInputs?.inventory ?? []).map((i) => i.productId)
-  );
-
+  // The known products are the product master (KNOWN_PRODUCT_IDS), derived from the
+  // same single catalog the live pipeline authorizes against -- not the run's own
+  // inventory. A runout for a product absent from the catalog is fabricated. (The
+  // run-scoped check -- a runout only for a DECLARED simulation input -- is enforced
+  // separately by gradeSimulatorArithmetic, so this strengthens existence-checking
+  // without losing the per-run constraint.)
   const groundTruth: ScenarioGroundTruth = {
     knownSupplierIds: KNOWN_SUPPLIER_IDS as Set<string>,
-    knownProductIds,
+    knownProductIds: KNOWN_PRODUCT_IDS as Set<string>,
     expectedAffectedSupplierIds: spec.expectedAffectedSupplierIds as Set<string>,
     evidenceAllowlist,
     untrustedRawStrings: spec.untrustedRawStrings ?? [],

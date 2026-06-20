@@ -71,11 +71,11 @@ export type GraderResult = {
 export type ScenarioGroundTruth = {
   // Every canonical supplier id that exists for this run.
   knownSupplierIds: Set<string>;
-  // Every product id known to this run. Products are not seeded yet (P2.6 was
-  // Tier-1 suppliers-only by decision; the products master lands in Phase 4/5), so
-  // pre-key the known set IS the run's simulation inventory -- a productRunout for a
-  // product the run never declared is fabricated. When the products master is
-  // seeded, this becomes its id set, exactly as knownSupplierIds is for suppliers.
+  // The product catalog this run is authorized against -- the id set of the product
+  // master (lib/data/product-master.ts, surfaced as KNOWN_PRODUCT_IDS), exactly as
+  // knownSupplierIds is the seeded supplier set. A productRunout whose id is NOT in
+  // the catalog is fabricated. The complementary run-scoped check (a runout only for
+  // a DECLARED simulation input) is enforced by gradeSimulatorArithmetic.
   knownProductIds: Set<string>;
   // The EXACT set Atlas should match (Hormuz -> the 9 Gulf ENERGY/CHEMICALS ids).
   // Empty for the zero-exposure control.

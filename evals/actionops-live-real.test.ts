@@ -8,7 +8,7 @@ import { judgeNoUnsupportedClaims, resolvedJudgeModel } from "@/lib/evals/judge"
 import { ACTION_CONFIDENCE_FLOOR } from "@/lib/agents/actionops/recommendation";
 import { estimateLiveCallCostUsd } from "@/lib/agents/run";
 import { DEFAULT_BUDGET_CAP_USD } from "@/lib/agents/budget";
-import { KNOWN_SUPPLIER_IDS } from "@/evals/golden/seed-ids";
+import { KNOWN_PRODUCT_IDS, KNOWN_SUPPLIER_IDS } from "@/evals/golden/seed-ids";
 import type { DecisionPacketV2 } from "@/lib/schemas";
 
 // D.9 LIVE eval -- GATED (RUN_LIVE_AI_TESTS=true) because it BILLS. Runs EVERY production
@@ -59,7 +59,7 @@ function groundTruthFor(scenarioId: string, live: DecisionPacketV2, det: Decisio
 
   return {
     knownSupplierIds: KNOWN_SUPPLIER_IDS as Set<string>,
-    knownProductIds: new Set<string>((params?.inventory ?? []).map((i) => i.productId)),
+    knownProductIds: KNOWN_PRODUCT_IDS as Set<string>,
     // The deterministic Atlas match IS the expected set (live Atlas is identical).
     expectedAffectedSupplierIds: new Set<string>(det.exposureResults.map((e) => e.supplierId)),
     evidenceAllowlist: new Set<string>([

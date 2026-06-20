@@ -3,6 +3,7 @@ import { buildDecisionPacket } from "@/lib/pipeline/build-packet";
 import { getActionOpsScenario } from "@/lib/data/actionops-scenarios";
 import { ingestSeed } from "@/lib/ingest/seed-suppliers";
 import { runGraders } from "@/lib/evals/run-graders";
+import { KNOWN_PRODUCT_IDS } from "@/evals/golden/seed-ids";
 import type { ScenarioGroundTruth } from "@/lib/evals/graders";
 import { DecisionPacketV2Schema } from "@/lib/schemas";
 
@@ -48,13 +49,9 @@ describe("D.1 -- ActionOps pipeline emits a valid V2 packet (key-OFF, determinis
       ...packet.threatCard.evidenceUrls,
       ...packet.publicSignals.map((s) => s.sourceUrl)
     ]);
-    const knownProductIds = new Set(
-      (scenario.simulation?.inventory ?? []).map((i) => i.productId)
-    );
-
     const gt: ScenarioGroundTruth = {
       knownSupplierIds,
-      knownProductIds,
+      knownProductIds: KNOWN_PRODUCT_IDS as Set<string>,
       expectedAffectedSupplierIds,
       evidenceAllowlist,
       untrustedRawStrings: [],
@@ -97,7 +94,9 @@ describe("D.1 -- ActionOps pipeline emits a valid V2 packet (key-OFF, determinis
     // packet does not contain -> gradeExposureControl must fail -> the gate blocks.
     const gtMismatch: ScenarioGroundTruth = {
       knownSupplierIds,
-      knownProductIds: new Set<string>(),
+      // Valid product allowlist: the ONLY disagreement with the run is the phantom
+      // affected supplier below, so the block is unambiguously the exposure control.
+      knownProductIds: KNOWN_PRODUCT_IDS as Set<string>,
       expectedAffectedSupplierIds: new Set([...knownSupplierIds, "SUP-PHANTOM-NOT-IN-RUN"]),
       evidenceAllowlist,
       untrustedRawStrings: [],
