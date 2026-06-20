@@ -238,8 +238,13 @@ export type LiveValidateResult<T> =
 // each attempt so the budget hard-stop still fires across retries. A THROW (a budget breach or
 // a failed call) is NOT retried -- it propagates to the caller's catch, which classifies
 // BUDGET_EXCEEDED vs LIVE_CALL_THREW exactly as before. Returns the LAST attempt's usage; an
-// earlier billed-but-rejected attempt's cost is NOT folded into the final AgentRun.costUsd -- a
-// documented, negligible ledger undercount (<=2 extra calls run-wide, ~$0.01 against the $5 cap).
+// earlier billed-but-rejected attempt's cost is NOT folded into the final AgentRun.costUsd, so
+// the packet's totalCostUsd (and the orchestrator's running spend) is a LOWER BOUND on gross
+// billed spend, short by at most the rejected retries (<=2 calls run-wide, ~$0.01). This does
+// NOT weaken the cap: the fail-closed guarantee rests on the call-count ceiling (<=5) and
+// MAX_LIVE_OUTPUT_TOKENS, not on the dollar sum -- the $5 cap is unreachable as configured, so
+// the undercount cannot push spend past a ceiling nothing approaches. Revisit (sum usage across
+// attempts for an exact total) only if that token ceiling or the call count grows materially.
 export async function liveGenerateValidated<T>(args: {
   model: string;
   schema: z.ZodTypeAny;

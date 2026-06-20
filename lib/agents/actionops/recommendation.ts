@@ -20,11 +20,12 @@ export const ACTION_CONFIDENCE_FLOOR = 0.45;
 //                               while a single UNVERIFIED one refuses -- the competitive
 //                               differentiator is "unverified", not raw source count.
 //   3. a real-sector exposure exists -- at least one matched supplier in a named sector.
-//                               Excludes the zero-exposure control (nothing to act on ->
-//                               "no direct exposure" is its own honest answer) and the
-//                               off-taxonomy control (all OTHER_UNMAPPED -> "pending
-//                               taxonomy review" is its own disposition). Refusal is about
-//                               an ACTIONABLE threat we cannot corroborate, not those.
+//                               Excludes the zero-exposure control (no matched supplier ->
+//                               nothing to act on) and the off-taxonomy control (every matched
+//                               exposure is OTHER_UNMAPPED, held for taxonomy review upstream in
+//                               Atlas, not yet a recognized actionable threat). Both return ACT
+//                               from THIS gate -- the refusal is specifically about a recognized,
+//                               actionable exposure we cannot corroborate, not those two cases.
 //
 // On NO_ACTION it returns the missing-evidence list (numeral-free): what is required,
 // what is absent, and what would flip the decision. On ACT, missingEvidence is empty.

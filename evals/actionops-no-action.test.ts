@@ -77,6 +77,17 @@ describe("decideRecommendation -- the act/refuse rule", () => {
     expect(recommendation).toBe("ACT");
   });
 
+  it("ACTS at EXACTLY the confidence floor (the rule is a strict <, not <=)", () => {
+    // Pins the boundary: a confidence sitting exactly on the floor is NOT "below" it, so a
+    // lone source at the floor still acts. A flip of `<` to `<=` would be caught here.
+    const { recommendation } = decideRecommendation({
+      corroborated: false,
+      confidence: ACTION_CONFIDENCE_FLOOR,
+      exposureResults: [realExposure()]
+    });
+    expect(recommendation).toBe("ACT");
+  });
+
   it("does NOT refuse when there is no actionable exposure (zero-exposure disposition)", () => {
     const { recommendation } = decideRecommendation({
       corroborated: false,
@@ -135,6 +146,12 @@ describe("NO_ACTION pipeline (deterministic, SCN-THIN-EVIDENCE)", () => {
     expect(withheld.every((r) => (r.costUsd ?? 0) === 0)).toBe(true);
     // A withhold is a deliberate decision, NOT a validation failure.
     expect(withheld.every((r) => r.validationStatus === "PASS")).toBe(true);
+    // The load-bearing invariant: a withheld run is DETERMINISTIC_RULES, never
+    // FAILED_TO_FALLBACK -- so a LIVE NO_ACTION run (Sentinel LIVE_AI + these
+    // deterministic) still computes effectiveMode LIVE_AI, never a degraded label. If a
+    // withhold ever flipped to FAILED_TO_FALLBACK, computeEffectiveMode would mislabel the
+    // whole run degraded; this assertion guards that in key-OFF CI.
+    expect(withheld.every((r) => r.mode === "DETERMINISTIC_RULES")).toBe(true);
 
     // A refusal is still a healthy, approvable-shape packet (not BLOCKED, not degraded).
     expect(packet.gatekeeper.status).not.toBe("BLOCKED");
