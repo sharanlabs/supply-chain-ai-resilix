@@ -83,8 +83,13 @@ describe("rate-limit: client identifier derivation", () => {
     return new Request("http://localhost/api/x", { method: "POST", headers });
   }
 
-  it("prefers the bearer token", () => {
-    expect(clientIdFromRequest(req({ authorization: "Bearer abc123" }))).toBe("tok:abc123");
+  it("prefers the bearer token, FINGERPRINTED (never the raw secret as a key)", () => {
+    const id = clientIdFromRequest(req({ authorization: "Bearer abc123" }));
+    expect(id).toMatch(/^tok:[0-9a-f]{16}$/); // a SHA-256 prefix, not the raw token
+    expect(id).not.toContain("abc123"); // the secret never appears in the key
+    // Stable (same token -> same key, so per-token limiting still works) + distinct per token.
+    expect(clientIdFromRequest(req({ authorization: "Bearer abc123" }))).toBe(id);
+    expect(clientIdFromRequest(req({ authorization: "Bearer xyz789" }))).not.toBe(id);
   });
   it("falls back to the first x-forwarded-for hop", () => {
     expect(clientIdFromRequest(req({ "x-forwarded-for": "9.9.9.9, 10.0.0.1" }))).toBe(

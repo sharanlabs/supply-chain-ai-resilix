@@ -19,6 +19,10 @@
 // sleeping; production calls fall through to Date.now().
 // ---------------------------------------------------------------------------
 
+// node:crypto is a Node built-in (no npm dependency added) -- used only to fingerprint a
+// bearer token before it becomes a map key, never to store the raw secret.
+import { createHash } from "node:crypto";
+
 export type RateLimitDecision = {
   allowed: boolean;
   // Seconds the caller should wait before retrying (only meaningful when denied).
@@ -96,13 +100,15 @@ export function checkRateLimit(
 //   2. the first x-forwarded-for hop, else x-real-ip (the in-memory demo posture)
 //   3. a constant demo bucket (no proxy headers, no token) -- shared, by design,
 //      since the authless local demo has no per-caller signal to key on.
-// The bearer token is hashed-by-prefix only via length here (we do not log it);
-// it is used verbatim as a map key, which never leaves the process.
+// The bearer token is FINGERPRINTED (SHA-256 prefix) before it becomes a map key -- never
+// stored raw -- so the in-memory key set can't be turned back into the secret (e.g. by a heap
+// dump), while staying a stable, distinct per-token identity (Codex design grill, 2026-06-20).
 export function clientIdFromRequest(request: Request): string {
   const auth = request.headers.get("authorization")?.trim() ?? "";
   const bearer = /^Bearer\s+(.+)$/i.exec(auth);
   if (bearer) {
-    return `tok:${bearer[1].trim()}`;
+    const fingerprint = createHash("sha256").update(bearer[1].trim()).digest("hex").slice(0, 16);
+    return `tok:${fingerprint}`;
   }
 
   const forwarded = request.headers.get("x-forwarded-for")?.trim();
