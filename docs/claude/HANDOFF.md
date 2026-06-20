@@ -1,5 +1,29 @@
 # HANDOFF — resume pointer (updated 2026-06-13)
 
+> ============================================================================
+> ## CURRENT RESUME (2026-06-19 late EDT) -- READ THIS FIRST; supersedes every block below
+> ============================================================================
+>
+> **D.9 + the 4 post-D.9 follow-ups + security hardening + the premium UI redesign are ALL DONE, GATED, and PUSHED to `origin/main`.** `npm run verify:full` GREEN at HEAD (482 passed / 20 skipped + build + secrets + 12 e2e). Turnkey detail: `docs/claude/D9-NEXT-SESSION-HANDOFF.md` + `docs/claude/gates/agent-core/FOLLOWUPS-2026-06-19.md`.
+>
+> ### DONE + pushed (latest first)
+> - **Premium 2026 UI redesign** (`04524ca`) -- steel/cobalt accent (NO green/pink), serif dropped for a clean Geist sans system, cool-hue elevation/depth; every gated a11y/e2e hook preserved.
+> - **Security hardening** -- n8n callback-secret min-length + CSP/HSTS + standard headers (prod-scoped CSP). Two P2.7 residuals closed.
+> - **The 4 post-D.9 follow-ups** -- NO_ACTION refusal · home->frozen REPLAY · bounded +2 retry · Codex closure-2 re-confirm. SHIP primary-model-final.
+> - **D.9 live-AI showcase** (`d8d6348`).
+>
+> ### REMAINING ROADMAP (the owner's "complete all optional fixes + reconcile + whole-project review" program -- each a gated increment: maker -> `npm run verify` -> commit -> push)
+> 1. Content + anti-AI/de-slop pass (UI copy + README + docs).
+> 2. Whole-project blindspot + claude-os doctrine-completeness review (guidelines-monitor + the gate panel + a doctrine pass) -> apply real fixes.
+> 3. Remaining optional fixes: rate-limiting on the 3 mutation routes · real-HTTP upload e2e · deps-hygiene (vite->esbuild ELSPROBLEMS) · playbook-step prose numeral grading · Prettier config + `format` script (NOT the mass reformat) · pre-commit hooks · product-master allowlist (if cheap).
+> 4. Reconcile `tasks/todo.md` (the phase checklist is STALE -- marks Phase 3 IN PROGRESS + D/P7/P8/P9 as future when they shipped; the gate docs are accurate).
+> 5. Codex (LOCAL / owner -- needs the cap reset ~1:39 AM Jun 20 + local auth): the closure re-run + a batched pass over the new optional-fix work. Weigh primary-model-final.
+>
+> ### SKIPPED with reason (don't build): recorded demo VIDEO (can't produce video) · tier-2 features (scheduled scans, ERP, SSO, multi-tenancy, source-authority refusal) · CODEOWNERS/PR-template (solo repo) · observability/pino (prod-scope).
+>
+> ### State: `origin/main` CURRENT (pushed). `.env` (GEMINI_API_KEY) is LOCAL-ONLY (gitignored) -- a cloud resume can do all DETERMINISTIC work but NOT live AI or local codex. Quality is the only bar (portfolio artifact).
+> ============================================================================
+
 ## Relay status (two-account back-and-forth — read/update this FIRST)
 
 > ============================================================================
