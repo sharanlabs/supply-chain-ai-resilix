@@ -7,12 +7,13 @@ import { AxeBuilder } from "@axe-core/playwright";
 // is layer 3 (a human step -- see docs/claude/A11Y-MANUAL-SR-PASS.md).
 //
 // Scope: the live `/` route. Its DEFAULT tab is "packet" -> the V2 ActionOps
-// view (components/action-packet-view.tsx). Since the D.1 cutover the dashboard
-// renders the REAL pipeline packet (buildDecisionPacket, server-rendered), not a
-// hardcoded demo -- so this scans the genuine pipeline output in a real browser
-// (it is NOT jsdom-only). The other three tabs (Recorded Events / Exposure /
-// Simulation) are scanned too. The former V1 LaunchOps "Run live pipeline" panel
-// was retired in that cutover, so there is no V1 surface left to exclude.
+// view (components/action-packet-view.tsx). The landing surface renders a FROZEN
+// live-captured packet served as a recorded REPLAY (loadReplayPacket) -- genuine
+// captured pipeline output (a real live Gemini run), not a hardcoded demo -- so this
+// scans real, rich output in a real browser (it is NOT jsdom-only). The other three
+// tabs (Recorded Events / Exposure / Simulation) are scanned too. The former V1
+// LaunchOps "Run live pipeline" panel was retired in the D.1 cutover, so there is no
+// V1 surface left to exclude.
 //
 // Every scan/measurement first awaits settle() -- all running animations have
 // finished -- so axe and the geometric reads see the FINAL frame, never a
@@ -177,19 +178,44 @@ async function assertAxeClean(
 }
 
 // ===========================================================================
-// Provenance guard -- the scans below claim to cover the REAL pipeline packet.
-// app/page.tsx catches a buildDecisionPacket failure and renders makeDemoPacket()
-// (id DP-DEMO-HORMUZ). Assert the surface under test is genuine pipeline output
+// Provenance guard -- the scans below claim to cover the REAL captured packet.
+// app/page.tsx catches a loadReplayPacket failure and renders makeDemoPacket()
+// (id DP-DEMO-HORMUZ). Assert the surface under test is the genuine captured packet
 // (id DP-<uuid>) so a silently fallen-back demo can never pass the suite while the
-// suite claims to scan pipeline output.
+// suite claims to scan real output.
 // ===========================================================================
-test("the `/` surface renders the real pipeline packet, not the demo fallback", async ({
+test("the `/` surface renders the real captured packet, not the demo fallback", async ({
   page
 }) => {
   await page.goto("/");
   const packetView = page.getByTestId("actionops-packet");
   await expect(packetView).toBeVisible();
   await expect(packetView).not.toContainText("DP-DEMO-HORMUZ");
+});
+
+// ===========================================================================
+// Replay-mode honesty (Success_Criteria "Replay mode rendering"): the landing
+// surface serves a FROZEN live-captured packet relabeled REPLAY -- it must show
+// the REPLAY mode + a dated capture, and must NEVER claim live.
+// ===========================================================================
+test("the `/` surface renders REPLAY with a dated capture, never labeled live", async ({
+  page
+}) => {
+  await page.goto("/");
+
+  // The masthead provenance pill (unique by title) states recorded-not-live and carries
+  // the dated capture (YYYY-MM-DD) -- a viewer is never shown replay as a live fetch.
+  const provenance = page.locator('[title*="recorded fixtures"]');
+  await expect(provenance).toBeVisible();
+  await expect(provenance).toContainText(/\d{4}-\d{2}-\d{2}/);
+
+  // The packet's mode label reads REPLAY (the relabeled effectiveMode), and the rich
+  // live-quality content is present (this is the point of serving the captured packet).
+  const packetView = page.getByTestId("actionops-packet");
+  await expect(packetView).toContainText("REPLAY");
+
+  // Never labeled live: no LIVE_AI mode token anywhere on the rendered surface.
+  await expect(page.locator("body")).not.toContainText("LIVE_AI");
 });
 
 // ===========================================================================
