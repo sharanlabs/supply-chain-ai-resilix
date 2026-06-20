@@ -27,10 +27,11 @@ describe("product master (the existence-grader allowlist)", () => {
     expect([...KNOWN_PRODUCT_IDS].sort()).toEqual(PRODUCT_MASTER.map((p) => p.id).sort());
   });
 
-  it("covers every productId every demo scenario can emit (live + golden + demo packet)", () => {
-    // Gather the union of product references across ALL three sources the pipeline
-    // and evals draw from, not just one -- a missing source is how a catalog silently
-    // drifts behind the scenarios it authorizes.
+  it("covers every productId every demo scenario can emit (live + golden + demo + replay)", () => {
+    // Gather the union of product references across ALL FOUR sources the pipeline and
+    // evals draw from (live scenarios, golden packets, the demo packet, the frozen replay),
+    // not just one -- a missing source is how a catalog silently drifts behind the
+    // scenarios it authorizes.
     const referenced = new Set<string>();
     for (const scenario of ACTIONOPS_SCENARIOS) {
       for (const item of scenario.simulation?.inventory ?? []) {
