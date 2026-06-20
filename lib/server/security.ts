@@ -9,6 +9,11 @@ export const APPROVAL_TOKEN_HEADER = "authorization";
 // (a weak server secret) -- denied (503), not accepted.
 const MIN_APPROVAL_TOKEN_LENGTH = 16;
 
+// Same weak-secret floor for the n8n callback secret: in secure mode a configured-but-
+// too-short secret is a misconfiguration, denied (fail-closed), mirroring the approval
+// token. Kept equal to the approval-token floor so "a strong server secret" is one bar.
+const MIN_N8N_CALLBACK_SECRET_LENGTH = 16;
+
 // ---------------------------------------------------------------------------
 // P2.7 (R4-4) -- fail-closed authentication on the mutation surface.
 //
@@ -96,6 +101,12 @@ export function verifyN8nCallbackSecret(request: Request) {
       return { ok: false, mode: "SECRET_REQUIRED_UNCONFIGURED" as const };
     }
     return { ok: true, mode: "DEMO_UNCONFIGURED" as const };
+  }
+  // A configured-but-too-short secret is a weak-config misconfiguration: in secure mode
+  // deny (fail-closed), the same bar as APPROVAL_TOKEN. (The authless demo still verifies
+  // a set secret as-is -- the floor only bites once the surface actually requires auth.)
+  if (secureModeRequired() && expected.length < MIN_N8N_CALLBACK_SECRET_LENGTH) {
+    return { ok: false, mode: "SECRET_REQUIRED_UNCONFIGURED" as const };
   }
 
   const provided = request.headers.get(N8N_CALLBACK_SECRET_HEADER)?.trim() ?? "";

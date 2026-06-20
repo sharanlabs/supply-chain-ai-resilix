@@ -173,6 +173,22 @@ describe("P2.7 verifyN8nCallbackSecret() -- mandatory in secure mode", () => {
     expect(r.ok).toBe(false);
     expect(r.mode).toBe("SECRET_REQUIRED_UNCONFIGURED");
   });
+  it("secure mode + secret set but TOO SHORT -> DENIED (weak-config, fail-closed)", () => {
+    process.env.DATABASE_URL = "postgres://x";
+    process.env.N8N_CALLBACK_SECRET = "short-secret"; // < 16 chars
+    const r = verifyN8nCallbackSecret(reqWith({ [N8N_CALLBACK_SECRET_HEADER]: "short-secret" }));
+    expect(r.ok).toBe(false);
+    expect(r.mode).toBe("SECRET_REQUIRED_UNCONFIGURED");
+  });
+  it("secure mode + secret set and STRONG -> verified against the header", () => {
+    process.env.DATABASE_URL = "postgres://x";
+    process.env.N8N_CALLBACK_SECRET = "a-strong-callback-secret-value"; // >= 16 chars
+    expect(
+      verifyN8nCallbackSecret(
+        reqWith({ [N8N_CALLBACK_SECRET_HEADER]: "a-strong-callback-secret-value" })
+      ).ok
+    ).toBe(true);
+  });
   it("secret set + correct header -> ok", () => {
     process.env.N8N_CALLBACK_SECRET = "cb-secret";
     expect(
