@@ -1,7 +1,7 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
-import { buildRecoveryOptions } from "@/lib/engine/impact";
+import { buildRecoveryOptions } from "@/lib/legacy/impact";
 import { validateDecisionInputs } from "@/lib/agents/gatekeeper";
 import { liveAiEnabled } from "@/lib/server/env-flags";
 import type {
@@ -363,6 +363,12 @@ const PlannerDecisionSchema = z.object({
 type AgentAnalysis = z.infer<typeof AgentAnalysisSchema>;
 type PlannerDecision = z.infer<typeof PlannerDecisionSchema>;
 
+// LEGACY -- RESILIX v1 / LaunchOps agent pipeline (emits a V1 DecisionPacket). NOT the live
+// engine. The product path is runActionOpsAgents (lib/agents/actionops/ -- the 6-agent V2 spine);
+// this is retained ONLY to build the V1 back-compat oracle fixture
+// (evals/fixtures/decision-packet-v1.ts -> makeV1Packet) that proves the V2 store/normalizer
+// still round-trips a legacy packet. It makes NO live AI calls and is off the billing path.
+// (Its only V1-data dependency, lib/legacy/impact.ts, was relocated out of lib/engine/ 2026-06-22.)
 export async function runLaunchOpsAgents(context: AgentContext): Promise<{
   options: RecoveryOption[];
   recommendedOptionId: string;

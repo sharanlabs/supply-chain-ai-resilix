@@ -5,7 +5,7 @@ import {
   runLaunchOpsAgents
 } from "@/lib/agents/run";
 import { validateDecisionInputs, validateDecisionPacket } from "@/lib/agents/gatekeeper";
-import { buildExceptionEvent, calculateImpact } from "@/lib/engine/impact";
+import { buildExceptionEvent, calculateImpact } from "@/lib/legacy/impact";
 import { getScenario } from "@/lib/data/operations";
 import { fetchPublicSignals } from "@/lib/signals/fetchers";
 import type { DecisionPacketV1 } from "@/lib/schemas";

@@ -1,109 +1,89 @@
-> **Stale — predecessor content; scheduled for rewrite in Phase 7 (Strategist + Dispatcher).** This still describes the LaunchOps / RESILIX-v1 system. The ActionOps target is defined in PLAN.md (repo root). Do not treat as current until rewritten.
+# RESILIX ActionOps — Architecture
 
-# RESILIX Architecture
+**Last updated:** 2026-06-22 (rewritten from the superseded RESILIX-v1 / LaunchOps doc; the v1 n8n / Google-Sheets / 3-agent design no longer exists). Authoritative scope: [PLAN.md](../PLAN.md); success criteria: [Success_Criteria.md](Success_Criteria.md).
 
-**Version:** 1.0
-**Last Updated:** 2026-03-29
+## System overview
 
----
+RESILIX ActionOps is an **in-app Next.js pipeline** (App Router + TypeScript), not an external orchestrator. One disruption signal plus a supplier dataset becomes one **DecisionPacketV2** — an evidence-cited, human-approval-gated action packet. The pipeline is a **sequential six-agent chain with a deterministic gatekeeper and a human approval gate**, entered at `/api/run-exception → buildDecisionPacket → runActionOpsAgents` (`lib/agents/actionops/index.ts`) and rendered by the `/` server component.
 
-## System Overview
-
-RESILIX is a sequential three-agent pipeline orchestrated by n8n Cloud. Each agent receives structured input, processes it through Gemini 3.1 Pro, and produces structured output validated before handoff to the next stage. No agent operates independently or in parallel.
+The defining property is a **hard split: deterministic TypeScript calculates and validates; LLMs only classify and draft.** The deterministic spine is the default and ships standalone — with the live-AI flag off (`ENABLE_LIVE_AI`), every agent routes to a deterministic body and the packet is produced with zero model calls. Live AI is the gated upgrade.
 
 ```
-                          RESILIX Pipeline Architecture
-
-  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-  │  GDELT API  │────>│  SENTINEL   │────>│    ATLAS    │────>│ STRATEGIST  │
-  │  (News)     │     │  (Classify) │     │  (Assess)   │     │  (Respond)  │
-  └─────────────┘     └──────┬──────┘     └──────┬──────┘     └──────┬──────┘
-                             │                   │                   │
-                        Threat Alert        Risk Exposure       Crisis Playbook
-                           Card                Report
-                             │                   │                   │
-                      ┌──────┴──────┐     ┌──────┴──────┐     ┌──────┴──────┐
-                      │  Validate   │     │  Validate   │     │  Validate   │
-                      │  + Approve  │     │  + Approve  │     │  + Approve  │
-                      └─────────────┘     └─────────────┘     └─────────────┘
+  signal (GDELT DOC 2.0 / NWS live, or a dated REPLAY fixture)
+        │
+        ▼
+  ┌── Sentinel ────┐  LLM #1 — classify raw text into a closed vocab (+ OTHER_UNMAPPED).
+  │                │  The ONLY agent that sees raw article text. Names → validated IDs;
+  │                │  evidence URLs ∈ fetched set.                      → threatCard
+  ├── Verifier ────┤  deterministic — source count / recency / corroboration; templated
+  │                │  rationale, no LLM.
+  ├── Atlas ───────┤  deterministic TS — exposure matching on validated IDs only; score =
+  │                │  RISK_TIER_BASE[tier] + leadComponent(days). Sentinel-handoff firewall
+  │                │  (misclassified / claimed-but-unmapped → fail closed). → exposureResults
+  ├── Simulator ───┤  deterministic TS — runway + revenue-at-risk arithmetic; Tier-1-only
+  │                │  input → no simulation + a dataGaps note.          → simulation?
+  ├── Strategist ──┤  LLM #2 — role playbooks grounded ONLY in Atlas/Simulator numbers;
+  │                │  playbook steps are numeral-free.                  → playbooks
+  ├── Dispatcher ──┤  LLM #3 — drafts top-5 supplier emails from a STRUCTURED whitelist only,
+  │                │  never raw text; every numeral carries a claims[] entry. → supplierMessages
+  └── Gatekeeper ──┘  deterministic — every numeral ↔ a claims[].sourcePath (both directions),
+                      every URL ∈ fetched evidence, every entity a known ID. Fails closed on
+                      any agent FAIL.
+        │
+        ▼
+  Human approval — drafts stay drafts until a person approves (atomic, audited).
 ```
 
-## Pipeline Flow (15 Nodes)
+Source of truth for the chain: `lib/agents/actionops/` (`sentinel.ts`, `atlas.ts`, `simulation-math.ts`, `strategist.ts`, `dispatcher.ts`, `gatekeeper.ts`, `index.ts`) and `lib/pipeline/` (`build-packet.ts`, `run-exception.ts`, `citation-check.ts`, `recommendation.ts`, `replay-packet.ts`).
 
-### Phase 1: Data Ingestion
-1. **Manual Trigger** starts the pipeline (Schedule Trigger in production)
-2. **HTTP Request (GDELT)** queries the GDELT DOC 2.0 API for news articles matching a crisis query
-3. **IF Node** checks whether articles were returned. Empty results log to Error_Log and stop.
+## Agents — deterministic vs LLM
 
-### Phase 2: Threat Detection (Sentinel)
-4. **HTTP Request (Gemini API)** sends articles to Gemini 3.1 Pro with the Sentinel system prompt. Thinking level: LOW. Structured output enforced via response_json_schema.
-5. **Code Node (Validate Sentinel)** parses JSON, checks required fields, validates event_type enum and severity range
-6. **IF Node (Severity Gate)** checks severity >= 3. Low-severity events are logged but do not trigger full analysis.
+| Agent | Kind | Produces | Notes |
+|-------|------|----------|-------|
+| Sentinel | **LLM** | `threatCard` | Closed-vocab classification with an `OTHER_UNMAPPED` escape hatch (`resolveEventType`); the only agent given raw signal text; output passes `applyThreatFirewall`. |
+| Verifier | deterministic | corroboration / recency | Templated rationale from its own checks; a distinct `AgentRun`. |
+| Atlas | deterministic TS | `exposureResults` | Integer scoring; chokepoint scope-firewall fails closed on out-of-scope or misclassified matches. |
+| Simulator | deterministic TS | `simulation?` | Exact arithmetic (`recomputeSimulation`); present only when inventory/Tier-2 data exists. |
+| Strategist | **LLM** | `playbooks` | Numeral-free steps; every figure comes from Atlas/Simulator. |
+| Dispatcher | **LLM** | `supplierMessages` + `claims[]` + `actionItems` | Structured-whitelist prompt; `applyDispatcherFirewall` rejects any link of any form. |
+| Gatekeeper | deterministic | pass/fail | Bidirectional citation contract via the shared `collectCitationFailures`. |
 
-### Phase 3: Impact Assessment (Atlas)
-7. **Google Sheets (Read)** pulls Suppliers, Products, and Routes data
-8. **Code Node (Pre-Filter)** applies dual filtering mode based on event_type. Route-first for maritime crises, country-first for production crises, merged for geopolitical. Pre-calculates all financial aggregates.
-9. **HTTP Request (Gemini API)** sends filtered data to Gemini 3.1 Pro with the Atlas system prompt. Thinking level: MEDIUM.
-10. **Code Node (Validate Atlas)** cross-checks every supplier_id against the filtered database. Verifies revenue figures match pre-calculated values.
+**AI-value asymmetry (stated honestly).** The three LLM calls are not equal in value. **Sentinel is the genuine AI capability** — free-text → closed vocabulary under an injection firewall, a job rules do poorly. **Strategist and Dispatcher are LLM prose over deterministic templates that already ship** (`deterministicPlaybooks` / `deterministicDrafts`): they buy tone and variation, not capability. In the default (key-off) demo the AI is **latent** — Sentinel reads a replay fixture and the deterministic bodies produce the packet; the live AI is realized only on the gated, authenticated path.
 
-### Phase 4: Response Generation (Strategist)
-11. **Code Node (Template Match)** maps crisis_type to the correct playbook template (1:1 mapping, 7 types to 7 templates)
-12. **HTTP Request (Gemini API)** sends Atlas report + matched template to Gemini 3.1 Pro with the Strategist system prompt. Thinking level: HIGH.
-13. **Code Node (Validate Strategist)** checks all three action tiers present, confidence tags on every action, limitations section exists, financial figures match Atlas input.
+## The trust spine (why this shape, not ceremony)
 
-### Phase 5: Logging
-14. **Google Sheets (Execution_Log)** records pipeline results: timing, token usage, cost, status per agent
-15. **Google Sheets (Error_Log)** captures any validation failures with error codes and context
+Each invariant answers a documented 2026 failure mode, and each is enforced in code:
 
-## Data Flow Between Agents
+- **Prompt-injection laundering is cut by construction.** Only Sentinel reads raw text (the single `JSON.stringify(signals…)` in `sentinel.ts`); the Dispatcher prompt whitelist (`dispatcher.ts`) excludes `threatCard.summary` / location free-text, so a surviving injection cannot reach an outbound email. (OWASP LLM01/05; Willison lethal-trifecta; Meta Rule-of-Two.)
+- **No model-invented number reaches the UI.** All math is deterministic TS. The bidirectional citation contract (`lib/pipeline/citation-check.ts`) is called by *both* the produce-time gatekeeper and the grade-time grader — one definition, no maker/judge divergence.
+- **Degradation is disclosed, never faked.** A four-value mode taxonomy (`LIVE_AI` / `DETERMINISTIC_RULES` / `REPLAY` / `FAILED_TO_FALLBACK`, via `computeEffectiveMode`) keys a visible "degraded" badge; a live call that silently fell back fails the eval.
+- **Calibrated refusal.** `decideRecommendation` (`lib/pipeline/recommendation.ts`) emits a `NO_ACTION` packet (playbooks + drafts withheld, `missingEvidence[]` listed) when a real exposure is reported by a single uncorroborated, low-confidence source.
+- **Fail-closed cost cap.** `assertWithinBudget` (`lib/agents/budget.ts`) throws `BudgetExceededError` *before* a breaching call can bill; fails closed on non-finite inputs. A shared run-level retry reserve bounds a run at ≤5 calls.
 
-Each agent communicates through a JSON schema that serves as a data contract.
+## Data contract — DecisionPacketV2
 
-| Contract | From | To | Schema File | Key Fields |
-|----------|------|-----|-------------|------------|
-| Threat Alert Card | Sentinel | n8n + Atlas | schema_threat_alert_card.json | event_type, severity, affected_countries, affected_routes, affected_sectors |
-| Risk Exposure Report | Atlas | Strategist | schema_risk_exposure_report.json | affected_suppliers[], route_disruptions[], estimated_revenue_exposure, concentration_risk_summary |
-| Crisis Playbook | Strategist | End User | schema_crisis_playbook.json | immediate_actions[], short_term_actions[], strategic_actions[], executive_briefing, limitations |
+The canonical output is a versioned discriminated union (`packetVersion`; `lib/schemas.ts`). V2 fields: `threatCard`, `exposureResults`, `simulation?`, `playbooks`, `supplierMessages` (each numeral carrying a `claims[]` entry `{value, unit, sourcePath}`), `actionItems`, `dataTier` + `dataGaps`. Supplier/product names cross agent boundaries **only as validated internal IDs**; URLs only from the fetched-evidence allowlist.
 
-## API Configuration
+## Data layer
 
-All three agents use the same Gemini API endpoint with different configurations:
+Drizzle ORM over **PostgreSQL (node-postgres)** with an in-memory fallback for a zero-setup demo (`lib/server/store.ts`). Approval is **atomic** — one transaction: `SELECT … FOR UPDATE` + conditional `UPDATE … WHERE approval_status='PENDING' RETURNING` + a unique `processed_approval_events(event_id)` insert + audit, rolling back to `EVENT_CONFLICT`. Runs are **idempotent within a single instance** (an in-process keyed mutex in `lib/pipeline/run-exception.ts` + a DB unique key); cross-instance reservation is post-MVP. CSV ingestion enforces byte/row caps, formula-injection sanitization, and canonical `SUP-<sha256>` IDs before any agent sees a name.
 
-| Parameter | Sentinel | Atlas | Strategist |
-|-----------|----------|-------|------------|
-| Model | gemini-3.1-pro-preview | gemini-3.1-pro-preview | gemini-3.1-pro-preview |
-| Thinking Level | LOW | MEDIUM | HIGH |
-| Temperature | 1.0 | 1.0 | 1.0 |
-| Max Output Tokens | 65,536 | 65,536 | 65,536 |
-| Structured Output | Yes (response_json_schema) | Yes | Yes |
-| Google Search Grounding | OFF | OFF | OFF |
-| Estimated Cost/Call | $0.03-$0.05 | $0.05-$0.10 | $0.08-$0.15 |
+## Signal layer
 
-## Data Layer
+GDELT DOC 2.0 is the **primary** live signal; NWS is live; USGS/EONET are fixture-only. Replay-first and resilient: a fetch outage surfaces a schema-valid `CACHED`/`FAILED` marker, never a faked live read (`lib/signals/`, shared `sanitize.ts` trust boundary; `fetchGdeltSignals`). The landing page serves one captured live packet relabelled `REPLAY` (`lib/pipeline/replay-packet.ts`, fail-loud on schema or non-live-capture drift).
 
-Google Sheets serves as the data layer for this prototype. Six sheets in one workbook:
+## Evaluation harness
 
-| Sheet | Rows | Purpose | Read By |
-|-------|------|---------|---------|
-| Suppliers | 500 | Supplier facilities with operational fields | n8n Code node (Atlas pre-filter) |
-| Products | 500 | Products mapped to suppliers and routes | n8n Code node (Atlas pre-filter) |
-| Shipping_Routes | 25 | Chokepoints and trade lanes | n8n Code node (Atlas pre-filter) |
-| Crisis_Log | 50 | Historical events with GDELT query URLs | Reference only |
-| Playbook_Templates | 7 | Response frameworks per crisis type | n8n Code node (Strategist template match) |
-| Execution_Log | Dynamic | Pipeline run records | n8n logging node |
+The executable contract: deterministic graders (`lib/evals/`, `evals/`) — citation faithfulness, entity/URL existence, off-taxonomy, injection quarantine — plus a **golden-task regression BLOCK** (`evals/golden-tasks.test.ts`, 7 frozen records + 22 corrupted twins inside `npm run verify`), plus **one LLM-as-judge** (`lib/evals/judge.ts`) for the single semantic check code cannot do (unsupported-claim prose). The judge is a **same-family, fail-closed, off-by-default secondary check** — never a hard gate; see [adr/0002-same-family-llm-judge.md](adr/0002-same-family-llm-judge.md).
 
-## Security Model
+## Model & cost policy
 
-- API keys stored as n8n credentials, never hardcoded in workflow JSON
-- Google Sheets accessed via OAuth (n8n Google Sheets node handles authentication)
-- No sensitive data in the repository (all credentials in n8n credential store)
-- .gitignore excludes any local credential files
+Live agents call Gemini, default `gemini-2.5-flash` (GA), pinned via a single `GEMINI_MODEL` config point with a **ListModels preflight** that fails loud if the configured model is unavailable (a retirement is a one-line bump, never a silent fallback). The cost ledger persists real tokens × a pinned price table; build spend ≤ $5 (metered ≈ $1.0–1.3).
 
-## Why Sequential, Not Orchestrator
+## Web security
 
-The pipeline uses a sequential pattern rather than an orchestrator pattern. Each agent runs one at a time, in order, with validation between stages. This was chosen because:
+Per-request **nonce-based CSP** (`proxy.ts`, `strict-dynamic`, no `script-src 'unsafe-inline'`), static headers (HSTS, nosniff, frame-deny, COOP/CORP `same-origin`) in `lib/server/security-headers.ts`, **fail-closed auth** on the mutation routes (`lib/server/security.ts`, length-oblivious constant-time compare), and a fixed-window rate limiter (`lib/server/rate-limit.ts`).
 
-1. Each agent's output is the next agent's input. There is no parallelism possible.
-2. Sequential flow is easier to debug. When something fails, you know exactly which stage failed and what its input was.
-3. Human approval gates between agents require sequential pause points.
-4. The orchestrator pattern adds complexity (state management, retry logic, parallel coordination) without benefit for a three-stage linear pipeline.
+## Legacy
+
+The RESILIX-v1 / LaunchOps engine is retained only to build the V1 back-compat oracle fixture (`evals/fixtures/decision-packet-v1.ts`): `runLaunchOpsAgents` (`lib/agents/run.ts`, off the billing path) over `lib/legacy/impact.ts` (relocated from `lib/engine/` 2026-06-22, banner-marked). It makes no live AI calls and is not part of the product path.

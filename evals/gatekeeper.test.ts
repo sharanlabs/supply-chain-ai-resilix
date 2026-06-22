@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateDecisionInputs } from "@/lib/agents/gatekeeper";
-import { buildExceptionEvent, buildRecoveryOptions, calculateImpact } from "@/lib/engine/impact";
+import { buildExceptionEvent, buildRecoveryOptions, calculateImpact } from "@/lib/legacy/impact";
 import { cachedSignals } from "@/lib/signals/cached";
 
 describe("decision gatekeeper", () => {

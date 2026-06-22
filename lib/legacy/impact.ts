@@ -1,3 +1,13 @@
+// LEGACY -- RESILIX v1 / LaunchOps. NOT the live ActionOps engine.
+//
+// Computes the v1 "impact + recovery options" report over the LaunchOps demo dataset
+// (lib/data/operations.ts -- modeled Apple-style launch/camera-module data; RUN_DATE pinned
+// 2026-05-05). DEAD on the product/billing path: the live pipeline is
+// /api/run-exception -> buildDecisionPacket -> runActionOpsAgents (the 6-agent V2 spine in
+// lib/agents/actionops/). Retained ONLY to build the V1 back-compat oracle fixture
+// (evals/fixtures/decision-packet-v1.ts -> makeV1Packet), which proves the V2 store/normalizer
+// still round-trips a legacy packet. Do not extend it; do not read it as current behavior --
+// see lib/agents/actionops/ for the real engine. (Relocated from lib/engine/ 2026-06-22.)
 import { operationsData } from "@/lib/data/operations";
 import type { ExceptionEvent, ImpactReport, PublicSignal, RecoveryOption } from "@/lib/schemas";
 import { daysBetween } from "@/lib/utils";

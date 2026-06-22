@@ -50,6 +50,8 @@ Hard rules, no exceptions:
 - **Nothing sends without human approval** — atomic, audited.
 - **Three LLM calls per run (two in reserve).** Per-call tokens, finish reason, and computed cost are persisted; **each run** is hard-stopped before it can exceed the $5 cap (a fail-closed pre-call check), and total build spend (≤ $5, metered ≈ $1.0–1.3) is tracked via the persisted cost ledger — the runtime guard is per-run, the build total is the ledger sum.
 
+**What the AI actually does — and where it's deliberately latent.** The three LLM calls are not three equal agents. **Sentinel is the AI capability**: turning free-form news text into a closed-vocabulary threat classification (with an `OTHER_UNMAPPED` escape hatch) under an injection firewall — a job rules do poorly. **Strategist and Dispatcher are LLM prose over deterministic templates that already ship**: they buy tone and variation on the playbooks and supplier emails, not capability (each has a complete `deterministic*` fallback that *is* the key-off output). So the deterministic spine is the product floor and the live AI is the gated upgrade — and in the default, key-off demo the AI is **latent**: Sentinel reads a replay fixture and the deterministic bodies produce the packet. Nothing about the numbers, the exposure logic, or the refuse/act decision depends on a model.
+
 ## Live, replay, synthetic — all disclosed
 
 - **Live signals:** GDELT DOC 2.0 (primary) and the National Weather Service API, replay-first and resilient (a fetch outage surfaces a `CACHED`/`FAILED` marker, never a faked live read).

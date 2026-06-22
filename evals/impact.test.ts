@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildExceptionEvent, calculateImpact, buildRecoveryOptions } from "@/lib/engine/impact";
+import { buildExceptionEvent, calculateImpact, buildRecoveryOptions } from "@/lib/legacy/impact";
 import { cachedSignals } from "@/lib/signals/cached";
 
 describe("deterministic impact engine", () => {
