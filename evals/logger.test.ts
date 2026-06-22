@@ -46,12 +46,20 @@ describe("server logger (observability)", () => {
         },
         DATABASE_URL: "postgres://user:LEAK_PW@host:5432/db",
         apiKey: "LEAK_API",
-        GEMINI_API_KEY: "LEAK_GEMINI"
+        GEMINI_API_KEY: "LEAK_GEMINI",
+        GROQ_API_KEY: "LEAK_GROQ"
       },
       "redaction probe"
     );
     const out = chunks.join("");
-    for (const secret of ["LEAK_BEARER", "LEAK_CALLBACK", "LEAK_PW", "LEAK_API", "LEAK_GEMINI"]) {
+    for (const secret of [
+      "LEAK_BEARER",
+      "LEAK_CALLBACK",
+      "LEAK_PW",
+      "LEAK_API",
+      "LEAK_GEMINI",
+      "LEAK_GROQ"
+    ]) {
       expect(out, `leaked ${secret}`).not.toContain(secret);
     }
     expect(out).toContain("[REDACTED]");

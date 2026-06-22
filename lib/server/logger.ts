@@ -41,6 +41,7 @@ export const REDACT_PATHS = [
   "apiKey",
   "*.apiKey",
   "GEMINI_API_KEY",
+  "GROQ_API_KEY",
   "APPROVAL_TOKEN",
   "N8N_CALLBACK_SECRET",
   "callbackSecret",

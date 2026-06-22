@@ -8,10 +8,15 @@ import { DEFAULT_BUDGET_CAP_USD } from "@/lib/agents/budget";
 //  (1) ALWAYS-ON (no spend): the FAIL-CLOSED mechanics, proven with an injected generate --
 //      a thrown call or an unparseable verdict MUST yield supported:false (a flag), never a
 //      silent pass; a clean verdict passes through. This is the regression guard.
-//  (2) GATED (RUN_LIVE_AI_TESTS=true, BILLS): run the real judge over a LABELLED set and
-//      assert TPR (catches unsupported claims) and TNR (does not false-flag grounded prose)
-//      clear a calibrated bar -- the evidence that the one LLM judge is trustworthy as a gate
-//      input. Judge-error is counted as a FLAG (fail-closed) in the tally, never dropped.
+//  (2) GATED (RUN_LIVE_AI_TESTS=true): run the REAL judge over the HELD-OUT test split and assert
+//      TPR (catches unsupported) + TNR (does not false-flag grounded) + Cohen's kappa clear a
+//      calibrated bar -- the evidence the one LLM judge is trustworthy as a gate input. Judge-error
+//      counts as a FLAG (fail-closed) in the tally, never dropped.
+//      CROSS-FAMILY (ADR-0002): run with JUDGE_PROVIDER=groq for the non-Gemini judge -- FREE on
+//      Groq's tier ($0). Canonical run:
+//        RUN_LIVE_AI_TESTS=true JUDGE_PROVIDER=groq node --env-file=.env \
+//          node_modules/vitest/vitest.mjs run evals/judge-calibration.test.ts
+//      Measured 2026-06-22 (llama-4-scout): TPR 100% / TNR 100% / kappa 1.000 on the held-out split.
 
 const LIVE = process.env.RUN_LIVE_AI_TESTS === "true";
 

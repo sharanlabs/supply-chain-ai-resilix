@@ -41,6 +41,10 @@ const patterns = [
     regex: /\bsk-[A-Za-z0-9_-]{20,}\b/g
   },
   {
+    name: "Groq API key",
+    regex: /\bgsk_[A-Za-z0-9]{20,}\b/g
+  },
+  {
     name: "GitHub token",
     regex: /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{20,}\b/g
   },

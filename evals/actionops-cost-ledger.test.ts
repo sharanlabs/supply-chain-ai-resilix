@@ -48,7 +48,7 @@ describe("D.8 pricing table + cost formula (hand-pinned, R4-10)", () => {
   it("pins the GA price list and version (the contract the costs are computed against)", () => {
     // The version + prices are the load-bearing contract. Pinned literally so a silent
     // re-price (which would retroactively change stored costs) fails this test loudly.
-    expect(PRICING_VERSION).toBe("2026-06-18");
+    expect(PRICING_VERSION).toBe("2026-06-22");
     expect(GEMINI_PRICING["gemini-2.5-flash"]).toEqual({
       inputPerMillionUsd: 0.3,
       outputPerMillionUsd: 2.5

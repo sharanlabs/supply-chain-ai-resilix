@@ -1,3 +1,5 @@
+import { createGroq } from "@ai-sdk/groq";
+import { generateObject } from "ai";
 import { z } from "zod";
 import type { AgentRunUsage } from "@/lib/agents/actionops/agent-run";
 import {
@@ -8,35 +10,80 @@ import {
   resolvedGeminiModel
 } from "@/lib/agents/run";
 
-// The ONE LLM-as-judge (Success_Criteria: "one flash-model judge is used for exactly one
-// check -- no-unsupported-claims prose; everything else is code"). The deterministic graders
-// are the hard gates (numeral<->claim citation, entity/url existence, injection quarantine);
-// this judge adds the ONE thing code cannot decide: whether the PROSE asserts something the
-// structured data does not support -- a SEMANTIC unsupported claim ("we have secured backup
-// suppliers", "prices will rise") that carries no numeral and so slips the citation grader.
+// The ONE LLM-as-judge (Success_Criteria: "one ... judge is used for exactly one check --
+// no-unsupported-claims prose; everything else is code"). The deterministic graders are the hard
+// gates (numeral<->claim citation, entity/url existence, injection quarantine); this judge adds the
+// ONE thing code cannot decide: whether the PROSE asserts something the structured data does not
+// support -- a SEMANTIC unsupported claim ("we have secured backup suppliers", "prices will rise")
+// that carries no numeral and so slips the citation grader.
 //
-// FAIL-CLOSED: a judge that errors, times out, or returns an unparseable/uncertain verdict
-// is treated as supported:false (a FLAG), never silently passed. A judge that fails open is
-// not a safety check. Calibrated in evals/judge-calibration.test.ts (TPR/TNR + Cohen's kappa
-// over a held-out labelled set); the calibration is what lets this verdict be trusted as a gate
-// input.
+// FAIL-CLOSED: a judge that errors, times out, or returns an unparseable/uncertain verdict is
+// treated as supported:false (a FLAG), never silently passed. A judge that fails open is not a
+// safety check. Calibrated in evals/judge-calibration.test.ts (TPR/TNR + Cohen's kappa over a
+// held-out labelled set, with a few-shot critique-then-verdict prompt); the calibration is what lets
+// this verdict be trusted as a gate input.
 //
-// SAME-FAMILY (ADR-0002): this judge defaults to a Gemini model -- the SAME family as the
-// Dispatcher prose it grades. Best practice is a CROSS-family judge: self-preference (a model
-// rating its own family's output more leniently) is the most validated judge bias (evals_kb
-// llm-as-judge.md; Panickssery, NeurIPS 2024). Accepted here as a SECONDARY check ONLY -- the
-// deterministic graders (citation / entity / url / injection) + atomic human approval are the
-// primary gates, and this judge is fail-closed + off by default, so a leniency bias here cannot
-// by itself pass an unsupported claim to a recipient. The cross-family switch (a JUDGE_PROVIDER
-// seam + a non-Gemini SDK) removes the residual entirely; it is deferred, gated on a non-Gemini
-// key + a billed recalibration. NOTE: JUDGE_MODEL below selects another GEMINI id, not another
-// family.
+// CROSS-FAMILY (ADR-0002): the self-preference bias -- a model rating its OWN family's output more
+// leniently -- is the most validated judge bias (evals_kb llm-as-judge.md; Panickssery, NeurIPS
+// 2024). The Dispatcher prose under judgement is Gemini, so JUDGE_PROVIDER=groq routes the judge to
+// a DIFFERENT family (default meta-llama/llama-4-scout -- a Meta model, distinct from BOTH the Gemini
+// system-under-test and the GPT/Codex build-time gate) via Groq's free tier. The judge stays
+// fail-closed + secondary (deterministic graders + human approval are primary). JUDGE_PROVIDER unset
+// (or =gemini) keeps the same-family judge for environments without a Groq key.
 
-// The judge model. Defaults to the configured agent model (flash, per the Success_Criteria
-// "flash-model judge"); JUDGE_MODEL overrides it (the model policy allows stepping the judge
-// up to pro if calibration shows flash misses the bar -- judge >= agents).
+// Default Groq judge model: a Meta Llama-4 instruct model -- a different family from Gemini, with
+// Groq json_schema structured-output support. Override with JUDGE_MODEL.
+const GROQ_DEFAULT_JUDGE_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+
+// Which provider backs the judge. "groq" (cross-family, recommended) when JUDGE_PROVIDER=groq;
+// otherwise "gemini" (same-family fallback for environments with no Groq key).
+export function resolvedJudgeProvider(): "groq" | "gemini" {
+  return process.env.JUDGE_PROVIDER?.trim().toLowerCase() === "groq" ? "groq" : "gemini";
+}
+
+// The judge model id, per provider. JUDGE_MODEL overrides the per-provider default.
 export function resolvedJudgeModel(): string {
-  return process.env.JUDGE_MODEL?.trim() || resolvedGeminiModel();
+  const override = process.env.JUDGE_MODEL?.trim();
+  if (resolvedJudgeProvider() === "groq") {
+    return override || GROQ_DEFAULT_JUDGE_MODEL;
+  }
+  return override || resolvedGeminiModel();
+}
+
+// Whether the judge may make a real call. Provider-aware, so the cross-family judge runs on its OWN
+// key INDEPENDENT of the Gemini live-AI flag: groq -> a GROQ_API_KEY is present; gemini -> the Gemini
+// live path is enabled. (An injected generate in tests bypasses this -- see below.)
+export function judgeEnabled(): boolean {
+  if (resolvedJudgeProvider() === "groq") {
+    return Boolean(process.env.GROQ_API_KEY?.trim());
+  }
+  return liveAiEnabled();
+}
+
+// The Groq-bound generate path (cross-family). Same {object, usage} shape liveGenerateObject's
+// default Gemini generate returns, so its budget hard-stop + fail-closed flow are reused unchanged --
+// only the provider differs. Output is bounded (the verdict is tiny; the headroom covers a reasoning
+// model's scratch tokens). Groq is priced at its PUBLISHED rates (pricing.ts GROQ_PRICING) so the
+// budget/ledger stay honest on any key; the per-call estimate is a fraction of a cent, far under cap.
+function makeGroqGenerate(apiKey: string) {
+  const groq = createGroq({ apiKey });
+  return async (a: { model: string; schema: z.ZodTypeAny; prompt: string }) => {
+    const result = await generateObject({
+      model: groq(a.model),
+      schema: a.schema,
+      prompt: a.prompt,
+      maxOutputTokens: 4_000
+    });
+    return {
+      object: result.object,
+      usage: {
+        inputTokens: result.usage?.inputTokens,
+        outputTokens: result.usage?.outputTokens,
+        totalTokens: result.usage?.totalTokens,
+        finishReason: result.finishReason ?? null
+      } satisfies AgentRunUsage
+    };
+  };
 }
 
 // The judge's structured verdict. `supported` = every factual claim in the prose is backed by
@@ -79,17 +126,27 @@ export async function judgeNoUnsupportedClaims(args: {
   // discipline. `enabled` defaults to liveAiEnabled (flag + key); an injected `generate` is a
   // test/DI path that never bills, so it is allowed through. Key-OFF + no injected generate ->
   // fail-closed (a flag), no call.
-  const enabled = args.enabled ?? liveAiEnabled;
+  const enabled = args.enabled ?? judgeEnabled;
   if (!enabled() && !args.generate) {
     return {
       supported: false,
-      reason: "Judge skipped: live AI disabled (no flag/key); failing closed.",
+      reason: "Judge skipped: no judge provider configured (no Groq/Gemini key); failing closed.",
       errored: true,
       errorClass: "LIVE_AI_DISABLED"
     };
   }
 
   const model = resolvedJudgeModel();
+  // Pick the provider call path. An injected generate (test/DI) ALWAYS wins. Otherwise the
+  // cross-family judge binds Groq here; the gemini path leaves generate undefined so
+  // liveGenerateObject falls back to its default Gemini generate.
+  let generate = args.generate;
+  if (!generate && resolvedJudgeProvider() === "groq") {
+    const key = process.env.GROQ_API_KEY?.trim();
+    if (key) {
+      generate = makeGroqGenerate(key);
+    }
+  }
   const budget: BudgetContext = args.budget ?? {
     spentUsd: 0,
     estimatedNextUsd: estimateLiveCallCostUsd(model)
@@ -97,8 +154,9 @@ export async function judgeNoUnsupportedClaims(args: {
 
   const prompt =
     "You are a claims auditor for supplier-facing crisis communications. You are given DRAFT " +
-    "PROSE and the SOURCE DATA the drafter was allowed to use. Decide whether the prose makes " +
-    "any UNSUPPORTED assertion of fact about the world.\n\n" +
+    "PROSE and the SOURCE DATA the drafter was allowed to use. First REASON briefly about each " +
+    "factual assertion in the prose, then decide whether the prose makes any UNSUPPORTED assertion " +
+    "of fact about the world.\n\n" +
     "SUPPORTED -- do NOT flag any of these:\n" +
     "- The disruption premise: that an event exists and the recipient is a flagged exposed " +
     "supplier on an affected lane (the source data establishes this).\n" +
@@ -112,8 +170,19 @@ export async function judgeNoUnsupportedClaims(args: {
     "approved a purchase order');\n" +
     "- a definite external status ('your shipment is delayed', 'this is resolved', 'your premium increased');\n" +
     "- a cause ('you are the sole cause') or a prediction ('prices will rise', 'this will last six weeks').\n\n" +
-    "Return supported=true ONLY if the prose makes NO unsupported assertion; otherwise supported=false " +
-    "with a reason naming the first unsupported assertion. Judge ONLY support-by-data, not tone or style.\n\n" +
+    "WORKED EXAMPLES (critique, then verdict -- illustrative, NOT the data below):\n" +
+    "1. PROSE: 'We are reviewing contingency options and will confirm next steps after review.'\n" +
+    "   Critique: states only the sender's own forward intent; asserts no external fact. " +
+    "Verdict: supported=true.\n" +
+    "2. PROSE: 'We have already secured three alternate suppliers to cover any shortfall.'\n" +
+    "   Critique: asserts a completed action (suppliers secured) the source data does not contain. " +
+    "Verdict: supported=false; reason: 'claims three alternate suppliers already secured -- not in source data'.\n" +
+    "3. PROSE: 'Prices on this lane will rise 20% next month.'\n" +
+    "   Critique: a prediction plus a quantity (20%) absent from the data. " +
+    "Verdict: supported=false; reason: 'predicts a 20% price rise absent from source data'.\n\n" +
+    "Now judge the prose below. Put your brief critique THEN your conclusion in `reason`, and set " +
+    "`supported`=true ONLY if the prose makes NO unsupported assertion; otherwise false with a reason " +
+    "naming the FIRST unsupported assertion. Judge ONLY support-by-data, not tone or style.\n\n" +
     `SOURCE DATA:\n${JSON.stringify(args.sourceData, null, 2)}\n\nDRAFT PROSE:\n${args.prose}`;
 
   try {
@@ -122,7 +191,7 @@ export async function judgeNoUnsupportedClaims(args: {
       schema: JudgeVerdictSchema,
       prompt,
       budget,
-      generate: args.generate
+      generate
     });
     const parsed = JudgeVerdictSchema.safeParse(object);
     if (!parsed.success) {
