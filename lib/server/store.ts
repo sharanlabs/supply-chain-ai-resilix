@@ -224,6 +224,20 @@ class EventReservationConflict extends Error {
   }
 }
 
+// Thrown INSIDE saveDecisionPacket's transaction when a concurrent instance has already
+// committed this idempotency key. Drizzle rolls the transaction back on the throw (undoing
+// THIS instance's packet write -- so no orphaned packet), and the outer catch converts it into
+// "return the winner". Mirrors EventReservationConflict; a bare Error would be ambiguous with a
+// real DB/connection failure, so the catch rethrows anything that is not this exact type.
+class IdempotencyKeyConflict extends Error {
+  readonly idempotencyKey: string;
+  constructor(idempotencyKey: string) {
+    super(`Idempotency key ${idempotencyKey} was concurrently reserved by another transaction`);
+    this.name = "IdempotencyKeyConflict";
+    this.idempotencyKey = idempotencyKey;
+  }
+}
+
 const postgresStore: PacketStore = {
   async saveDecisionPacket(packet, options = {}) {
     const db = getDb();
@@ -231,34 +245,66 @@ const postgresStore: PacketStore = {
     // run inside ONE transaction so a failure after the agents ran cannot leave
     // partial state that would enable a double-spend retry. Either every write
     // commits or none do.
-    await db.transaction(async (tx) => {
-      await tx
-        .insert(decisionPackets)
-        .values(toDecisionPacketRow(packet))
-        .onConflictDoUpdate({
-          target: decisionPackets.id,
-          set: {
-            payload: packet,
-            approvalStatus: packet.approvalStatus,
-            updatedAt: new Date(packet.updatedAt)
-          }
-        });
-
-      if (options.idempotencyKey) {
+    try {
+      await db.transaction(async (tx) => {
         await tx
-          .insert(runIdempotencyKeys)
-          .values({
-            idempotencyKey: options.idempotencyKey,
-            packetId: packet.id,
-            createdAt: new Date()
-          })
-          .onConflictDoNothing();
-      }
+          .insert(decisionPackets)
+          .values(toDecisionPacketRow(packet))
+          .onConflictDoUpdate({
+            target: decisionPackets.id,
+            set: {
+              payload: packet,
+              approvalStatus: packet.approvalStatus,
+              updatedAt: new Date(packet.updatedAt)
+            }
+          });
 
-      await persistAuditProjectionTx(tx, packet);
-      await persistAgentRunProjectionTx(tx, packet);
-    });
-    return packet;
+        if (options.idempotencyKey) {
+          // Cross-instance idempotency guard. The packet row is written first (it is the FK
+          // parent of run_idempotency_keys.packet_id), then we RESERVE the key. onConflictDoNothing
+          // + returning(): an EMPTY result means another instance already committed this key
+          // (Postgres serialized us on the PK). Throw to roll the WHOLE transaction back -- so this
+          // instance's just-written packet is undone and never left orphaned -- and let the outer
+          // catch return the winner. This closes the F2 race (two instances, same key -> two
+          // persisted packets, one orphaned) with NO schema change.
+          //
+          // It does NOT stop both instances from RUNNING the pipeline before this point;
+          // cross-instance double-WORK is bounded by the budget cap and remains the post-MVP item.
+          // Eliminating it needs a reserve-BEFORE-assembly row, which run_idempotency_keys.packet_id
+          // being NOT NULL would require a migration (nullable packetId or a separate reservation
+          // table) to allow.
+          const reserved = await tx
+            .insert(runIdempotencyKeys)
+            .values({
+              idempotencyKey: options.idempotencyKey,
+              packetId: packet.id,
+              createdAt: new Date()
+            })
+            .onConflictDoNothing()
+            .returning({ key: runIdempotencyKeys.idempotencyKey });
+          if (reserved.length === 0) {
+            throw new IdempotencyKeyConflict(options.idempotencyKey);
+          }
+        }
+
+        await persistAuditProjectionTx(tx, packet);
+        await persistAgentRunProjectionTx(tx, packet);
+      });
+      return packet;
+    } catch (error) {
+      if (error instanceof IdempotencyKeyConflict) {
+        // The transaction rolled back (no orphaned packet). Return the packet the winning
+        // instance persisted under this key -- the single canonical result for the key.
+        const winner = await this.getDecisionPacketByIdempotencyKey(error.idempotencyKey);
+        if (winner) {
+          return winner;
+        }
+        // Key seen as taken but no packet readable (the winner rolled back between our conflict
+        // and our read -- vanishingly rare). Fail loud rather than return nothing.
+        throw error;
+      }
+      throw error;
+    }
   },
 
   async getDecisionPacket(id) {

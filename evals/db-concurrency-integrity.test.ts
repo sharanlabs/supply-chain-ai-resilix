@@ -2,10 +2,16 @@ import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { decisionPacketAuditEvents } from "@/db/schema";
+import { buildDecisionPacket } from "@/lib/pipeline/build-packet";
 import { runExceptionPipeline } from "@/lib/pipeline/run-exception";
 import { getDb } from "@/lib/server/db";
 import { applyApprovalDecision } from "@/lib/server/decision-packet-service";
-import { getDecisionPacket, getPacketStoreMode } from "@/lib/server/store";
+import {
+  getDecisionPacket,
+  getDecisionPacketByIdempotencyKey,
+  getPacketStoreMode,
+  saveDecisionPacket
+} from "@/lib/server/store";
 
 // Gated identically to evals/db-persistence.test.ts: only runs against a real
 // Postgres when RUN_DB_INTEGRATION_TESTS=true AND DATABASE_URL is set. In normal
@@ -176,5 +182,36 @@ describeDb("Postgres data-layer concurrency integrity", () => {
       throw new Error("Expected exactly one EVENT_CONFLICT and one UPDATED");
     }
     expect(loser.packet?.id).toBe(winner.packet.id);
+  });
+
+  it("closes the cross-instance same-key save race: one packet persists, no orphan, both callers get the winner", async () => {
+    expect(getPacketStoreMode()).toBe("postgres");
+
+    // Two distinct packets that differ ONLY in id, sharing ONE idempotency key -- the
+    // cross-instance scenario (two Node instances each built their own packet for the same
+    // request). saveDecisionPacket is called DIRECTLY (not via runExceptionPipeline) to bypass
+    // the in-process mutex and exercise the DB-layer reservation under genuine connection-level
+    // parallelism (Promise.all over the pg Pool).
+    const base = await buildDecisionPacket({ useLiveSignals: false });
+    const sharedKey = `db-idem-race-${randomUUID()}`;
+    const packetA = { ...base, id: `PKT-A-${randomUUID()}` };
+    const packetB = { ...base, id: `PKT-B-${randomUUID()}` };
+
+    const [savedA, savedB] = await Promise.all([
+      saveDecisionPacket(packetA, { idempotencyKey: sharedKey }),
+      saveDecisionPacket(packetB, { idempotencyKey: sharedKey })
+    ]);
+
+    // First-writer-wins: both callers receive the SAME winning packet.
+    expect(savedA.id).toBe(savedB.id);
+    const winnerId = savedA.id;
+    expect([packetA.id, packetB.id]).toContain(winnerId);
+    const loserId = winnerId === packetA.id ? packetB.id : packetA.id;
+
+    // The key resolves to the winner; the winner persisted; the loser's packet was rolled back
+    // (NO orphan) -- the F2 fix.
+    expect((await getDecisionPacketByIdempotencyKey(sharedKey))?.id).toBe(winnerId);
+    expect(await getDecisionPacket(winnerId)).toBeDefined();
+    expect(await getDecisionPacket(loserId)).toBeUndefined();
   });
 });

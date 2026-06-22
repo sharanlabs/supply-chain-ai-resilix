@@ -8,6 +8,7 @@ import {
 } from "@/lib/signals/cached";
 import { fetchGdeltSignals, finiteClock } from "@/lib/signals/gdelt";
 import { MAX_FIELD_LEN, MAX_SUMMARY_LEN, sanitizeText } from "@/lib/signals/sanitize";
+import { logger } from "@/lib/server/logger";
 
 const TIMEOUT_MS = 5000;
 // An unparseable, far-future, or "source down" timestamp is bad data -> "very stale"
@@ -46,6 +47,12 @@ export async function fetchPublicSignals({
   // signals to serve) is surfaced as one disclosure marker, so a down primary source
   // is VISIBLE -- never silently absent, which an operator could read as "all calm".
   const gdelt = await fetchGdeltSignals({ fetchImpl, now: clock });
+  if (gdelt.status === "FAILED") {
+    logger.warn(
+      { source: "GDELT DOC 2.0", note: gdelt.note },
+      "signal fetcher: GDELT primary feed unavailable; serving a disclosure marker + cached/fixture context"
+    );
+  }
   const gdeltSignals =
     gdelt.status === "FAILED" ? [gdeltUnavailableMarker(gdelt.note, clock)] : gdelt.signals;
   const nws = await fetchNwsOrCached(fetchImpl, clock);
@@ -89,6 +96,7 @@ async function fetchNwsOrCached(
       error instanceof Error ? error.message : "unknown error",
       MAX_FIELD_LEN
     );
+    logger.warn({ source: "NWS", reason }, "signal fetcher: NWS live fetch failed; degrading to the cached fixture (never faked live)");
     return {
       ...nwsCachedFixture,
       summary: `${nwsCachedFixture.summary} (live NWS fetch failed: ${reason})`
