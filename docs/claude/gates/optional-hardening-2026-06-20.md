@@ -86,10 +86,33 @@ Applied the security review's flagged items, scoped by judgment:
   without a consumer" ethos. The ACTIVE drift detector already exists: `scripts/prod-csp-smoke.mjs`
   (deterministic, fails loud, caught the Zod regression). Add the endpoint only if real prod
   monitoring lands.
-- **Codex cross-model: BANKED for this increment** (not run). Two pre-vetted static headers (one is
+- **Codex cross-model: BANKED for this increment** (not run, 2026-06-20). Two pre-vetted static headers (one is
   the security-specialist's own recommendation) sit below the cross-model threshold; auto-running the
   backup account on them would be standing-authorization creep. Banked per the established pattern;
   the owner can call it. (The nonce-CSP rewrite, where cross-model genuinely paid off, WAS gated.)
+
+## Codex cross-model — DISCHARGED (2026-06-22, the banked leg, owner released: "complete it")
+
+The owner released the banked leg during the doctrine alignment pass. Ran `~/claude-os/bin/codex-guarded
+exec -s read-only` (resilix-namespaced verdict file) over commits `84963e7..cac2150` — the COOP/CORP
+`buildSecurityHeaders` delta.
+
+- **Verdict: APPROVE (clean).** No findings. Codex confirmed: (1) the header names/values are correct and
+  wired through `next.config.ts` `headers()` on `/:path*` (verified against installed Next types + official
+  docs); (2) no legitimate flow breaks — repo search found no `window.open`/opener/iframe/cross-origin embed;
+  external links use `rel="noreferrer noopener"`; CORP `same-origin` does not block same-origin `/_next`
+  subresources, and `next/font/google` self-hosts from the deploy origin; (3) the COEP omission is sound
+  (no `crossOriginIsolated`/`SharedArrayBuffer` usage → COEP would add subresource opt-in for no requirement);
+  (4) test + prod-smoke coverage adequate for the delta.
+- **Non-blocking note (tracked, NOT a finding):** the prod smoke asserts the headers on the document response
+  but does not directly fetch an API route or a concrete `/_next/static` asset to assert them there — it relies
+  on the uniform `/:path*` wiring (which the unit test pins). Left as-is: the smoke is not in `verify` (needs a
+  prod server), the config applies to all paths uniformly, and Codex rated coverage adequate. Add the per-asset
+  assertion only if a path-scoped header regression ever becomes plausible.
+- **Verdict weighed primary-model-final:** APPROVE accepted (matches the read — two static same-origin headers on
+  a single-origin app). Codex's own `vitest`/`typecheck` attempts were blocked by its read-only sandbox (EPERM
+  on the Vitest temp dir / `next-env.d.ts`); the harness-side `verify:full` is GREEN (this session) as the
+  execution evidence. **Gate-2 residual for this delta: CLOSED.**
 
 ## Re-run trigger for the prod CSP smoke (maintenance)
 

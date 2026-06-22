@@ -17,8 +17,20 @@ import {
 //
 // FAIL-CLOSED: a judge that errors, times out, or returns an unparseable/uncertain verdict
 // is treated as supported:false (a FLAG), never silently passed. A judge that fails open is
-// not a safety check. Calibrated in evals/judge-calibration.test.ts (TPR/TNR over a labelled
-// set); the calibration is what lets this verdict be trusted as a gate input.
+// not a safety check. Calibrated in evals/judge-calibration.test.ts (TPR/TNR + Cohen's kappa
+// over a held-out labelled set); the calibration is what lets this verdict be trusted as a gate
+// input.
+//
+// SAME-FAMILY (ADR-0002): this judge defaults to a Gemini model -- the SAME family as the
+// Dispatcher prose it grades. Best practice is a CROSS-family judge: self-preference (a model
+// rating its own family's output more leniently) is the most validated judge bias (evals_kb
+// llm-as-judge.md; Panickssery, NeurIPS 2024). Accepted here as a SECONDARY check ONLY -- the
+// deterministic graders (citation / entity / url / injection) + atomic human approval are the
+// primary gates, and this judge is fail-closed + off by default, so a leniency bias here cannot
+// by itself pass an unsupported claim to a recipient. The cross-family switch (a JUDGE_PROVIDER
+// seam + a non-Gemini SDK) removes the residual entirely; it is deferred, gated on a non-Gemini
+// key + a billed recalibration. NOTE: JUDGE_MODEL below selects another GEMINI id, not another
+// family.
 
 // The judge model. Defaults to the configured agent model (flash, per the Success_Criteria
 // "flash-model judge"); JUDGE_MODEL overrides it (the model policy allows stepping the judge

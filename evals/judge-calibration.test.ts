@@ -209,6 +209,62 @@ const LABELED_SET: LabeledProse[] = [
   }
 ];
 
+// ---- Calibration statistics (pure; unit-tested below, consumed by the gated live run) ----
+
+// Cohen's kappa over the 2x2 confusion of {human label} x {judge verdict}, positive class =
+// UNSUPPORTED (the claim we want flagged). Chance-corrected agreement -- a stronger statistic
+// than raw TPR/TNR, which a degenerate "flag everything" judge can game on the positive class.
+// kappa <= 0: no better than chance; 0.6-0.8 substantial; > 0.8 near-perfect (Landis-Koch).
+export function cohensKappa(c: { tp: number; fp: number; tn: number; fn: number }): number {
+  const n = c.tp + c.fp + c.tn + c.fn;
+  if (n === 0) return 0;
+  const po = (c.tp + c.tn) / n;
+  // Expected-by-chance: P(human=unsupported)*P(judge=flag) + P(human=supported)*P(judge=pass).
+  const pe =
+    ((c.tp + c.fn) / n) * ((c.tp + c.fp) / n) + ((c.fp + c.tn) / n) * ((c.fn + c.tn) / n);
+  // Perfect expected agreement (a single class present) -> kappa undefined; collapse to 1 iff
+  // observed is also perfect, else 0 (no chance-corrected signal is available).
+  if (1 - pe === 0) return po >= 1 ? 1 : 0;
+  return (po - pe) / (1 - pe);
+}
+
+// Held-out split. DEV is reserved as the few-shot exemplar source (used when the billed
+// recalibration adds critique-then-verdict few-shot -- ADR-0002); TEST is the held-out set the
+// live metrics are reported over, so TPR/TNR/kappa are never measured on prose the judge prompt
+// was tuned on. Deterministic (first `devPerClass` of each class -> DEV, remainder -> TEST).
+function splitDevTest(set: LabeledProse[], devPerClass = 3) {
+  const supported = set.filter((x) => x.supported);
+  const unsupported = set.filter((x) => !x.supported);
+  const dev = [...supported.slice(0, devPerClass), ...unsupported.slice(0, devPerClass)];
+  const test = [...supported.slice(devPerClass), ...unsupported.slice(devPerClass)];
+  return { dev, test };
+}
+
+describe("G-5 judge: calibration statistics (no spend)", () => {
+  it("cohensKappa: perfect = 1, chance-level = 0, partial correct, degenerate safe", () => {
+    expect(cohensKappa({ tp: 10, fp: 0, tn: 10, fn: 0 })).toBe(1);
+    // A judge that flags everything: perfect TPR, but ZERO chance-corrected agreement.
+    expect(cohensKappa({ tp: 10, fp: 10, tn: 0, fn: 0 })).toBe(0);
+    expect(cohensKappa({ tp: 8, fp: 2, tn: 8, fn: 2 })).toBeCloseTo(0.6, 5);
+    // Degenerate inputs must not throw or return NaN.
+    expect(cohensKappa({ tp: 0, fp: 0, tn: 0, fn: 0 })).toBe(0);
+    expect(Number.isNaN(cohensKappa({ tp: 5, fp: 0, tn: 0, fn: 0 }))).toBe(false);
+  });
+
+  it("held-out split is disjoint, covers the set, and both partitions stay usable", () => {
+    const { dev, test } = splitDevTest(LABELED_SET);
+    const devIds = new Set(dev.map((x) => x.id));
+    const testIds = new Set(test.map((x) => x.id));
+    expect(dev.length + test.length).toBe(LABELED_SET.length);
+    expect([...devIds].some((id) => testIds.has(id))).toBe(false); // disjoint
+    // DEV carries >=3 per class (the few-shot reserve); TEST stays balanced + measurable.
+    expect(dev.filter((x) => x.supported).length).toBeGreaterThanOrEqual(3);
+    expect(dev.filter((x) => !x.supported).length).toBeGreaterThanOrEqual(3);
+    expect(test.filter((x) => x.supported).length).toBeGreaterThanOrEqual(9);
+    expect(test.filter((x) => !x.supported).length).toBeGreaterThanOrEqual(9);
+  });
+});
+
 describe("G-5 judge: fail-closed mechanics (no spend)", () => {
   it("a thrown judge call fails CLOSED (supported:false, errored)", async () => {
     const verdict = await judgeNoUnsupportedClaims({
@@ -285,7 +341,11 @@ describe.skipIf(!LIVE)("G-5 judge: live calibration (BILLS, gated)", () => {
       let fp = 0;
       const misses: string[] = [];
 
-      for (const ex of LABELED_SET) {
+      // Report over the HELD-OUT test split only (DEV is the few-shot reserve -- ADR-0002), so
+      // the metrics are never measured on prose the judge prompt was tuned on.
+      const { test: calibrationSet } = splitDevTest(LABELED_SET);
+
+      for (const ex of calibrationSet) {
         const verdict = await judgeNoUnsupportedClaims({
           prose: ex.prose,
           sourceData: ex.sourceData,
@@ -315,9 +375,11 @@ describe.skipIf(!LIVE)("G-5 judge: live calibration (BILLS, gated)", () => {
 
       const tpr = tp / (tp + fn);
       const tnr = tn / (tn + fp);
-      console.log(`\n===== G-5 JUDGE CALIBRATION (${model}) =====`);
+      const kappa = cohensKappa({ tp, fp, tn, fn });
+      console.log(`\n===== G-5 JUDGE CALIBRATION (${model}, held-out test split) =====`);
       console.log(`TPR (catches unsupported): ${(tpr * 100).toFixed(1)}%  (${tp}/${tp + fn})`);
       console.log(`TNR (passes grounded):     ${(tnr * 100).toFixed(1)}%  (${tn}/${tn + fp})`);
+      console.log(`kappa (chance-corrected):  ${kappa.toFixed(3)}`);
       console.log(`spend (est): $${spentUsd.toFixed(4)}`);
       if (misses.length) console.log("misses:\n  " + misses.join("\n  "));
       console.log("=========================================\n");
@@ -327,6 +389,9 @@ describe.skipIf(!LIVE)("G-5 judge: live calibration (BILLS, gated)", () => {
       // judge model up (JUDGE_MODEL=gemini-2.5-pro) or sharpen the prompt before relying on it.
       expect(tpr, `TPR ${(tpr * 100).toFixed(1)}% below bar`).toBeGreaterThanOrEqual(0.83);
       expect(tnr, `TNR ${(tnr * 100).toFixed(1)}% below bar`).toBeGreaterThanOrEqual(0.83);
+      // Chance-corrected agreement must clear "substantial" (Landis-Koch >= 0.6) -- this is what a
+      // "flag everything" judge (high TPR, useless TNR) fails, so it backstops the raw rates.
+      expect(kappa, `kappa ${kappa.toFixed(3)} below 0.60 (substantial)`).toBeGreaterThanOrEqual(0.6);
     },
     600_000
   );
