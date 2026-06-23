@@ -4,18 +4,18 @@
 > ## CURRENT RESUME (2026-06-23) -- READ THIS FIRST; supersedes every block below
 > ============================================================================
 >
-> **Stage: pre-public-ship polish — DONE this session; awaiting owner review + commit.**
+> **Stage: pre-public-ship polish — DONE + COMMITTED `5bf4cd2` (2026-06-23). Push HELD (owner-gated).**
 >
-> **State:** branch `main`. **25 files changed, UNCOMMITTED** in the working tree (nothing committed/pushed this session). `npm run verify` = **EXIT 0, 513 tests pass / 0 fail**.
+> **State:** branch `main`, **ahead 1 of `origin/main`** (commit `5bf4cd2`, not pushed). Working tree CLEAN. `npm run verify` = **EXIT 0** (re-confirmed on the committed tree; 513 tests / 0 fail). The 26-file pre-ship pass below was reviewed (code diffs sound, all green) and committed this session.
 >
 > **What happened (full detail in `PLAN-REVIEW-LOG.md`, last 3 entries):** a multi-perspective pre-ship pass — (1) docs drift-scan, (2) writing/dual-audience + supply-chain-domain + AI-eng evaluation, (3) public-ship blindspot + DoorDash cross-ref audit. All findings content-verified vs code (not memory). Fixes applied across README, docs/*, `.env.example`, and code.
 >
 > **Code changed (verify green):** `lib/server/security.ts` (prod = secure-by-default), `app/api/run-exception/route.ts` (no client error leak; logs via pino), component rename `launchops-dashboard.tsx → actionops-dashboard.tsx` (+ export `ActionOpsDashboard`, `app/page.tsx`, the test). Docs: reliability_positioning de-drafted + verified stats; resume/README 5-min→"same hour" + "war room"→"disruption response"; judge cross-family framing; 22→26; dataTier disambig; TTS/TTR; `docs/deploy.md` added; 7 stale docs → `docs/_archive/`.
 >
 > **NEXT SESSION — pick up here:**
-> 1. **Review the uncommitted diff** (`git status`/`git diff`), then commit when satisfied (user has not committed yet).
+> 1. ~~Review the uncommitted diff + commit~~ — **DONE `5bf4cd2` (2026-06-23).** Reviewed, verify green, committed. **PUSH is the open owner action** (`git push` when ready to publish).
 > 2. **Owner-manual:** rotate the local Groq key in `.env` before any screen-share; decide on the 6 moderate `npm audit` residuals (no high/critical).
-> 3. **Optional:** retry the cross-model code-diff Codex pass (it deadlocked on shared-seat tooling 3× this session; seat now free). Low priority — executable gate (513 green) already proves the mechanical changes.
+> 3. **Optional:** retry the cross-model code-diff Codex pass (it deadlocked on shared-seat tooling 3× last session; seat now free). Low priority — executable gate (513 green) already proves the mechanical changes.
 > 4. **Open from before:** design direction still unsettled (see memory [[resilix-design-direction-open]]).
 >
 > **Canonical state lives in:** `PLAN-REVIEW-LOG.md` (the argument trail) + memory `resilix-public-ship-readiness.md` + `resilix-domain-terminology-source.md`. Verdict: **public REPO ship-ready; hosted DEMO unblocked (secure-by-default in prod).**
