@@ -119,3 +119,48 @@ An identity rewrite that touched only 2 of 28 docs is incomplete. Audited the ot
 **COMPLETE 2026-06-12. Exit gate fully discharged** (acceptance-gate fixes + Codex cross-model APPROVED). Core deliverables (README.md, docs/Success_Criteria.md) cross-model clean; repo-wide identity drift bannered/fixed. Next: Phase 2 (data model + driver swap + atomic mutations + DecisionPacketV2 + CSV ingestion) in a fresh session.
 
 **2026-06-12 (later) — fitness check (owner-requested, minimal probe, NOT a review attempt).** Owner asked to verify whether Codex is fit to run. CLI healthy (codex-cli-exec 0.136.0, authenticated, model gpt-5.5, sandbox read-only); a minimal one-line probe reached the API and was rejected verbatim: "You've hit your usage limit... try again at Jun 14th, 2026 9:56 AM." Conclusion: Codex NOT fit to run until the limit resets (Jun 14, 9:56 AM) or the owner resets it. Cross-model round remains owed/deferred per standing directive.
+
+---
+
+## Doc review — docs/enterprise_readiness.md rewrite (2026-06-22)
+
+**Context.** Rewrote the stale `enterprise_readiness.md` (predecessor LaunchOps content that listed already-shipped controls — rate limiting, request auth — as "Production Gaps") into a current ActionOps doc framed as: what's already built, what's deliberately deferred, and the concrete trigger that activates each. Added a README roadmap pointer to it.
+
+**Codex round 1 (read-only, `gpt-5.5`).** One factual finding: the doc claimed the CI gate runs "on every push," but `verify.yml` triggers on PRs + pushes to `main`/`master` + `workflow_dispatch` only. All other "Already built" claims verified against code (auth/rate-limit/log-redaction/audit/idempotency); no "Deferred" item was found to be already shipped; episodic-run + cross-instance-idempotency nuance preserved vs README Limitations. VERDICT: REVISE (single fix).
+
+**Claude's response.** Accepted — corrected the CI trigger wording to "on pull requests and pushes to `main`/`master` (plus manual dispatch)." No other claims disputed. Residual finding closed; doc factually clean.
+
+---
+
+## Docs/ drift-scan — professional lens, content-verified (2026-06-22)
+
+**Method.** 3 parallel scanners, every claim verified against ACTUAL repo content (code/README/PLAN/package.json), file:line cited both sides, zero memory/training assumptions. Independently re-verified the load-bearing anchors before editing (corruption count, judge default, ASSUMED stamp, verify:full chaining).
+
+**Fixed (factual/safety, unambiguous, verified against code):**
+- `architecture.md` — "22 corrupted twins" → **26** (actual `CORRUPTIONS` array); judge "same-family" → **configurable cross-family** (Groq/Meta `llama-4-scout` recommended, Gemini fallback) to match ADR-0002 + README + `judge.ts`.
+- `Success_Criteria.md` — `verify:live` "wired into verify:full" → **standalone** (package.json:23 chains only verify+e2e); seed-disclosure gate `ASSUMED (demo data)` (zero such string in code) → **`dataTier:"SEEDED"`** (the real mechanism).
+- `fapo-hardening-handoff.md` — "ONE wiring step (deferred)" → **RESOLVED**, wired at `graders.ts:426,453`.
+- `hallucination_mitigation.md` (stale-bannered) — Layer 5 "review-after-run" was **dangerous-direction** residue (describes system as weaker than it is); added a correction: current approval gates mutation atomically BEFORE commit.
+- `enterprise_readiness.md` — tagged the n8n callback **legacy / out of the ActionOps core loop** per AGENTS.md (was framed as current readiness plumbing).
+
+**Verified CLEAN:** `reliability_positioning.md`, `competitive-gap-2026.md`, `adr/0001`, `adr/0002` (correctly status-noted cross-family). All 7 self-labeled-stale build docs carry a line-1 banner and are **referenced-as-current nowhere** (grepped) — banners doing their job; only `hallucination_mitigation` Layer 5 had dangerous residue (now corrected).
+
+**Held for owner decision (not auto-fixed):**
+- `resume_positioning.md:7` leads with "action packet **in under five minutes**" — the project's own `competitive-gap-2026.md:66` marks the <5-min loop **FALSIFIED** and README:9 says the wedge is **not speed**. Owner-voice positioning; recommend dropping the time claim.
+- **Code remnant:** `components/launchops-dashboard.tsx` (export `LaunchOpsDashboard`) is the LIVE `/` landing component (rendered by `app/page.tsx:2,37`) yet still named LaunchOps — the one genuine un-migrated identity drift on a shipped surface (the other 12 "LaunchOps" code hits are deliberate v1/legacy artifacts). `ALIGNMENT-AUDIT.md`'s "6 files" figure is itself stale (real token count 13). Rename touches a live surface + tests — propose as a separate code change.
+
+---
+
+## Final public-ship residuals executed (2026-06-22)
+
+After the writing/domain/AI-eng + blindspot audits, executed the ship residuals in-session (full owner permission):
+
+- **#1 Hosted-demo auth BLOCK closed (code).** `secureModeRequired()` now folds in `NODE_ENV==='production'` (`lib/server/security.ts`) — a hosted prod server is secure-by-default; mutation routes fail-closed (503) unless `APPROVAL_TOKEN` is set. Local `next dev` + the test runner (`NODE_ENV=test`) are inert, so the zero-config demo and the 513-test suite are unaffected (re-verified green).
+- **#3 Stale predecessor docs archived.** 7 banner-flagged LaunchOps-era docs moved to `docs/_archive/` (+ an explainer README); verified no current-facing doc linked them. `demo_script.md` (described the wrong product) included.
+- **#4 Deploy story added.** `docs/deploy.md` — REPLAY-only public posture, the mandatory production-auth rule, platform notes, pre-public checklist. Linked from README.
+- **#5 Polish.** README headline + `package.json` description drop "war room" (Resilinc collision per competitive-gap §4) → "disruption response"; added README "Data sources & attribution" (GDELT/NWS terms + synthetic-data disclosure); `package.json` `"license":"MIT"` added.
+- **#2 NOT executed (deliberate).** The audit suggested hiding the build-process docs; declined — README intentionally features `PLAN-REVIEW-LOG.md` as "Full review trail", so the rigor trail is a showcase, not noise. Only residual: cosmetic `/Users/sharan_98/` path strings in a couple of internal docs (low severity).
+
+**Gates:** `npm run verify` EXIT=0 (513 tests pass, 0 fail) after every change. Cross-model: the earlier clean Codex doc-review passed (its one finding — "on every push" — fixed); the confirmatory code-diff Codex pass was blocked by shared-seat tooling deadlock across 3 attempts and was not completed — the executable gate (513 green) stands as the code-correctness proof for the mechanical changes (rename/leak-fix/one-clause guard).
+
+**Verdict: public REPO ship-ready; hosted DEMO now unblocked (secure-by-default in production).**

@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { LaunchOpsDashboard } from "@/components/launchops-dashboard";
+import { ActionOpsDashboard } from "@/components/actionops-dashboard";
 import { loadReplayPacket } from "@/lib/pipeline/replay-packet";
 import { makeDemoPacket } from "@/lib/data/demo-packet";
 import type { DecisionPacketV2 } from "@/lib/schemas";
@@ -34,5 +34,5 @@ export default async function Home() {
     );
     packet = makeDemoPacket();
   }
-  return <LaunchOpsDashboard packet={packet} />;
+  return <ActionOpsDashboard packet={packet} />;
 }

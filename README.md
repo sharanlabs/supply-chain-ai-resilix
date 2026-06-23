@@ -1,6 +1,6 @@
 # RESILIX ActionOps
 
-**A crisis-to-action war room for supply-chain teams.** One live disruption signal plus your supplier list becomes an **evidence-cited, human-approved action packet** — a classified threat, which of *your* suppliers are exposed, a runway/revenue-at-risk simulation, role playbooks, and drafted supplier emails where **every number traces to a source**.
+**Crisis-to-action disruption response for supply-chain teams.** One live disruption signal plus your supplier list becomes an **evidence-cited, human-approved action packet** — a classified threat, which of *your* suppliers are exposed, a runway/revenue-at-risk simulation, role playbooks, and drafted supplier emails where **every number traces to a source**.
 
 ## Why this exists — and how it's different (2026)
 
@@ -9,9 +9,9 @@ Mid-market procurement teams in 2026 don't lack alerts. They lack **operationali
 RESILIX's wedge is not speed or "we act, they detect" — incumbents are fast and are shipping agentic action too. It is a **trust-and-accountability spine that no incumbent currently markets**, against a documented 2026 attack surface (OWASP LLM01 prompt injection):
 
 - **Every numeral is sourced or it's blocked.** A bidirectional citation contract: each figure in any draft must resolve to a structured input, and each input figure it cites must value- and unit-match — checked at produce time *and* by an independent grader. No model-invented number reaches the UI.
-- **Untrusted news never reaches the email drafter.** Only one agent (Sentinel) sees raw article text; the drafter receives validated, structured fields only — the prompt-injection laundering path is cut by construction, with a de-obfuscation pre-pass against homoglyph/zero-width/base64 evasions.
+- **Untrusted news never reaches the email drafter.** Only one agent (Sentinel) sees raw article text; the drafter receives validated, structured fields only — the prompt-injection laundering path is cut by construction, with a de-obfuscation pre-pass that strips disguised text — look-alike, invisible, and encoded characters (homoglyph/zero-width/base64) — before any scan reads it.
 - **Degradation is disclosed, never faked.** A four-value mode taxonomy (`LIVE_AI` / `DETERMINISTIC_RULES` / `REPLAY` / `FAILED_TO_FALLBACK`) — a live call that silently fell back fails the eval and renders a visible "degraded" badge.
-- **A calibrated, cross-family LLM judge** screens drafted prose for unsupported claims that carry no numeral (fail-closed; a *non-Gemini* model so it cannot self-prefer the drafter's own output; TPR/TNR + Cohen's kappa calibrated on a held-out set), as the one semantic check on top of the deterministic graders.
+- **A second AI model double-checks the drafted prose** for claims that read as supported but cite no number — the one semantic check on top of the deterministic graders (fail-closed; a backstop, never the main gate). Its recommended, calibrated config runs a *non-Gemini* model via Groq's free tier so it can't rubber-stamp the drafter's own output, with a same-family fallback when no key is set. (Calibration — TPR/TNR + Cohen's kappa on a held-out set — in [the ADR](docs/adr/0002-same-family-llm-judge.md).)
 - **Nothing sends without human approval** — atomic, audited.
 - **A fail-closed cost cap.** Real per-call tokens × a pinned price table; a call that would breach the budget throws before it bills.
 
@@ -58,7 +58,7 @@ Hard rules, no exceptions:
 - **Live AI:** the three LLM agents call Gemini (`gemini-2.5-flash` default, GA, with a ListModels preflight that fails loud if the configured model is unavailable). Model + pricing verified as-of 2026-06-18; Gemini 2.5 retires no earlier than 2026-10-16, and the preflight + single `GEMINI_MODEL` config point make a retirement a one-line bump, never a silent mid-run fallback. Off by default (`ENABLE_LIVE_AI`); the deterministic spine runs identically with the key off.
 - **Replay-first demo:** each scenario carries dated, synthetic signal fixtures; replay is always labelled, never presented as live. The landing page itself serves a frozen, real live-captured packet relabelled `REPLAY` ($0, reproducible).
 - **Synthetic enterprise data:** a seeded ~150-row US supplier dataset, disclosed as such; seed-derived figures are stamped and never mixed into results from your own upload.
-- **Your data:** a tiered CSV upload — Tier-1 columns unlock exposure mapping, optional inventory columns unlock runway simulation. Every upload gets a per-row matched/unmatched report; a silent zero-match is structurally impossible. Uploaded names are formula-injection-sanitized and canonicalized to internal IDs before any agent sees them.
+- **Your data:** a tiered CSV upload, where *tier* means column completeness — not supplier tier/sub-tier. Tier-1 columns (the basics) unlock exposure mapping; optional inventory columns unlock runway simulation. Every upload gets a per-row matched/unmatched report; a silent zero-match is structurally impossible. Uploaded names are formula-injection-sanitized and canonicalized to internal IDs before any agent sees them.
 
 ## The scenarios
 
@@ -86,6 +86,8 @@ Stated up front, because the credibility of an evidence tool depends on it:
 2. ERP integration (NetSuite/Epicor/Dynamics class), email handoff of approved drafts, SSO, multi-tenancy.
 3. Source-authority modelling for refusal (treat an official advisory as corroboration), beyond the threat's own confidence.
 
+The full enterprise-expansion path — what's already built, what's deliberately deferred, and the concrete trigger that activates each piece — is in [docs/enterprise_readiness.md](docs/enterprise_readiness.md).
+
 ## Design
 
 A "calm command center" surface: a cool near-white ground, a single desaturated steel/cobalt accent (color is reserved for meaning — amber→red severity on real risk only), Geist sans, and a tinted two-layer elevation system (soft shadow + contact line + inset highlight) with a fractal-noise grain and a lit-from-above wash. The palette, accent strategy, elevation, and anti-AI-slop posture were validated against the current top-tier 2026 design language (Vercel, Linear, Stripe, Apple's 2026 Liquid Glass guidance) — see `docs/claude/DESIGN-VALIDATION-2026-06-20.md`. Light-only is a deliberate choice (every WCAG 2.2 AA ratio is light-tuned); a dark theme is future scope.
@@ -93,6 +95,14 @@ A "calm command center" surface: a cool near-white ground, a single desaturated 
 ## Tech stack
 
 Next.js App Router · TypeScript · Tailwind + shadcn-style primitives · Zod · Vercel AI SDK with Gemini · Drizzle ORM over PostgreSQL (node-postgres; in-memory fallback for a zero-setup demo) · Vitest · Playwright.
+
+## Data sources & attribution
+
+- **GDELT DOC 2.0** (open data) — disruption signal articles; used as enrichment only, never as authoritative truth, and always labelled `LIVE` / `CACHED` / `FAILED`.
+- **US National Weather Service API** (`api.weather.gov`, US-government public-domain data; requests send an identifying User-Agent per NWS guidance) — weather-hazard signals.
+- **Supplier data is synthetic** — a seeded ~150-row dataset, disclosed as such; no real Apple/Amazon/FedEx/supplier/carrier/customer or private-ERP data is used. Your own CSV upload stays separate from the seed.
+
+Public benchmark figures cited in the docs (e.g. CRMArena-Pro, the International AI Safety Report 2026) are primary-source linked. See [docs/deploy.md](docs/deploy.md) for the public/hosted deployment posture.
 
 ## Run locally
 

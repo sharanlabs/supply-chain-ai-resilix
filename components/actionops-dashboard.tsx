@@ -87,7 +87,7 @@ function tierFromRationale(
 // "run live pipeline" panel is retired: the primary screen IS the live pipeline
 // output now, and approval lives in the packet view. (The persisted run + server
 // approve round-trip is covered by the API-level evals, not a browser path.)
-export function LaunchOpsDashboard({ packet }: { packet?: DecisionPacketV2 }) {
+export function ActionOpsDashboard({ packet }: { packet?: DecisionPacketV2 }) {
   const data = useMemo(() => packet ?? makeDemoPacket(), [packet]);
   const tabs = useMemo(() => buildTabs(data.publicSignals), [data]);
   const [active, setActive] = useState<TabKey>("packet");
@@ -119,7 +119,7 @@ export function LaunchOpsDashboard({ packet }: { packet?: DecisionPacketV2 }) {
                 RESILIX <em>ActionOps</em>
               </p>
               <span className="hidden font-mono text-[0.625rem] tracking-[0.18em] text-ink-faint uppercase sm:inline">
-                War Room
+                Command
               </span>
             </div>
           </div>

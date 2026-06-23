@@ -95,6 +95,8 @@ Strategist: "Every number must trace to the Risk Exposure Report. If you need a 
 
 **What it does:** A human reviews and approves each agent's output before it passes to the next stage.
 
+**⚠ Predecessor description — corrected.** The CURRENT ActionOps system does **not** "review-after-run." Approval is an atomic transaction that gates the mutation **before** it commits (`UPDATE … WHERE approval_status='PENDING' RETURNING`; mutation routes require `APPROVAL_TOKEN`), so an unapproved packet never takes effect. The paragraph below describes the predecessor prototype only.
+
 In the prototype, this is implemented as review-after-run rather than pause-and-wait. The pipeline runs end-to-end with validation checks serving as automated guardrails. The human reviews outputs post-execution. In production, n8n's Wait node or webhook-based approval would pause the pipeline between stages.
 
 **What it catches:** Everything the other four layers miss. Subtle contextual errors, tone issues, recommendations that are technically correct but practically wrong. A machine can verify that SUP-0213 exists. A human can judge whether contacting that supplier at 2 AM during a natural disaster is appropriate.

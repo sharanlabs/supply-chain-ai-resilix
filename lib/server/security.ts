@@ -47,7 +47,15 @@ export function secureModeRequired(): boolean {
   return (
     Boolean(process.env.DATABASE_URL?.trim()) ||
     liveAiEnabled() ||
-    envBool("REQUIRE_APPROVAL_TOKEN")
+    envBool("REQUIRE_APPROVAL_TOKEN") ||
+    // A hosted production server (`next start`, NODE_ENV=production) is secure by
+    // default: an exposed PUBLIC deploy must never leave the mutation surface
+    // authless. Local `next dev` (development) and the test runner (NODE_ENV=test)
+    // are unaffected, so the zero-config local demo and the suite keep working. A
+    // production deploy that wants a live mutation surface sets APPROVAL_TOKEN; a
+    // REPLAY-only public demo sets nothing and mutations stay fail-closed (503),
+    // while the read-only landing REPLAY still renders.
+    process.env.NODE_ENV === "production"
   );
 }
 

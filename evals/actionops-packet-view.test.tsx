@@ -2,7 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import { ActionOpsPacketView } from "@/components/launchops-dashboard";
+import { ActionOpsPacketView } from "@/components/actionops-dashboard";
 import { makeV2Packet } from "./fixtures/decision-packet-v2";
 
 // Fixture-based render test for the V2 (ActionOps) view. The live pipeline does

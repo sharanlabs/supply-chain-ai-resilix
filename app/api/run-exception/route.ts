@@ -4,6 +4,7 @@ import { hasActionOpsScenario } from "@/lib/data/actionops-scenarios";
 import { apiError, noStoreJson, parseJsonRequest, rateLimited } from "@/lib/server/http";
 import { IDEMPOTENCY_KEY_HEADER, verifyApprovalToken } from "@/lib/server/security";
 import { enforceMutationRateLimit } from "@/lib/server/rate-limit";
+import { logger } from "@/lib/server/logger";
 
 const RunRequestSchema = z.object({
   // No default here: an omitted scenarioId must flow to getActionOpsScenario's
@@ -82,10 +83,13 @@ export async function POST(request: Request) {
     });
     return noStoreJson({ packet });
   } catch (error) {
+    // Log the real cause server-side (pino redacts secret-shaped fields); never
+    // return raw error text to the client -- it can leak internal/pg detail.
+    logger.error({ err: error, route: "run-exception" }, "run-exception pipeline failed");
     return noStoreJson(
       {
         error: "PIPELINE_FAILED",
-        detail: error instanceof Error ? error.message : "Unknown error"
+        detail: "The pipeline failed to complete."
       },
       { status: 500 }
     );

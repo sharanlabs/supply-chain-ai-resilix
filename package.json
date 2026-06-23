@@ -2,7 +2,8 @@
   "name": "resilix-actionops",
   "version": "0.1.0",
   "private": true,
-  "description": "Crisis-to-action supply-chain war room: a live disruption signal plus a supplier CSV becomes an evidence-cited, human-approved action packet.",
+  "description": "Crisis-to-action supply-chain disruption response: a live disruption signal plus a supplier CSV becomes an evidence-cited, human-approved action packet.",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

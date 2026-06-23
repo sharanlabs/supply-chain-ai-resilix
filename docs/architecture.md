@@ -43,7 +43,7 @@ Source of truth for the chain: `lib/agents/actionops/` (`sentinel.ts`, `atlas.ts
 | Sentinel | **LLM** | `threatCard` | Closed-vocab classification with an `OTHER_UNMAPPED` escape hatch (`resolveEventType`); the only agent given raw signal text; output passes `applyThreatFirewall`. |
 | Verifier | deterministic | corroboration / recency | Templated rationale from its own checks; a distinct `AgentRun`. |
 | Atlas | deterministic TS | `exposureResults` | Integer scoring; chokepoint scope-firewall fails closed on out-of-scope or misclassified matches. |
-| Simulator | deterministic TS | `simulation?` | Exact arithmetic (`recomputeSimulation`); present only when inventory/Tier-2 data exists. |
+| Simulator | deterministic TS | `simulation?` | Exact arithmetic (`recomputeSimulation`); present only when inventory columns (data tier 2 — completeness, not supplier tier) exist. Projects revenue-at-risk over fixed horizons — a time-to-survive question in the TTS/TTR vulnerability framing; formal node-level TTS/TTR modelling is out of scope. |
 | Strategist | **LLM** | `playbooks` | Numeral-free steps; every figure comes from Atlas/Simulator. |
 | Dispatcher | **LLM** | `supplierMessages` + `claims[]` + `actionItems` | Structured-whitelist prompt; `applyDispatcherFirewall` rejects any link of any form. |
 | Gatekeeper | deterministic | pass/fail | Bidirectional citation contract via the shared `collectCitationFailures`. |
@@ -74,7 +74,7 @@ GDELT DOC 2.0 is the **primary** live signal; NWS is live; USGS/EONET are fixtur
 
 ## Evaluation harness
 
-The executable contract: deterministic graders (`lib/evals/`, `evals/`) — citation faithfulness, entity/URL existence, off-taxonomy, injection quarantine — plus a **golden-task regression BLOCK** (`evals/golden-tasks.test.ts`, 7 frozen records + 22 corrupted twins inside `npm run verify`), plus **one LLM-as-judge** (`lib/evals/judge.ts`) for the single semantic check code cannot do (unsupported-claim prose). The judge is a **same-family, fail-closed, off-by-default secondary check** — never a hard gate; see [adr/0002-same-family-llm-judge.md](adr/0002-same-family-llm-judge.md).
+The executable contract: deterministic graders (`lib/evals/`, `evals/`) — citation faithfulness, entity/URL existence, off-taxonomy, injection quarantine — plus a **golden-task regression BLOCK** (`evals/golden-tasks.test.ts`, 7 frozen records + 26 corrupted twins inside `npm run verify`), plus **one LLM-as-judge** (`lib/evals/judge.ts`) for the single semantic check code cannot do (unsupported-claim prose). The judge is a **configurable cross-family, fail-closed, off-by-default secondary check** — the calibrated/recommended config is a non-Gemini Meta model (`llama-4-scout` via Groq's free tier; `JUDGE_PROVIDER=groq`), with a same-family Gemini fallback when no Groq key is set — never a hard gate; see [adr/0002-same-family-llm-judge.md](adr/0002-same-family-llm-judge.md).
 
 ## Model & cost policy
 

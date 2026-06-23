@@ -1,7 +1,29 @@
-# HANDOFF — resume pointer (updated 2026-06-13)
+# HANDOFF — resume pointer (updated 2026-06-23)
 
 > ============================================================================
-> ## CURRENT RESUME (2026-06-19 late EDT) -- READ THIS FIRST; supersedes every block below
+> ## CURRENT RESUME (2026-06-23) -- READ THIS FIRST; supersedes every block below
+> ============================================================================
+>
+> **Stage: pre-public-ship polish — DONE this session; awaiting owner review + commit.**
+>
+> **State:** branch `main`. **25 files changed, UNCOMMITTED** in the working tree (nothing committed/pushed this session). `npm run verify` = **EXIT 0, 513 tests pass / 0 fail**.
+>
+> **What happened (full detail in `PLAN-REVIEW-LOG.md`, last 3 entries):** a multi-perspective pre-ship pass — (1) docs drift-scan, (2) writing/dual-audience + supply-chain-domain + AI-eng evaluation, (3) public-ship blindspot + DoorDash cross-ref audit. All findings content-verified vs code (not memory). Fixes applied across README, docs/*, `.env.example`, and code.
+>
+> **Code changed (verify green):** `lib/server/security.ts` (prod = secure-by-default), `app/api/run-exception/route.ts` (no client error leak; logs via pino), component rename `launchops-dashboard.tsx → actionops-dashboard.tsx` (+ export `ActionOpsDashboard`, `app/page.tsx`, the test). Docs: reliability_positioning de-drafted + verified stats; resume/README 5-min→"same hour" + "war room"→"disruption response"; judge cross-family framing; 22→26; dataTier disambig; TTS/TTR; `docs/deploy.md` added; 7 stale docs → `docs/_archive/`.
+>
+> **NEXT SESSION — pick up here:**
+> 1. **Review the uncommitted diff** (`git status`/`git diff`), then commit when satisfied (user has not committed yet).
+> 2. **Owner-manual:** rotate the local Groq key in `.env` before any screen-share; decide on the 6 moderate `npm audit` residuals (no high/critical).
+> 3. **Optional:** retry the cross-model code-diff Codex pass (it deadlocked on shared-seat tooling 3× this session; seat now free). Low priority — executable gate (513 green) already proves the mechanical changes.
+> 4. **Open from before:** design direction still unsettled (see memory [[resilix-design-direction-open]]).
+>
+> **Canonical state lives in:** `PLAN-REVIEW-LOG.md` (the argument trail) + memory `resilix-public-ship-readiness.md` + `resilix-domain-terminology-source.md`. Verdict: **public REPO ship-ready; hosted DEMO unblocked (secure-by-default in prod).**
+>
+> ----- earlier resume (2026-06-19) below, superseded for ship-status but valid for build history -----
+>
+> ============================================================================
+> ## RESUME (2026-06-19 late EDT)
 > ============================================================================
 >
 > **LATEST (2026-06-20, local, push HELD):** the two owner-requested OPTIONAL polish items are DONE + locally gated (acceptance-gate + security-specialist + verify:full + a real prod-build browser smoke). Commits `936c6ef` (product-master allowlist -> the existence grader checks a real catalog, not the run's own inventory) + `d0eaf17`/`149f18d` (strict nonce-based CSP: `proxy.ts` + per-request nonce + `strict-dynamic`, drops `script-src 'unsafe-inline'`; `/` + 404 smoke-verified nonced, error route nonced by the same client-component mechanism (reasoned); Zod `jitless` for the prod CSP). **Codex cross-model gate DISCHARGED** (2026-06-20, owner's BACKUP account): REVISE(4: matcher `api`→`api/` so `/apiary` 404s get CSP, exposure-control test assertion, replay drift-guard source, stale comment) → fixed `d1d9200` → closure-1 REVISE(1 comment nit) → fixed `8a44ae9` → **closure-2 APPROVE (clean)**. Full gate stack COMPLETE (verify:full + prod smoke + acceptance-gate + security-specialist + Codex). Evidence: `docs/claude/gates/optional-hardening-2026-06-20.md`. New prod smoke: `scripts/prod-csp-smoke.mjs` (build + `next start` + run; not in verify). **PUSHED to `origin/main` 2026-06-20.** **Follow-on security pass (`84963e7`): COOP + CORP (same-origin) added; CSP report endpoint DEFERRED WITH REASON (no monitoring backend -> the prod smoke is the active drift detector); Codex BANKED (two static headers, below the cross-model threshold).** Also: a standalone design sample `samples/command-surface-sample.html` (uncommitted review artifact — the white/steel/no-green/anti-slop command-surface bar in one openable file).

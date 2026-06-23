@@ -10,9 +10,11 @@ file touched, nothing pushed.**
 ## What's in this branch (all NEW files)
 1. `lib/evals/deobfuscate.ts` + `evals/deobfuscate.test.ts` — **de-obfuscation pre-pass** for the injection leak scan. Closes an empirically-proven gap: homoglyph (Cyrillic/Greek), zero-width-split, and base64 instruction payloads all evade `graders.ts:normalizeForLeak` today (3/3 missed; control caught). The pre-pass folds them to ASCII so the existing deterministic scan keeps its teeth. **Core logic standalone-verified 2026-06-19** (without pre-pass: missed; with: caught; benign ASCII untouched).
 2. `lib/evals/failure-clustering.ts` + `evals/failure-clustering.test.ts` — **step-attribution / failure-clustering** (the FAPO pattern). Maps each grader → the pipeline organ it guards + failure class, aggregates a report (or the whole golden suite) into per-step / per-class buckets. Read-only over existing `GraderResult[]`; adds no grading, changes no verdict.
-3. `docs/reliability_positioning.md` — honest "why the human stays in the loop" positioning vs the documented reliability frontier (CRMArena `<65%`, Int'l AI Safety Report 2026). **Two figures marked ⚠ VERIFY-LIVE** — confirm at primary before any credibility-facing use.
+3. `docs/reliability_positioning.md` — honest "why the human stays in the loop" positioning vs the documented reliability frontier. **Both figures are now primary-verified (2026-06-22):** CRMArena-Pro ~58% single-turn / ~35% multi-turn (arXiv 2505.18878); Int'l AI Safety Report 2026 (arXiv 2602.21012). The ⚠ VERIFY-LIVE flag is discharged.
 
-## The ONE wiring step (deferred — `graders.ts` was hot)
+## The ONE wiring step — RESOLVED (wired 2026-06-22)
+> **Done.** `graders.ts` now imports `deobfuscate` and applies `normalizeForLeak(deobfuscate(...))` at `lib/evals/graders.ts:426,453` — the defense is active. The original instructions are kept below as the record of what was wired.
+
 The de-obfuscation defense is only *active* once wired into the scan. In `lib/evals/graders.ts`:
 ```ts
 import { deobfuscate } from "./deobfuscate";
