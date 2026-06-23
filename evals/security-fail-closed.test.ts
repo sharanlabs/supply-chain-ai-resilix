@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   APPROVAL_TOKEN_HEADER,
   N8N_CALLBACK_SECRET_HEADER,
@@ -41,6 +41,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs(); // restore any vi.stubEnv (e.g. the NODE_ENV=production case)
   for (const k of ENV_KEYS) {
     if (saved[k] === undefined) delete process.env[k];
     else process.env[k] = saved[k];
@@ -69,6 +70,17 @@ describe("P2.7 secureModeRequired()", () => {
   });
   it("TRUE with the explicit REQUIRE_APPROVAL_TOKEN opt-in", () => {
     process.env.REQUIRE_APPROVAL_TOKEN = "true";
+    expect(secureModeRequired()).toBe(true);
+  });
+
+  // A hosted production deploy is secure-by-default: even with no DATABASE_URL /
+  // live AI / opt-in flag, NODE_ENV=production must require the token so a public
+  // `next start` never leaves the mutation surface authless. (vitest.config pins
+  // NODE_ENV=test for the suite, so this test sets+restores it locally.)
+  it("TRUE when NODE_ENV=production (hosted deploy is secure-by-default)", () => {
+    // vi.stubEnv keeps the assignment type-safe (Next types NODE_ENV read-only)
+    // and auto-restores via the afterEach unstub below.
+    vi.stubEnv("NODE_ENV", "production");
     expect(secureModeRequired()).toBe(true);
   });
 

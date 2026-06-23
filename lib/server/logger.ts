@@ -45,7 +45,22 @@ export const REDACT_PATHS = [
   "APPROVAL_TOKEN",
   "N8N_CALLBACK_SECRET",
   "callbackSecret",
-  "*.callbackSecret"
+  "*.callbackSecret",
+  // The pino `err` serializer is auto-enabled for the `err` key and copies an
+  // Error's enumerable own-properties -- so a thrown error carrying request
+  // headers or a config snapshot must be redacted under `err.*` too (the
+  // run-exception route logs `{ err }`). The `*.token/apiKey/DATABASE_URL/
+  // callbackSecret` wildcards above already reach `err.token` etc.; these close
+  // the remaining secret shapes (bearer header, callback header, named keys).
+  "err.authorization",
+  "err.Authorization",
+  "err.headers.authorization",
+  "err.headers.Authorization",
+  'err.headers["x-resilix-callback-secret"]',
+  "err.APPROVAL_TOKEN",
+  "err.N8N_CALLBACK_SECRET",
+  "err.GEMINI_API_KEY",
+  "err.GROQ_API_KEY"
 ];
 
 export const logger = pino({

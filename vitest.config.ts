@@ -4,6 +4,11 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
+    // Pin NODE_ENV=test for the whole suite so it is deterministic regardless of
+    // the ambient shell. Without this, `NODE_ENV=production npm test` would flip
+    // secureModeRequired() (prod = secure-by-default) true and break every test
+    // that assumes the authless in-memory demo baseline.
+    env: { NODE_ENV: "test" },
     testTimeout: 20_000,
     include: ["evals/**/*.test.ts", "evals/**/*.test.tsx"],
     coverage: {
