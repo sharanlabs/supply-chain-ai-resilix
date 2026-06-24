@@ -25,9 +25,20 @@
 > exists to switch to; "switch to primary" was a no-op (already on it). The credits-based **backup** is
 > a different login, left untouched/preserved.
 >
-> **NEXT SESSION:** redesign is shipped + gated + pushed. Remaining are the same non-blocking owner
-> judgment-calls (briefing length · per-claim "Source detail" density · masthead wording) and the
-> separately-open Claude-Design A/B/C *visual* concept exploration (memory [[resilix-design-direction-open]]).
+> **ALSO DONE 2026-06-24 (non-design finish pass):** (a) **deployment PREP** — `verify:full` GREEN
+> first-hand (515 unit / 21 skipped + 14 e2e + build + secrets); current **`docs/demo.md`** key-off
+> walkthrough (supersedes the stale archived script); todo deployment line reconciled. (b) **Live-AI
+> validation** — owner provided `GEMINI_API_KEY`; ran the gated D.9 live eval (`gemini-2.5-flash`):
+> **8/8 scenarios genuinely live** (LIVE_AI, cost>0, ≤$5/scenario, <5 min), the live `NO_ACTION`
+> refusal holds, and `runGraders().blocked===false` on every real draft → the **Wave-2 citation/numeral
+> grader calibration is closed** (no false-positive blocks on real Gemini output). Exact $ not captured
+> (vitest intercepts the cost log; bound >$0 ≤$5/scenario). **The ONE owner action left = the actual
+> hosted deploy** (host choice + `REQUIRE_APPROVAL_TOKEN=true` for a shared demo).
+>
+> **NEXT SESSION:** redesign + build are shipped + gated + pushed; live path validated. Remaining are
+> the non-blocking owner judgment-calls (briefing length · per-claim "Source detail" density · masthead
+> wording), the optional hosted deploy, and the separately-open Claude-Design A/B/C *visual* concept
+> exploration (memory [[resilix-design-direction-open]]).
 >
 > ----- prior resume (2026-06-24) below; valid for build history, superseded on gate/push status -----
 
