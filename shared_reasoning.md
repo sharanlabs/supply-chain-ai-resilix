@@ -326,3 +326,27 @@ The artifact's defensible story is then: not "I built agents" but **"I built an 
 **Honest gaps:** (a) Raw practitioner forum voice (Reddit/HN) still thin — substituted trade-press + review aggregators. (b) Whether incumbents cite internally (un-marketed) — unverifiable from outside; steelmanned as a risk to the citation moat. (c) No GenAI-native supply-chain entrant marketing citation-grounding surfaced — could be a true open niche or my search missing a stealth player. (d) Big-4 internal tooling depth unverifiable (consulting IP is private).
 
 ---
+
+## Session: 2026-06-24 — Front-screen storytelling-arc redesign + 360° post-completion review
+
+**What:** Reworked the `/` front surface so a non-technical procurement lead reads it as one human briefing, not a tour of the system. Decision-rule + cited basis in `docs/storytelling-arc-redesign.md` (grounded in two live research passes: consumer crisis-to-action arcs + authoritative SCRM terminology — no training memory). Implementation: consolidated the 4-tab analyst layer into one flowing briefing (old Events feed → on-demand disclosure); stripped builder/AI machinery off the glass (raw enums, `dataTier`, `VERIFIER·mode`, dotted `sourcePath`→"Source detail" trace, raw `gatekeeper.status`/`sector`); humanized the run-mode label (`REPLAY`→"Recorded") + audit action codes; renamed on-glass artifact "Decision packet"→"Response plan"; added the trust promise; `corroborated`→`confirmed`. Honesty preserved (recorded provenance shown, `LIVE_AI` never claimed, exact mode in `title`/audit).
+
+**360° evaluation (maker≠judge — 4 independent judges, parallel):**
+- **acceptance-gate** → BLOCK (round 1): caught the `sourcePath` leak on default glass + a test that *encoded* it; flagged the mandatory cross-model + pasted-verification handoffs. Addressed.
+- **layperson** → 4/5; the spine ("The threat / Who is hit / How fast it bites / Your call") reads human; flagged ~dozen machinery leaks.
+- **procurement practitioner** → "rings true"; data-freshness honesty strongest; flagged `FAILED_TO_FALLBACK` chip + "Code calculates…the AI drafts" as top trust-killers.
+- **language/human-resonance** → clean voice, above slop baseline; flagged enum leaks + "packet"/"plan" wobble + over-stacked never-sends.
+
+**Cross-model gate (Codex, mandatory) — 3 real rounds, converged 9 → 6 → 3, ALL addressed:**
+- R1 (9): incl. the `sourcePath` glass leak + a **security-adjacent honesty bug** — "All source links verified" was bound to `gatekeeper.failures`, not the actual `evidenceAllowlistPassed` HttpUrlSchema result (could claim "verified" while a `javascript:`/`data:` URL was filtered). Re-bound. + audit action-code humanization (they DO show on the default glass).
+- R2 (6): raw `gatekeeper.status`/`sector` enums; confidence-count honesty; repeated disclosure a11y names; `summary` target-size + keyboard-operability coverage (replacing retired tablist coverage); `summary:focus-visible` ring.
+- R3 (3): "recorded source"→"named source", "verified"→"passed the safety check", doc "PASS"→"Cleared".
+- R4 confirmation **blocked by Codex account usage limit** ("try again Jul 20 2026"). Per **primary-model-final**: reviewed the R3 fixes myself — they fully/correctly close R3; only the APPROVED token is deferred, not substance. One documented partial-refute: kept "no live AI is claimed" (owner sanctioned helpful AI wording; honest *negative* claim).
+
+**Verification (final, raw):** typecheck ✓ · eslint `--max-warnings=0` ✓ · **515 unit / 21 skipped** ✓ · **14 Playwright e2e** (new: source-path-hidden, keyboard-disclosure operability, strengthened replay-provenance) ✓ · build ✓. No XSS/URL-sink regression (Codex-confirmed: `safeHref` + HttpUrlSchema + `noopener` intact).
+
+**Files:** `components/action-packet-view.tsx`, `components/actionops-dashboard.tsx` (rewritten), `components/tab-nav.tsx` (deleted), `app/globals.css`, `evals/actionops-packet-view.test.tsx`, `evals/e2e/a11y.spec.ts`, `docs/storytelling-arc-redesign.md` (new), `docs/claude/A11Y-MANUAL-SR-PASS.md`. Uncommitted (owner to review/commit).
+
+**Open owner items:** (1) review + commit the diff; (2) optional: re-run Codex APPROVED-token confirmation after Jul 20 (substance already addressed); (3) deliberate call left as-is — audit-trail *detail* prose keeps exact mode words ("Served from recorded data"), correct for a compliance log.
+
+---

@@ -6,14 +6,16 @@ import { AxeBuilder } from "@axe-core/playwright";
 // measurements that axe cannot make under OKLCH. The MANUAL screen-reader pass
 // is layer 3 (a human step -- see docs/claude/A11Y-MANUAL-SR-PASS.md).
 //
-// Scope: the live `/` route. Its DEFAULT tab is "packet" -> the V2 ActionOps
-// view (components/action-packet-view.tsx). The landing surface renders a FROZEN
-// live-captured packet served as a recorded REPLAY (loadReplayPacket) -- genuine
-// captured pipeline output (a real live Gemini run), not a hardcoded demo -- so this
-// scans real, rich output in a real browser (it is NOT jsdom-only). The other three
-// tabs (Recorded Events / Exposure / Simulation) are scanned too. The former V1
-// LaunchOps "Run live pipeline" panel was retired in the D.1 cutover, so there is no
-// V1 surface left to exclude.
+// Scope: the live `/` route -> the V2 ActionOps view
+// (components/action-packet-view.tsx). The calm-command-center rework consolidated
+// the former four-tab layer into ONE flowing briefing, so there is a single
+// surface to scan (no tablist). The exposure table, runway simulation, raw signal
+// feed, playbooks and tasks all live in the one briefing -- the on-demand ones
+// behind <details>, which the "every disclosure expanded" scan opens so axe still
+// covers them. The landing surface renders a FROZEN live-captured packet served as
+// a recorded REPLAY (loadReplayPacket) -- genuine captured pipeline output (a real
+// live Gemini run), not a hardcoded demo -- so this scans real, rich output in a
+// real browser (it is NOT jsdom-only).
 //
 // Every scan/measurement first awaits settle() -- all running animations have
 // finished -- so axe and the geometric reads see the FINAL frame, never a
@@ -24,15 +26,6 @@ import { AxeBuilder } from "@axe-core/playwright";
 
 // WCAG normative A + AA, including the 2.2 additions (axe tags them wcag22aa).
 const WCAG_AA_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
-
-// The four ActionOps tabs in DOM order. The events tab reads "Recorded Events"
-// (no live signal in the seeded demo), so match on the stable word.
-const TABS = [
-  { key: "events", name: /Events/ },
-  { key: "exposure", name: /Exposure/ },
-  { key: "simulation", name: /Simulation/ },
-  { key: "packet", name: /Action Packet/ }
-] as const;
 
 // --- WCAG relative-luminance contrast, from ground-truth sRGB ---------------
 function channelLin(c8: number): number {
@@ -209,32 +202,87 @@ test("the `/` surface renders REPLAY with a dated capture, never labeled live", 
   await expect(provenance).toBeVisible();
   await expect(provenance).toContainText(/\d{4}-\d{2}-\d{2}/);
 
-  // The packet's mode label reads REPLAY (the relabeled effectiveMode), and the rich
-  // live-quality content is present (this is the point of serving the captured packet).
+  // The briefing's mode chip reads as the human label "Recorded" (the relabeled
+  // effectiveMode -- the raw REPLAY enum is humanized on the calm glass, kept only
+  // in the chip's title for an auditor). The audit trail still records the exact
+  // "REPLAY_SERVED" provenance entry -- that is the honest compliance log, not the
+  // briefing spine, so REPLAY legitimately appears there.
   const packetView = page.getByTestId("actionops-packet");
-  await expect(packetView).toContainText("REPLAY");
+  // Specific, not generic: the mode chip is genuinely REPLAY (its title attribute)
+  // AND is humanized to "Recorded" on the glass -- so this can't pass from
+  // unrelated "Recorded" copy, and proves the raw enum was relabeled.
+  await expect(packetView.locator('[title="REPLAY"]')).toContainText("Recorded");
 
-  // Never labeled live: no LIVE_AI mode token anywhere on the rendered surface.
+  // Never labeled live: the surface must never claim a live AI call, and the raw
+  // run-mode enum must not be the visible label.
+  await expect(packetView).not.toContainText("LIVE_AI");
   await expect(page.locator("body")).not.toContainText("LIVE_AI");
 });
 
 // ===========================================================================
-// Layer 1 -- axe-core WCAG 2.2 AA over every tab.
+// Machinery-off-the-glass: the raw dotted claim source-path must live behind a
+// closed disclosure, not on the default front screen a non-technical lead reads.
+// ===========================================================================
+test("raw claim source-paths are hidden until their disclosure is opened", async ({
+  page
+}) => {
+  await page.goto("/");
+  await settle(page);
+  const packetView = page.getByTestId("actionops-packet");
+  // The dotted machine path exists in the DOM (claims carry a sourcePath) ...
+  const path = packetView
+    .getByText(/exposureResults\[|simulation\.horizons\[/)
+    .first();
+  await expect(path).toHaveCount(1);
+  // ... but it is inside a CLOSED <details>, so it is NOT visible by default.
+  await expect(path).not.toBeVisible();
+
+  // Opening every disclosure reveals it -- proving the hide is the closed-details
+  // behavior, not a dead/empty node (non-vacuous).
+  await page.evaluate(() =>
+    document
+      .querySelectorAll("details")
+      .forEach((d) => d.setAttribute("open", ""))
+  );
+  await expect(
+    packetView.getByText(/exposureResults\[|simulation\.horizons\[/).first()
+  ).toBeVisible();
+});
+
+// ===========================================================================
+// Layer 1 -- axe-core WCAG 2.2 AA over the consolidated briefing.
 // ===========================================================================
 test.describe("a11y / layer 1 -- axe WCAG 2.2 AA", () => {
-  for (const tab of TABS) {
-    test(`no axe violations on the ${tab.key} tab`, async ({ page }) => {
-      await page.goto("/");
-      await page.getByRole("tab", { name: tab.name }).click();
-      await expect(page.getByRole("tabpanel")).toBeVisible();
-      await settle(page);
+  test("no axe violations on the briefing (default state)", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("actionops-packet")).toBeVisible();
+    await settle(page);
 
-      const results = await new AxeBuilder({ page })
-        .withTags([...WCAG_AA_TAGS])
-        .analyze();
-      await assertAxeClean(page, results, `${tab.key} tab`);
-    });
-  }
+    const results = await new AxeBuilder({ page })
+      .withTags([...WCAG_AA_TAGS])
+      .analyze();
+    await assertAxeClean(page, results, "briefing default");
+  });
+
+  test("no axe violations with every disclosure expanded", async ({ page }) => {
+    // The consolidated briefing folds the signal feed, the per-draft bodies, the
+    // role playbooks + task list, and the older audit entries behind <details>.
+    // Open them all so axe scans that on-demand content too -- each was its own
+    // tab/panel before the consolidation.
+    await page.goto("/");
+    await expect(page.getByTestId("actionops-packet")).toBeVisible();
+    await page.evaluate(() =>
+      document
+        .querySelectorAll("details")
+        .forEach((d) => d.setAttribute("open", ""))
+    );
+    await settle(page);
+
+    const results = await new AxeBuilder({ page })
+      .withTags([...WCAG_AA_TAGS])
+      .analyze();
+    await assertAxeClean(page, results, "briefing expanded");
+  });
 
   test("no axe violations after the packet is approved", async ({ page }) => {
     await page.goto("/");
@@ -254,58 +302,9 @@ test.describe("a11y / layer 1 -- axe WCAG 2.2 AA", () => {
 });
 
 // ===========================================================================
-// Layer 2 -- keyboard operability (ARIA APG tablist) + visible focus.
+// Layer 2 -- keyboard operability + visible focus.
 // ===========================================================================
 test.describe("a11y / layer 2 -- keyboard operability", () => {
-  test("roving tabindex + arrow nav + Tab into the panel (APG)", async ({
-    page
-  }) => {
-    await page.goto("/");
-    const tablist = page.getByRole("tablist", {
-      name: "Action packet sections"
-    });
-    await expect(tablist).toBeVisible();
-    await expect(page.getByRole("tab")).toHaveCount(4);
-
-    // Default selected = "Action Packet". Roving tabindex: exactly the selected
-    // tab is tabbable; the others are removed from the Tab sequence.
-    const selected = page.getByRole("tab", { selected: true });
-    await expect(selected).toHaveAttribute("id", "actionops-tab-packet");
-    await expect(selected).toHaveAttribute("tabindex", "0");
-    await expect(
-      page.getByRole("tab", { name: /Exposure/ })
-    ).toHaveAttribute("tabindex", "-1");
-
-    // ArrowRight from the last tab wraps to the first, and selection follows
-    // focus (automatic activation).
-    await selected.focus();
-    await page.keyboard.press("ArrowRight");
-    await expect(page.getByRole("tab", { selected: true })).toHaveAttribute(
-      "id",
-      "actionops-tab-events"
-    );
-    await expect(page.locator(":focus")).toHaveAttribute(
-      "id",
-      "actionops-tab-events"
-    );
-
-    // ArrowLeft wraps back to the last tab.
-    await page.keyboard.press("ArrowLeft");
-    await expect(page.getByRole("tab", { selected: true })).toHaveAttribute(
-      "id",
-      "actionops-tab-packet"
-    );
-
-    // Per APG, Tab from the active tab moves focus INTO the panel (tabIndex=0),
-    // not to the next tab in the list.
-    await page.getByRole("tab", { selected: true }).focus();
-    await page.keyboard.press("Tab");
-    await expect(page.locator(":focus")).toHaveAttribute(
-      "id",
-      "actionops-tabpanel"
-    );
-  });
-
   test("keyboard focus triggers a visible :focus-visible ring", async ({
     page
   }) => {
@@ -322,6 +321,54 @@ test.describe("a11y / layer 2 -- keyboard operability", () => {
       return el ? parseFloat(getComputedStyle(el).outlineWidth) : 0;
     });
     expect(outlineWidth).toBeGreaterThanOrEqual(2);
+  });
+
+  // The consolidation replaced the tablist with <details> disclosures as the
+  // primary in-content interactive controls (signal feed, draft bodies, the claim
+  // source-detail traces, playbooks/tasks). Cover their keyboard operability +
+  // focus ring -- the coverage that left with the tablist test.
+  test("briefing disclosures are keyboard-operable with a visible focus ring", async ({
+    page
+  }) => {
+    await page.goto("/");
+    await settle(page);
+
+    // Tab from the top until focus lands on a <summary> -- proves the disclosures
+    // are keyboard-REACHABLE (not just clickable), and a REAL Tab (not programmatic
+    // focus) is what drives the engine into :focus-visible.
+    let onSummary = false;
+    for (let i = 0; i < 30 && !onSummary; i++) {
+      await page.keyboard.press("Tab");
+      onSummary = await page.evaluate(
+        () => document.activeElement?.tagName === "SUMMARY"
+      );
+    }
+    expect(onSummary, "no <summary> reachable by Tab").toBe(true);
+
+    // The focused summary shows the 2px accent ring (globals.css now includes
+    // summary:focus-visible).
+    expect(
+      await page.evaluate(
+        () => document.querySelector("summary:focus-visible") !== null
+      )
+    ).toBe(true);
+    const outlineWidth = await page.evaluate(() => {
+      const el = document.activeElement;
+      return el ? parseFloat(getComputedStyle(el).outlineWidth) : 0;
+    });
+    expect(outlineWidth).toBeGreaterThanOrEqual(2);
+
+    // Enter toggles the focused disclosure open then closed (SC 2.1.1).
+    const focusedDetailsOpen = () =>
+      page.evaluate(() => {
+        const d = document.activeElement?.closest("details");
+        return d ? (d as HTMLDetailsElement).open : null;
+      });
+    expect(await focusedDetailsOpen()).toBe(false);
+    await page.keyboard.press("Enter");
+    expect(await focusedDetailsOpen()).toBe(true);
+    await page.keyboard.press("Enter");
+    expect(await focusedDetailsOpen()).toBe(false);
   });
 });
 
@@ -392,11 +439,11 @@ test.describe("a11y / SC 2.5.8 target size (G-3)", () => {
     await settle(page);
     // SC 2.5.8 (AA, 24px). Scope is EVERY author-styled control on the rendered
     // surface -- not just the evidence links -- so a small target can't slip the
-    // gate. The native "Live signals" checkbox (measured 13x13) is deliberately
-    // excluded: it is the UA-control exception (size set by the user agent, not
-    // the author). The evidence links are a list, not a sentence, so they get no
-    // inline exception and were the genuine fix (16px -> padded to 24px).
-    const targets = page.locator('a[href], button, [role="tab"]');
+    // gate. The evidence links are a list, not a sentence, so they get no inline
+    // exception and were the genuine fix (16px -> padded to 24px). <summary>
+    // disclosures are the briefing's primary in-content controls now, so they are
+    // in scope too (the "Source detail" trace was widened to clear 24px).
+    const targets = page.locator("a[href], button, summary");
     const count = await targets.count();
     expect(count).toBeGreaterThan(0);
     const undersized: string[] = [];
@@ -433,7 +480,7 @@ test.describe("a11y / SC 2.5.8 target size (G-3)", () => {
 // G-4 -- SC 1.4.11 Non-text Contrast for the runway/exposure bars.
 // ===========================================================================
 test.describe("a11y / SC 1.4.11 non-text contrast (G-4)", () => {
-  test("every runway bar on every tab clears >=3:1 against its own track", async ({
+  test("every runway bar on the briefing clears >=3:1 against its own track", async ({
     page
   }) => {
     // The bar conveys magnitude by LENGTH; to read the length the filled extent
@@ -457,52 +504,42 @@ test.describe("a11y / SC 1.4.11 non-text contrast (G-4)", () => {
       );
     }
 
-    // Check EVERY rendered bar on EVERY tab that draws bars -- the packet view
-    // (gradient fills) AND the dashboard exposure/simulation tabs (solid fills).
-    // Each .runway-fill must carry a >=1px edge clearing 3:1 against ITS OWN
-    // track background (read per-element, not assumed).
-    const barTabs = [
-      { key: "exposure", name: /Exposure/ },
-      { key: "simulation", name: /Simulation/ },
-      { key: "packet", name: /Action Packet/ }
-    ];
+    // Check EVERY rendered bar in the consolidated briefing -- the WHO-IS-HIT
+    // exposure bars AND the runway horizon bars both draw .runway-fill. Each must
+    // carry a >=1px edge clearing 3:1 against ITS OWN track background (read
+    // per-element, not assumed). The page is already at "/" and settled above.
+    const fills = page.locator(".runway-fill");
+    const n = await fills.count();
+    expect(n, "no exposure/runway bars on the briefing").toBeGreaterThan(0);
     let totalBars = 0;
-    for (const tab of barTabs) {
-      await page.goto("/");
-      await page.getByRole("tab", { name: tab.name }).click();
-      await settle(page);
-      const fills = page.locator(".runway-fill");
-      const n = await fills.count();
-      expect(n, `no runway bars on the ${tab.key} tab`).toBeGreaterThan(0);
-      for (let i = 0; i < n; i++) {
-        const data = await fills.nth(i).evaluate((el) => {
-          const s = getComputedStyle(el);
-          const track = el.closest(".runway-track");
-          return {
-            edgeColor: s.borderTopColor,
-            edgeWidth: parseFloat(s.borderTopWidth),
-            trackBg: track ? getComputedStyle(track).backgroundColor : ""
-          };
-        });
-        expect(
-          data.edgeWidth,
-          `${tab.key} bar #${i} has no >=1px boundary`
-        ).toBeGreaterThanOrEqual(1);
-        const trackRgb = data.trackBg
-          ? await resolveSrgb(page, data.trackBg)
-          : sink;
-        const ratio = contrastRatio(
-          await resolveSrgb(page, data.edgeColor),
-          trackRgb
-        );
-        expect(
-          ratio,
-          `${tab.key} bar #${i} edge vs its track = ${ratio.toFixed(2)}:1 < 3 (fills vs sink: ${JSON.stringify(fillReport)})`
-        ).toBeGreaterThanOrEqual(3);
-        totalBars++;
-      }
+    for (let i = 0; i < n; i++) {
+      const data = await fills.nth(i).evaluate((el) => {
+        const s = getComputedStyle(el);
+        const track = el.closest(".runway-track");
+        return {
+          edgeColor: s.borderTopColor,
+          edgeWidth: parseFloat(s.borderTopWidth),
+          trackBg: track ? getComputedStyle(track).backgroundColor : ""
+        };
+      });
+      expect(
+        data.edgeWidth,
+        `bar #${i} has no >=1px boundary`
+      ).toBeGreaterThanOrEqual(1);
+      const trackRgb = data.trackBg
+        ? await resolveSrgb(page, data.trackBg)
+        : sink;
+      const ratio = contrastRatio(
+        await resolveSrgb(page, data.edgeColor),
+        trackRgb
+      );
+      expect(
+        ratio,
+        `bar #${i} edge vs its track = ${ratio.toFixed(2)}:1 < 3 (fills vs sink: ${JSON.stringify(fillReport)})`
+      ).toBeGreaterThanOrEqual(3);
+      totalBars++;
     }
-    // Sanity: this exercised many bars across tabs, not a single representative.
+    // Sanity: this exercised many bars (exposure + runway), not a single one.
     expect(totalBars).toBeGreaterThanOrEqual(5);
   });
 });

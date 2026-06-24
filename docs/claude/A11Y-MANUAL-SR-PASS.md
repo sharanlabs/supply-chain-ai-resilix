@@ -7,12 +7,15 @@ and *no* automated tool can confirm that a live region is actually *announced* o
 that the reading order makes sense. Only a human with a screen reader can.
 
 Run this once after the component-G a11y work, and again whenever the V2 Action
-Packet view (`components/action-packet-view.tsx`) or the tab shell
-(`components/launchops-dashboard.tsx`, `components/tab-nav.tsx`) changes shape.
+Packet view (`components/action-packet-view.tsx`) or the command-surface shell
+(`components/actionops-dashboard.tsx`) changes shape. (The former four-tab layer
+and `components/tab-nav.tsx` were folded into the single briefing in the
+calm-command-center rework.)
 
 ## Setup (~10 minutes, macOS)
 
-1. `npm run dev`, open `http://localhost:3000/` (the default tab is **Action Packet**).
+1. `npm run dev`, open `http://localhost:3000/` (one flowing briefing -- the
+   former four-tab layer was consolidated in the calm-command-center rework).
 2. Turn on **VoiceOver**: `Cmd+F5` (or Touch ID triple-press). `Ctrl` silences speech.
 3. Navigate with `Ctrl+Option+→/←` (next/previous item), `Ctrl+Option+Cmd+H`
    (next heading), `VO+U` (rotor: headings / links / form controls / landmarks).
@@ -25,29 +28,31 @@ Packet view (`components/action-packet-view.tsx`) or the tab shell
 - [ ] With **VoiceOver running and focus left alone**, the page loads on the
       seeded demo (recorded signals). The persistent live region
       (`data-testid="mode-status"`) is **silent** on a healthy live packet.
-- [ ] To exercise the announce path: the degraded copy ("Live AI unavailable …
-      degraded fallback mode") must be **spoken without moving focus** when a
-      packet flips to `FAILED_TO_FALLBACK`. (Reproduce by approving on a degraded
-      packet, or temporarily seeding `effectiveMode: "FAILED_TO_FALLBACK"`.)
+- [ ] To exercise the announce path: the degraded copy ("The live data feed is
+      down. This plan is running on recorded data …") must be **spoken without
+      moving focus** when a packet flips to `FAILED_TO_FALLBACK`. (Reproduce by
+      approving on a degraded packet, or temporarily seeding
+      `effectiveMode: "FAILED_TO_FALLBACK"`.)
       This is the heart of layer 3 — automation only proves the node's text
       changed, not that AT voiced it.
 
 ### Headings + reading order
 - [ ] Rotor → Headings reads a sensible outline: H1 (the at-risk lede) → H2s
-      (Threat card, Supplier exposure, Runway, …, Approve the action packet,
-      Audit trail) → H3s (Product runout, role playbooks). No skipped/empty levels.
+      (Threat card, Supplier exposure, Runway, …, Your call, Audit trail) → H3s
+      (Product runout, role playbooks). No skipped/empty levels.
 - [ ] Linear `VO+→` reading order matches the visual briefing order; the sticky
-      decision rail (approve/gatekeeper/audit) reads as a coherent group.
+      decision rail (approve / automatic checks / audit) reads as a coherent group.
 
-### Tablist (ARIA APG)
-- [ ] The 4 section tabs announce as **"tab, selected, N of 4"** with the section
-      name; `←/→` moves between them and the new panel content is reachable.
-- [ ] `Tab` from the active tab lands **inside** the panel, not on the next tab.
+### Disclosures (the consolidated briefing's in-content controls)
+- [ ] Each `<summary>` (the signal feed, "Read the draft", "Source detail" claim
+      traces, "Working detail -- playbooks & tasks", earlier audit entries)
+      announces as a disclosure, is reachable by `Tab`, shows the focus ring, and
+      toggles with `Enter`/`Space`; the revealed content is then read in order.
 
-### Approve control + gatekeeper
-- [ ] The **Approve packet** button announces its label and, when disabled, the
+### Approve control + automatic checks
+- [ ] The **Approve plan** button announces its label and, when disabled, the
       reason (`aria-describedby` → the blocked reason) is read out.
-- [ ] The gatekeeper PASS state and its checklist read clearly; a person
+- [ ] The **Automatic checks** "Cleared" state and its checklist read clearly; a person
       understands *why* approval is allowed before acting (the automation-bias
       guard — distinct from the deferred G-10 UX review).
 

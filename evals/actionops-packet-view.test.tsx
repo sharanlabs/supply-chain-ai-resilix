@@ -13,12 +13,22 @@ describe("ActionOpsPacketView (V2 render)", () => {
   it("renders the plan-locked ActionOps sections", () => {
     render(<ActionOpsPacketView packet={makeV2Packet()} />);
 
-    // Threat card.
+    // Threat card. The raw eventType enum (CHOKEPOINT_CLOSURE) and the dataTier
+    // token (SEEDED) were removed from the glass in the calm-command-center
+    // relanguage -- they are builder machinery a procurement lead does not read.
+    // The human threat headline carries the meaning instead.
     expect(screen.getByText(/Hormuz transit disruption/)).toBeInTheDocument();
-    expect(screen.getByText("CHOKEPOINT_CLOSURE")).toBeInTheDocument();
-    expect(screen.getByText("SEEDED")).toBeInTheDocument();
-    // Exposure.
-    expect(screen.getByText("Gulf Components Ltd")).toBeInTheDocument();
+    // Regression guard: the stripped builder machinery must NOT render on the
+    // default view -- assert ABSENCE, so a future re-leak fails loud (the raw
+    // eventType enum, the dataTier token, and the raw run-mode enum).
+    expect(screen.queryByText("CHOKEPOINT_CLOSURE")).not.toBeInTheDocument();
+    expect(screen.queryByText("SEEDED")).not.toBeInTheDocument();
+    expect(screen.queryByText("REPLAY")).not.toBeInTheDocument();
+    // Exposure -- the supplier name now reads in BOTH the exposure table and the
+    // draft card header (the card shows the human name, no longer the raw ID).
+    expect(
+      screen.getAllByText("Gulf Components Ltd").length
+    ).toBeGreaterThan(0);
     // Runway simulation horizon (revenue-at-risk formatted).
     expect(screen.getByText("7-day")).toBeInTheDocument();
     // Supplier draft + its claim sourcePath, and the never-sends guard. The
@@ -28,9 +38,21 @@ describe("ActionOpsPacketView (V2 render)", () => {
     expect(
       screen.getByText(/nothing leaves the building until a person sends/i)
     ).toBeInTheDocument();
+    // The plain-English provenance leads on the glass; the exact machine path is
+    // tucked behind a per-claim "trace" disclosure (drill-down), so a procurement
+    // lead never reads a dotted code path by default -- assert BOTH: the human
+    // phrase is present, and the raw path lives inside a <details>.
     expect(
-      screen.getByText(/simulation\.horizons\[0\]\.revenueAtRiskUsd/)
-    ).toBeInTheDocument();
+      screen.getAllByText(/from the runway simulation/i).length
+    ).toBeGreaterThan(0);
+    const tracePath = screen.getByText(
+      /simulation\.horizons\[0\]\.revenueAtRiskUsd/
+    );
+    const traceDetails = tracePath.closest("details");
+    expect(traceDetails).toBeInTheDocument();
+    // The disclosure is CLOSED by default -- the raw path is drill-down, never on
+    // the default glass (a stray `open` would re-leak it).
+    expect(traceDetails).not.toHaveAttribute("open");
     // Action item (now under the collapsed "working detail" disclosure, but
     // still rendered in the DOM, so getByText resolves it).
     expect(screen.getByText("Confirm backup supplier capacity")).toBeInTheDocument();
@@ -139,7 +161,13 @@ describe("ActionOpsPacketView (V2 render)", () => {
         packet={makeV2Packet({ effectiveMode: "FAILED_TO_FALLBACK" })}
       />
     );
-    expect(screen.getByText(/Degraded - no live AI/)).toBeInTheDocument();
+    // "Live feed down" now reads consistently in BOTH the approve-rail badge and
+    // the humanized audit-footer mode chip -- so assert at least one, not exactly
+    // one (the old raw "FAILED_TO_FALLBACK" enum is gone from the glass; it lives
+    // only in the chip's title attribute now).
+    expect(
+      screen.getAllByText(/Live feed down/).length
+    ).toBeGreaterThan(0);
   });
 
   it("announces mode changes via a persistent live region (WCAG 2.2 SC 4.1.3)", () => {
@@ -150,7 +178,7 @@ describe("ActionOpsPacketView (V2 render)", () => {
     const region = screen.getByTestId("mode-status");
     expect(region).toHaveAttribute("role", "status");
     expect(region).toHaveAttribute("aria-live", "polite");
-    expect(region).not.toHaveTextContent(/degraded fallback/i);
+    expect(region).not.toHaveTextContent(/running on recorded data/i);
 
     // The SAME persistent node's text changes on a degraded rerender, so AT
     // announces it without moving focus.
@@ -160,7 +188,7 @@ describe("ActionOpsPacketView (V2 render)", () => {
       />
     );
     expect(screen.getByTestId("mode-status")).toHaveTextContent(
-      /degraded fallback mode/i
+      /running on recorded data/i
     );
   });
 });

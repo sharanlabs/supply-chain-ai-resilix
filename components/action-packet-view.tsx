@@ -69,6 +69,81 @@ function confidenceWord(pct: number) {
   return "low";
 }
 
+// A plain-English label for the run mode, so the audit footer reads "Recorded",
+// never the raw enum (REPLAY / FAILED_TO_FALLBACK) a procurement lead should not
+// have to decode. The exact mode stays available on hover (title) for an auditor.
+function modeLabel(mode: DecisionPacketV2["effectiveMode"]): string {
+  switch (mode) {
+    case "LIVE_AI":
+      return "Live";
+    case "DETERMINISTIC_RULES":
+      return "Recorded data";
+    case "FAILED_TO_FALLBACK":
+      return "Live feed down";
+    case "REPLAY":
+    default:
+      return "Recorded";
+  }
+}
+
+// Plain-English audit labels, so the trail reads "Approved" / "Served from
+// recorded data", not the raw enum (HUMAN_APPROVAL / REPLAY_SERVED) a
+// non-technical reviewer would have to decode. The enum stays the stored value
+// (the DB + the API evals assert on it); this is presentation only. Any unmapped
+// action degrades to a title-cased form of its code, never a blank.
+function auditActionLabel(action: string): string {
+  switch (action) {
+    case "HUMAN_APPROVAL":
+      return "Approved";
+    case "HUMAN_REJECTION":
+      return "Returned for revision";
+    case "REPLAY_SERVED":
+      return "Served from recorded data";
+    case "N8N_APPROVAL_CALLBACK":
+      return "Approval confirmed";
+    case "SCENARIO_RUN":
+    case "PIPELINE_RUN":
+      return "Plan compiled";
+    default:
+      return action
+        .toLowerCase()
+        .split(/[_\s]+/)
+        .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+        .join(" ");
+  }
+}
+
+// "procurement-reviewer" -> "Procurement reviewer".
+function auditActorLabel(actor: string): string {
+  const spaced = actor.replace(/[-_]/g, " ").trim();
+  return spaced ? spaced.charAt(0).toUpperCase() + spaced.slice(1) : actor;
+}
+
+// "TEXTILES_APPAREL" -> "Textiles Apparel" / "OTHER_UNMAPPED" -> "Other Unmapped".
+// Humanizes a raw enum token so a sector/category reads as words, not a CONSTANT,
+// on the glass. The stored value is unchanged (the data layer keeps the enum).
+function humanizeToken(token: string): string {
+  return token
+    .toLowerCase()
+    .split(/[_\s]+/)
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
+
+// The automatic-checks verdict in lead-facing words, not the raw enum.
+function gateStatusLabel(status: string): string {
+  switch (status) {
+    case "PASS":
+      return "Cleared";
+    case "BLOCKED":
+      return "Blocked";
+    case "WARN":
+      return "Needs review";
+    default:
+      return humanizeToken(status);
+  }
+}
+
 // Defense-in-depth: only http(s) reaches the DOM. Evidence URLs derive from GDELT
 // signals validated by HttpUrlSchema upstream, but the render layer must not assume
 // that holds -- block javascript:/data: if an unvalidated path ever feeds an
@@ -155,7 +230,7 @@ function humanSource(sourcePath: string): string {
     case "publicSignals":
       return "from a recorded source signal";
     default:
-      return "traced to a structured input";
+      return "from the underlying data";
   }
 }
 
@@ -227,7 +302,7 @@ function RefusalCard({ missingEvidence }: { missingEvidence: MissingEvidence[] }
       </h2>
       <p className="mt-4 max-w-[64ch] text-[0.9375rem] leading-7 text-ink-muted">
         RESILIX will not draft outbound supplier action on the strength of a single
-        uncorroborated, low-confidence source. The exposure and runway below are shown for
+        unconfirmed, low-confidence source. The exposure and runway below are shown for
         situational awareness only -- they are contingent on the disruption being confirmed,
         not an endorsed assessment.
       </p>
@@ -296,7 +371,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
   // mode change without moving focus. Empty while live; set when the packet is
   // degraded (FAILED_TO_FALLBACK) or running on recorded/cached-only signals.
   const modeAnnouncement = degraded
-    ? "Live AI unavailable. The action packet is running in degraded fallback mode; figures are deterministic."
+    ? "The live data feed is down. This plan is running on recorded data; every figure still traces to a recorded source."
     : honesty.live === 0 && honesty.cached > 0
       ? "Signals are recorded (cached), not live."
       : "";
@@ -326,6 +401,15 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
     () => Math.max(...packet.exposureResults.map((r) => r.exposureScore), 1),
     [packet.exposureResults]
   );
+
+  // Map supplier id -> human name, so a draft card reads "Gulf Components Ltd",
+  // not the raw "SUP-0042" id, on the default glass. The id stays available in the
+  // claim source-detail trace and the audit trail for an auditor.
+  const supplierNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of packet.exposureResults) map.set(r.supplierId, r.supplierName);
+    return map;
+  }, [packet.exposureResults]);
 
   const maxHorizon = useMemo(() => {
     if (!simulation) return 1;
@@ -389,14 +473,14 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
   // Why approval is blocked, surfaced under the disabled control. Derived from
   // the real gatekeeper verdict (or the refusal) -- never hardcoded.
   const approveBlockedReason = isNoAction
-    ? "No outbound action to approve -- the disruption must be corroborated first."
+    ? "No outbound action to approve -- the disruption must be confirmed first."
     : approval.status !== "PENDING"
       ? null // already decided -- the status pill already communicates this
       : gatekeeper.approvedForHumanReview
         ? null
         : gatekeeper.status === "BLOCKED"
-          ? "Gatekeeper BLOCKED this packet -- resolve the failures above before approval."
-          : "Gatekeeper has not cleared this packet for human review.";
+          ? "Automatic checks blocked this plan -- resolve the failures above before approval."
+          : "Automatic checks have not cleared this plan for review.";
 
   function decide(status: "APPROVED" | "REJECTED") {
     // Hard guard: approval cannot proceed unless the packet is approvable. The
@@ -417,8 +501,8 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
           action: status === "APPROVED" ? "HUMAN_APPROVAL" : "HUMAN_REJECTION",
           detail:
             status === "APPROVED"
-              ? "Packet approved. Drafts remain unsent until a person dispatches them."
-              : "Packet returned; no drafts dispatched."
+              ? "Plan approved. Drafts remain unsent until a person dispatches them."
+              : "Plan returned; no drafts dispatched."
         }
       ]
     }));
@@ -450,7 +534,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               aria-hidden="true"
               className="size-1.5 rounded-full bg-accent"
             />
-            Decision packet ·{" "}
+            Response plan ·{" "}
             {isNoAction
               ? "no action recommended"
               : approval.status === "PENDING"
@@ -496,15 +580,14 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             divs hold text+span, not dt/dd. A plain <div> is the honest semantic. */}
         <div className="tnum shrink-0 text-sm text-ink-faint sm:text-right">
           <div className="leading-7">
-            Packet{" "}
+            Plan{" "}
             <span className="font-mono font-medium text-ink">{packet.id}</span>
           </div>
           <div className="leading-7">
             Compiled{" "}
             <span className="font-medium text-ink">
               {shortTime(packet.createdAt)}
-            </span>{" "}
-            · {packet.dataTier}
+            </span>
           </div>
           <div className="leading-7">
             Reviewer{" "}
@@ -537,9 +620,6 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               <span className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
                 The threat
               </span>
-              <span className="font-mono text-[0.625rem] tracking-[0.04em] text-ink-faint">
-                {threatCard.eventType}
-              </span>
             </div>
 
             <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
@@ -569,7 +649,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               <span className="font-semibold text-ink">{confidenceCount}%</span>
               ), drawn from{" "}
               <span className="font-semibold text-ink">
-                {honesty.cached + honesty.live} recorded sources
+                {honesty.cached + honesty.live} sources
               </span>
               {capturedAt ? <> captured {shortDate(capturedAt)}</> : null}.{" "}
               <span className="text-ink-faint">
@@ -589,13 +669,14 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                 className="mt-0.5 size-4 shrink-0 text-accent-strong"
               />
               <p className="text-[0.8125rem] leading-[1.5] text-accent-strong">
-                Every figure in this packet traces back to a recorded source.
-                <span className="mt-0.5 block font-mono text-[0.625rem] tracking-[0.02em] text-accent">
-                  VERIFIER · {packet.effectiveMode} ·{" "}
-                  {evidenceAllowlistPassed
-                    ? "evidence allowlist passed"
-                    : `evidence allowlist: ${allowedEvidenceUrls.length}/${threatCard.evidenceUrls.length} URLs passed`}
-                </span>
+                Every figure in this plan traces back to a named source.
+                {!evidenceAllowlistPassed ? (
+                  <span className="mt-0.5 block text-[0.75rem] text-accent">
+                    {allowedEvidenceUrls.length} of{" "}
+                    {threatCard.evidenceUrls.length} source links cleared the
+                    safety check.
+                  </span>
+                ) : null}
               </p>
             </div>
 
@@ -618,6 +699,47 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                 </li>
               ))}
             </ul>
+
+            {/* The raw signals behind this read -- the former Events tab, folded
+                in as on-demand depth so the consolidated briefing loses no
+                content while the spine stays calm. Collapsed by default; present
+                in the DOM so it is always discoverable. */}
+            {packet.publicSignals.length > 0 ? (
+              <details className="group mt-4 border-t border-line pt-3">
+                <summary className="inline-flex min-h-6 cursor-pointer list-none items-center gap-1 text-xs font-medium text-accent-strong underline-offset-2 hover:underline">
+                  <ArrowUpRight
+                    className="size-3 transition-transform group-open:rotate-90"
+                    aria-hidden="true"
+                  />
+                  The {packet.publicSignals.length} signals behind this read
+                </summary>
+                <ul className="mt-3 flex flex-col gap-3">
+                  {packet.publicSignals.map((signal) => (
+                    <li key={signal.id} className="text-xs leading-5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium text-ink">
+                          {signal.source}
+                        </span>
+                        <Badge tone={severityTone(signal.severity)}>
+                          {signal.severity}
+                        </Badge>
+                        <span className="text-ink-faint">
+                          {signal.status === "LIVE"
+                            ? "live"
+                            : signal.status === "FAILED"
+                              ? "failed"
+                              : "recorded"}{" "}
+                          · {signal.freshnessMinutes} min old
+                        </span>
+                      </div>
+                      <p className="mt-1 max-w-[72ch] text-ink-muted">
+                        {signal.summary}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
           </section>
 
           {/* --------------------------------------------------------
@@ -698,8 +820,8 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                           <td className="tnum text-ink-muted">
                             {result.country}
                           </td>
-                          <td className="font-mono text-xs text-ink-muted">
-                            {result.sector}
+                          <td className="text-xs text-ink-muted">
+                            {humanizeToken(result.sector)}
                           </td>
                           <td>
                             <div className="flex items-center gap-3">
@@ -763,7 +885,6 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                   )}
                 </p>
               </div>
-              <Badge tone="neutral">{packet.dataTier}</Badge>
             </header>
             {simulation ? (
               <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
@@ -870,13 +991,13 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             </header>
             <p className="mt-1 mb-4 max-w-[60ch] text-sm leading-6 text-ink-muted">
               {isNoAction
-                ? "No outreach was drafted -- outbound action is withheld until the disruption is corroborated (see the recommendation above)."
+                ? "No outreach was drafted -- outbound action is withheld until the disruption is confirmed (see the recommendation above)."
                 : "We have written the outreach for you. These are drafts only -- nothing leaves the building until a person sends them."}
             </p>
             {packet.supplierMessages.length === 0 ? (
               <p className="text-sm text-ink-muted">
                 {isNoAction
-                  ? "Drafting withheld pending corroboration."
+                  ? "Drafting withheld pending confirmation."
                   : "No supplier drafts generated."}
               </p>
             ) : (
@@ -887,8 +1008,12 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                     className="rounded-lg border border-line bg-sink/60 p-4 shadow-[inset_0_1px_0_oklch(1_0_0/0.5)] transition-shadow duration-150 hover:shadow-[var(--shadow-e1)]"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-xs text-ink-muted">
-                        {message.supplierId} · {message.channel}
+                      <span className="text-xs text-ink-muted">
+                        <span className="font-medium text-ink">
+                          {supplierNameById.get(message.supplierId) ??
+                            message.supplierId}
+                        </span>
+                        {message.channel ? <> · {message.channel}</> : null}
                       </span>
                       {message.approvalRequired ? (
                         <span className="font-mono text-[0.625rem] font-semibold tracking-[0.05em] text-ink-faint uppercase">
@@ -911,6 +1036,12 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                           aria-hidden="true"
                         />
                         Read the draft
+                        <span className="sr-only">
+                          {" "}
+                          for{" "}
+                          {supplierNameById.get(message.supplierId) ??
+                            message.supplierId}
+                        </span>
                       </summary>
                       <p className="mt-2 text-sm leading-6 whitespace-pre-line text-ink-muted">
                         {message.body}
@@ -938,9 +1069,19 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                                 {String(claim.value)} {claim.unit}
                               </span>{" "}
                               {humanSource(claim.sourcePath)}
-                              <span className="mt-0.5 block font-mono text-[0.625rem] break-all text-ink-faint">
-                                {claim.sourcePath}
-                              </span>
+                              {/* The exact machine trace -- kept for an auditor,
+                                  tucked behind a disclosure so the default glass
+                                  shows only the plain-English provenance, never a
+                                  dotted code path. */}
+                              <details className="mt-0.5">
+                                <summary className="inline-flex min-h-6 min-w-6 cursor-pointer list-none items-center px-1 text-[0.625rem] text-ink-faint underline-offset-2 hover:underline">
+                                  Source detail
+                                  <span className="sr-only"> for this figure</span>
+                                </summary>
+                                <span className="mt-0.5 block font-mono text-[0.625rem] break-all text-ink-faint">
+                                  {claim.sourcePath}
+                                </span>
+                              </details>
                             </span>
                           </li>
                         ))}
@@ -1107,7 +1248,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                       : "Returned"}
                 </span>
                 {degraded ? (
-                  <Badge tone="critical">Degraded - no live AI</Badge>
+                  <Badge tone="critical">Live feed down</Badge>
                 ) : (
                   <span className="font-mono text-[0.625rem] text-ink-faint">
                     1 reviewer
@@ -1123,7 +1264,15 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               </h2>
               <p className="mt-2 text-[0.8125rem] leading-[1.55] text-ink-muted">
                 {approval.reason ??
-                  "Code calculates the exposure; the AI drafts the response. Approving records your decision in the audit trail below and releases the drafts, tasks, and one-pager for execution. Even then, nothing sends automatically."}
+                  "The exposure figures come from your supplier data; the outreach was drafted for you to review. Approving records your decision in the audit trail below and releases the drafts, tasks, and summary for execution."}
+              </p>
+
+              {/* The plain-language trust promise (banks' "we don't ask that"
+                  pattern) -- the cheapest, highest-signal answer to "can I trust
+                  this enough to act". Stated once, on the glass, by the approve. */}
+              <p className="mt-3 flex items-center gap-1.5 text-[0.75rem] font-medium text-accent-strong">
+                <ShieldCheck className="size-3.5 shrink-0" aria-hidden="true" />
+                RESILIX never sends anything without your approval.
               </p>
 
               {/* Gatekeeper PASS -- the quiet-evidence trust anchor next to APPROVE,
@@ -1133,7 +1282,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               <div className="mt-4 rounded-lg border border-line bg-sink p-3.5 shadow-[inset_0_1px_2px_oklch(0.3_0.02_262/0.05)]">
                 <div className="mb-2.5 flex items-center justify-between">
                   <span className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
-                    Gatekeeper
+                    Automatic checks
                   </span>
                   <span
                     className={`inline-flex items-center gap-1.5 text-[0.6875rem] font-bold tracking-[0.06em] ${
@@ -1143,27 +1292,43 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                     }`}
                   >
                     <ShieldCheck className="size-3.5" aria-hidden="true" />
-                    {gatekeeper.status}
+                    <span title={gatekeeper.status}>
+                      {gateStatusLabel(gatekeeper.status)}
+                    </span>
                   </span>
                 </div>
                 {gatekeeper.failures.length === 0 ? (
                   <ul className="flex flex-col gap-2 text-xs text-ink-muted">
                     <GateCheck>
-                      Every numeral maps to a{" "}
-                      <span className="font-medium text-ink">
-                        structured claim
-                      </span>
+                      Every number traces to a{" "}
+                      <span className="font-medium text-ink">source</span>
+                    </GateCheck>
+                    {/* Bound to the REAL url-safety result (evidenceAllowlistPassed
+                        = every evidence URL passed HttpUrlSchema), not to the
+                        gatekeeper verdict -- so this can never claim "verified"
+                        while a non-http(s) link was actually filtered out. */}
+                    <GateCheck>
+                      {evidenceAllowlistPassed ? (
+                        <>
+                          All source links{" "}
+                          <span className="font-medium text-ink">
+                            passed the safety check
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-medium text-ink">
+                            {allowedEvidenceUrls.length} of{" "}
+                            {threatCard.evidenceUrls.length}
+                          </span>{" "}
+                          source links cleared the safety check
+                        </>
+                      )}
                     </GateCheck>
                     <GateCheck>
-                      All URLs in the{" "}
+                      Suppliers{" "}
                       <span className="font-medium text-ink">
-                        evidence allowlist
-                      </span>
-                    </GateCheck>
-                    <GateCheck>
-                      Entities resolve to{" "}
-                      <span className="font-medium text-ink">
-                        known supplier IDs
+                        matched to your list
                       </span>
                     </GateCheck>
                   </ul>
@@ -1188,7 +1353,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                 <CheckCircle2 className="size-4" aria-hidden="true" />
                 {approval.status === "APPROVED"
                   ? "Approved"
-                  : "Approve packet"}
+                  : "Approve plan"}
               </Button>
               {approveBlockedReason ? (
                 <p
@@ -1241,8 +1406,11 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             </header>
             <AuditTrailList entries={auditTrail} />
             <div className="flex items-center gap-2 border-t border-line px-5 py-3 text-[0.6875rem] text-ink-faint">
-              <span className="rounded border border-line bg-sink px-1.5 py-0.5 font-mono text-[0.625rem] text-ink-muted">
-                {packet.effectiveMode}
+              <span
+                className="rounded border border-line bg-sink px-1.5 py-0.5 text-[0.625rem] text-ink-muted"
+                title={packet.effectiveMode}
+              >
+                {modeLabel(packet.effectiveMode)}
               </span>
               Figures traceable to recorded signals.
             </div>
@@ -1313,13 +1481,16 @@ function AuditTimeline({
               }`}
             />
             <p className="text-[0.8125rem] font-medium text-ink">
-              {entry.action}
+              {auditActionLabel(entry.action)}
             </p>
             <p className="mt-0.5 text-xs leading-5 text-ink-muted">
               {entry.detail}
             </p>
-            <p className="tnum mt-0.5 font-mono text-[0.625rem] text-ink-faint">
-              {entry.actor} · {shortDate(entry.at)} {shortTime(entry.at)}
+            <p className="mt-0.5 text-[0.625rem] text-ink-faint">
+              {auditActorLabel(entry.actor)} ·{" "}
+              <span className="tnum font-mono">
+                {shortDate(entry.at)} {shortTime(entry.at)}
+              </span>
             </p>
           </li>
         );
