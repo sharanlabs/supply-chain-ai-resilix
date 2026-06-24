@@ -14,8 +14,11 @@
 > assertion — the approve-button click is the real client-JS hydration proof; a `<summary>` toggle is
 > native (no JS) so it is NOT a valid hydration proof — and removed the now-dead
 > `[role="tab"]:focus-visible` CSS. **`npm run verify` GREEN first-hand: exit 0, 515 passed / 21
-> skipped, build clean, secrets clean.** Gate is now **FULLY discharged (clean closure after the
-> one-Med fix), not merely substantively.** Pushed `be0cf5a` + `050666b` + this fix to `origin/main`.
+> skipped, build clean, secrets clean.** A **Codex closure round on the fix commit `f12da41`
+> (medium) returned `VERDICT: APPROVE`** — Med closed, the approve-button onClick remains the valid
+> hydration proof, no regression from the `globals.css` removal. So the gate now has a **real
+> cross-model APPROVE on the shipped state (not self-certified) → FULLY discharged.** Pushed
+> `be0cf5a` + `050666b` + `f12da41` to `origin/main`; this docs commit records the closure APPROVE.
 >
 > **Codex account reality (settled 2026-06-24):** there is only ONE ChatGPT login — `sharank98@gmail.com`,
 > plan **Plus**, weekly-limit billing (NOT pay-per-use Codex credits). No separate "primary" account
