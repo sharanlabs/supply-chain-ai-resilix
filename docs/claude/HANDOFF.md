@@ -1,6 +1,34 @@
 # HANDOFF — resume pointer (updated 2026-06-24)
 
 > ============================================================================
+> ## CURRENT RESUME (2026-06-24, later) — READ THIS FIRST; supersedes every block below
+> ============================================================================
+>
+> **Stage: front-screen redesign — Codex R4 cross-model gate CLOSED CLEAN + PUSHED.**
+>
+> On 2026-06-24 the ChatGPT **Plus** weekly limit reset, so the deferred **Round-4 Codex confirmation
+> was actually run** (`xhigh`, on `be0cf5a`). It **confirmed R3 closed and the evidence-allowlist /
+> URL-sink security invariant intact**, with **one [Med]**: `scripts/prod-csp-smoke.mjs` still clicked
+> the **deleted Exposure tab** (a stale ref left by the tablist removal) → the prod CSP smoke would
+> false-fail against the new single-briefing UI. **Fixed (this commit):** dropped the stale tablist
+> assertion — the approve-button click is the real client-JS hydration proof; a `<summary>` toggle is
+> native (no JS) so it is NOT a valid hydration proof — and removed the now-dead
+> `[role="tab"]:focus-visible` CSS. **`npm run verify` GREEN first-hand: exit 0, 515 passed / 21
+> skipped, build clean, secrets clean.** Gate is now **FULLY discharged (clean closure after the
+> one-Med fix), not merely substantively.** Pushed `be0cf5a` + `050666b` + this fix to `origin/main`.
+>
+> **Codex account reality (settled 2026-06-24):** there is only ONE ChatGPT login — `sharank98@gmail.com`,
+> plan **Plus**, weekly-limit billing (NOT pay-per-use Codex credits). No separate "primary" account
+> exists to switch to; "switch to primary" was a no-op (already on it). The credits-based **backup** is
+> a different login, left untouched/preserved.
+>
+> **NEXT SESSION:** redesign is shipped + gated + pushed. Remaining are the same non-blocking owner
+> judgment-calls (briefing length · per-claim "Source detail" density · masthead wording) and the
+> separately-open Claude-Design A/B/C *visual* concept exploration (memory [[resilix-design-direction-open]]).
+>
+> ----- prior resume (2026-06-24) below; valid for build history, superseded on gate/push status -----
+
+> ============================================================================
 > ## CURRENT RESUME (2026-06-24) -- READ THIS FIRST; supersedes every block below
 > ============================================================================
 >

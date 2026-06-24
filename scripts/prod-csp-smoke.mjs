@@ -76,10 +76,13 @@ const scriptNonces = await page.$$eval("script", (els) =>
 if (scriptNonces.length === 0)
   failures.push("no <script> carries a nonce -- Next did not apply the request nonce");
 
-// 3. Interactivity == hydration succeeded under the CSP. If scripts were blocked, these
-//    client handlers never attach. The approve action is pure optimistic local state (no
-//    API), so a flip to 'Approved' is a clean proof the onClick ran. Mirror the e2e: the
-//    approve button is on the DEFAULT (packet) tab -- do NOT navigate away first.
+// 3. Interactivity == hydration succeeded under the CSP. If scripts were blocked, the
+//    client handler never attaches. The approve action is pure optimistic local state (no
+//    API), so a flip to 'Approved' is a clean proof the onClick ran. The redesign folded
+//    the old 4-tab layer into one briefing, so the approve button is in the default view
+//    on first load -- nothing to navigate to. (A <summary> disclosure is NOT used as the
+//    proof: <details> toggles natively without JS, so it would pass even if hydration was
+//    blocked; the approve onClick is the genuine client-JS signal.)
 try {
   const approve = page.getByTestId("approve-action");
   await approve.waitFor({ state: "visible", timeout: 5000 });
@@ -87,15 +90,6 @@ try {
   await page.getByTestId("approve-action").getByText(/Approved/).waitFor({ timeout: 5000 });
 } catch {
   failures.push("approve did not flip to 'Approved' -- the client handler did not run (CSP blocked hydration?)");
-}
-// Tab switching is also client-driven: assert the clicked tab actually becomes selected
-// (aria-selected), which only happens if the tablist hydrated.
-try {
-  const exposure = page.getByRole("tab", { name: /Exposure/ });
-  await exposure.click();
-  await page.locator('[role="tab"][aria-selected="true"]').getByText(/Exposure/).waitFor({ timeout: 5000 });
-} catch {
-  failures.push("Exposure tab did not become aria-selected after click -- tablist did not hydrate");
 }
 
 // 4. Any script-level CSP violations recorded on `/` during the run?
