@@ -1,7 +1,29 @@
-# HANDOFF — resume pointer (updated 2026-06-23)
+# HANDOFF — resume pointer (updated 2026-06-24)
 
 > ============================================================================
-> ## CURRENT RESUME (2026-06-23) -- READ THIS FIRST; supersedes every block below
+> ## CURRENT RESUME (2026-06-24) -- READ THIS FIRST; supersedes every block below
+> ============================================================================
+>
+> **Stage: storytelling-arc + language front-screen redesign — DONE, 360°+Codex reviewed, COMMITTED, NOT pushed (owner pushes).**
+>
+> **State:** branch `main`, feature commit **`be0cf5a`** (`feat(ui): rework front screen into one human briefing; strip machinery off the glass`); this handoff is the `docs(handoff)` commit on top. NOT pushed — owner action. Verification GREEN first-hand: typecheck, lint (`--max-warnings=0`), **515 unit pass / 21 skipped**, **14 Playwright e2e**, production build. The rendered page was eyeballed (default + all-disclosures-expanded), not just test-passed.
+>
+> **What happened:** reworked the `/` front surface so a non-technical procurement lead reads it as ONE flowing human briefing (situation→exposure→runway→drafted response→your call), NOT a tour of the pipeline. Consolidated the 4-tab analyst layer into the single briefing (old Events feed → an on-demand `<details>`); stripped builder/AI machinery off the default glass (raw enums eventType/sector/gatekeeper.status/run-mode, dataTier, the VERIFIER line, dotted sourcePath → a "Source detail" drill-down); humanized the run-mode label (REPLAY→"Recorded", exact mode kept in `title`/audit) + the audit action codes; renamed the on-glass artifact "Decision packet"→"Response plan"; added the never-sends trust promise; corroborated→confirmed. Honesty/security preserved + tested: recorded provenance still shown, LIVE_AI never claimed; the "source links" gate-check was **re-bound to the real `evidenceAllowlistPassed` (HttpUrlSchema) result, not the gatekeeper verdict** — a security-adjacent honesty fix, the highest-value find of the pass. Deleted `components/tab-nav.tsx`; added `summary:focus-visible` + keyboard-operability + target-size + source-path-hidden e2e coverage replacing the retired tablist tests. Decision-rule + cited basis (live research, NOT memory): `docs/storytelling-arc-redesign.md`.
+>
+> **Review:** 360° panel (acceptance-gate BLOCK→addressed / layperson 4-5 / procurement "rings true" / language clean) + **Codex cross-model: 3 rounds, 9→6→3 findings, ALL addressed**. Round-4 APPROVED *token* blocked by a Codex account usage limit (resets ~Jul 20); substance was adjudicated + verified per primary-model-final, so the gate is treated as **substantively discharged** (token only is outstanding). Full trail: `shared_reasoning.md` (session 2026-06-24).
+>
+> **NEXT SESSION — pick up here:**
+> 1. **Owner action: review + `git push` `be0cf5a`** (+ this docs commit). Committed local-only, matching the repo's "owner pushes" model.
+> 2. **Three owner judgment-calls to eyeball** (not blockers): per-claim "Source detail" toggle density · single-scroll briefing length · masthead "Command"→"Disruption response" wording.
+> 3. Optional: re-run the Codex APPROVED-token confirmation after Jul 20 (substance already closed — token only).
+> 4. **Open from before:** the Claude-Design A/B/C *visual* concept exploration remains separately open/unintegrated (memory [[resilix-design-direction-open]], updated 2026-06-24).
+>
+> **Canonical state lives in:** `docs/storytelling-arc-redesign.md` (decision-rule + before/after) + `shared_reasoning.md` (the review log, session 2026-06-24) + memory `resilix-design-direction-open.md`.
+>
+> ----- earlier resume (2026-06-23) below, valid for ship-status history -----
+>
+> ============================================================================
+> ## RESUME (2026-06-23)
 > ============================================================================
 >
 > **Stage: pre-public-ship polish — DONE, Codex-gated, COMMITTED + PUSHED (2026-06-23, owner: "complete all except design").**
