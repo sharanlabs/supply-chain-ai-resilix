@@ -3,6 +3,7 @@ import { runActionOpsGatekeeper } from "@/lib/agents/actionops/gatekeeper";
 import { runAtlas } from "@/lib/agents/actionops/atlas";
 import { classifyMessagesLive, runDispatcher } from "@/lib/agents/actionops/dispatcher";
 import { decideRecommendation } from "@/lib/agents/actionops/recommendation";
+import { buildRecoveryOptions } from "@/lib/agents/actionops/recovery";
 import { classifyThreatLive, runSentinel } from "@/lib/agents/actionops/sentinel";
 import { runSimulator } from "@/lib/agents/actionops/simulator";
 import { classifyPlaybooksLive, runStrategist } from "@/lib/agents/actionops/strategist";
@@ -15,7 +16,7 @@ import {
   makeRetryReserve,
   resolvedGeminiModel
 } from "@/lib/agents/run";
-import type { ActionItem, AgentRun, Playbook, SupplierMessageDraft } from "@/lib/schemas";
+import type { ActionItem, AgentRun, Playbook, RecoveryOption, SupplierMessageDraft } from "@/lib/schemas";
 import type { ActionOpsContext, ActionOpsResult } from "@/lib/agents/actionops/types";
 
 export type { ActionOpsContext, ActionOpsResult } from "@/lib/agents/actionops/types";
@@ -97,6 +98,9 @@ export async function runActionOpsAgents(ctx: ActionOpsContext): Promise<ActionO
   let playbooks: Playbook[];
   let supplierMessages: SupplierMessageDraft[];
   let actionItems: ActionItem[];
+  // Scored recovery options (deterministic; recovery.ts). Like playbooks/drafts they are
+  // outbound mitigation -- WITHHELD on a NO_ACTION refusal, produced on ACT.
+  let recoveryOptions: RecoveryOption[];
   let strategistRun: AgentRun;
   let dispatcherRun: AgentRun;
 
@@ -104,6 +108,7 @@ export async function runActionOpsAgents(ctx: ActionOpsContext): Promise<ActionO
     playbooks = [];
     supplierMessages = [];
     actionItems = [];
+    recoveryOptions = [];
     strategistRun = makeAgentRun({
       id: "RUN-STRATEGIST",
       agentName: "Strategist",
@@ -152,6 +157,11 @@ export async function runActionOpsAgents(ctx: ActionOpsContext): Promise<ActionO
     actionItems = disp.actionItems;
     dispatcherRun = disp.agentRun;
     spentUsd += dispatcherRun.costUsd ?? 0;
+
+    // Scored recovery options, bound DETERMINISTICALLY from the Atlas exposures + the
+    // Simulator runway (never from agent prose -- authoritative-binding). Produced only
+    // on ACT; the NO_ACTION branch above withholds them.
+    recoveryOptions = buildRecoveryOptions(exposureResults, simulation);
   }
 
   // Assemble the runs BEFORE the gatekeeper so it can fail closed on any agent that
@@ -183,6 +193,7 @@ export async function runActionOpsAgents(ctx: ActionOpsContext): Promise<ActionO
     recommendation,
     missingEvidence,
     playbooks,
+    recoveryOptions,
     supplierMessages,
     actionItems,
     gatekeeper,

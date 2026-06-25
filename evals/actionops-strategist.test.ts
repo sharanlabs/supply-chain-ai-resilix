@@ -52,21 +52,23 @@ function hormuzExposures(): ExposureResult[] {
 }
 
 describe("Strategist deterministic fallback (D.6, key-OFF)", () => {
-  it("emits the D.1 playbook as a DETERMINISTIC_RULES / PASS run, with numeral-free steps", () => {
+  it("emits all three role playbooks as a DETERMINISTIC_RULES / PASS run, with numeral-free steps", () => {
     const ctx = hormuzContext();
     const exposures = hormuzExposures();
     const { playbooks, agentRun } = runStrategist(ctx, exposures);
 
-    // The fallback is the D.1 template, byte-stable (the pipeline/golden suites assert
-    // against it): one Procurement playbook grounded in the top-3 exposure ids.
-    expect(playbooks).toHaveLength(1);
-    const pb = playbooks[0];
-    expect(pb.id).toBe("PB-PROCUREMENT");
-    expect(pb.role).toBe("Procurement");
-    expect(pb.groundedClaimIds).toEqual(exposures.slice(0, 3).map((e) => e.id));
-    // Every grounded id is a real exposure id (no dangle).
+    // P1 domain win: the deterministic fallback now ships the full Procurement /
+    // Operations / Finance set (README promises all three roles). Each grounds in the
+    // same top-3 exposure ids so the three lenses stay coherent on one disruption.
+    expect(playbooks).toHaveLength(3);
+    expect(playbooks.map((p) => p.id)).toEqual(["PB-PROCUREMENT", "PB-OPERATIONS", "PB-FINANCE"]);
+    expect(playbooks.map((p) => p.role)).toEqual(["Procurement", "Operations", "Finance"]);
+    // Every grounded id on every playbook is a real exposure id (no dangle).
     const exposureIds = new Set(exposures.map((e) => e.id));
-    for (const id of pb.groundedClaimIds) expect(exposureIds.has(id)).toBe(true);
+    for (const pb of playbooks) {
+      expect(pb.groundedClaimIds).toEqual(exposures.slice(0, 3).map((e) => e.id));
+      for (const id of pb.groundedClaimIds) expect(exposureIds.has(id)).toBe(true);
+    }
 
     expect(agentRun.mode).toBe("DETERMINISTIC_RULES");
     expect(agentRun.validationStatus).toBe("PASS");
@@ -105,8 +107,8 @@ describe("Strategist deterministic fallback (D.6, key-OFF)", () => {
     });
 
     expect(generateCalled).toBe(false);
-    expect(playbooks).toHaveLength(1);
-    expect(playbooks[0].id).toBe("PB-PROCUREMENT");
+    expect(playbooks).toHaveLength(3);
+    expect(playbooks.map((p) => p.id)).toEqual(["PB-PROCUREMENT", "PB-OPERATIONS", "PB-FINANCE"]);
     expect(agentRun.mode).toBe("DETERMINISTIC_RULES");
     expect(agentRun.validationStatus).toBe("PASS");
   });
@@ -251,9 +253,10 @@ describe("Strategist output-validation firewall (D.6)", () => {
 
     expect(agentRun.mode).toBe("FAILED_TO_FALLBACK");
     expect(agentRun.validationStatus).toBe("FAIL");
-    // The emitted plan is the clean deterministic playbook -- the invented figure is gone.
-    expect(playbooks).toHaveLength(1);
-    expect(playbooks[0].id).toBe("PB-PROCUREMENT");
+    // The emitted plan is the clean deterministic set (all three roles) -- the invented
+    // figure is gone, replaced wholesale by the numeral-free fallback (no partial salvage).
+    expect(playbooks).toHaveLength(3);
+    expect(playbooks.map((p) => p.id)).toEqual(["PB-PROCUREMENT", "PB-OPERATIONS", "PB-FINANCE"]);
   });
 
   it("end-to-end: a clean LLM result crosses as a LIVE_AI run", async () => {

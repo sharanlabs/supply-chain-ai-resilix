@@ -1,7 +1,46 @@
-# HANDOFF — resume pointer (updated 2026-06-25)
+# HANDOFF — resume pointer (updated 2026-06-25, later)
 
 > ============================================================================
-> ## CURRENT RESUME (2026-06-25) — READ THIS FIRST; supersedes every block below
+> ## CURRENT RESUME (2026-06-25, later) — READ THIS FIRST; supersedes every block below
+> ============================================================================
+>
+> **Stage: AGENTIC REWORK — Phase 1 (P1 domain wins) BUILT + GATED LOCALLY (committed, push HELD). Next: Phase 2 (Dual-LLM GDELT quarantine) per the reorder.**
+>
+> **Phase 1 done (2026-06-25, autopilot):** all six SCRM domain wins landed on the deterministic
+> waterfall (NO agent loop — that's P3, last): (1) threat enum +3; (2) TTR/TTS exposure +
+> single-source penalty (a real 5-single-source/4-covered Gulf split via a seed backup overlay);
+> (3) margin-at-risk + revenue-clock-from-runout (Hormuz headline $2.7M→$450k, honest); (4) scored
+> recovery options into V2 (reversibility = the governance dial; withheld on NO_ACTION, producer +
+> schema superRefine); (5) supplier-email score-leak STRUCTURALLY fixed (exposureScore out of the
+> live whitelist + prompt + a firewall reject backstop; drafts now numeral-free impact-assessment
+> requests); (6) Ops + Finance playbooks. `npm run verify` GREEN first-hand (533 unit / 21 skipped,
+> exit 0) + `npm run test:e2e` GREEN (14 e2e, WCAG 2.2 AA). All new schema fields additive-optional
+> → the frozen SCN-HORMUZ.json replay + golden + live fixtures still parse.
+>
+> **Gate (primary-model-final): committed LOCALLY, push HELD.** 360° panel + cross-model:
+> acceptance-gate BLOCK→cleared (caught a real demo-packet defect: a fixture that declared
+> survivalDays but showed day-0 revenue — fixed + now arithmetic-tested); security safe-to-proceed
+> (score-leak verified closed both paths; 1 LOW hardened); evals SHIP (oracles independently
+> re-derived; margin-grader teeth added). **Codex cross-model RAN substantively but hit the
+> ChatGPT-Plus usage cap before a final verdict** (reset 7:49 PM; thread
+> `019f00ea-2e22-77e1-ad0a-7c1ddac5f636`) — it surfaced 2 real findings, BOTH in the demo fixture
+> (the sim contradiction + hand-authored recovery numbers not matching the producer), BOTH fixed
+> (the demo recovery options are now DERIVED from `buildRecoveryOptions` so they can't drift). Full
+> record: `docs/claude/gates/agentic-rework/PHASE1-GATE.md`.
+>
+> **OWNER ACTIONS OWED (push is the irreversible gate):** (1) re-run the **Codex final stamp** on
+> the committed Phase-1 delta after the 7:49 PM reset (or on the backup credits account) — the gate's
+> value is served (it found + we fixed real defects) but the APPROVE stamp is a dated obligation, not
+> asserted; (2) **review + push**. Until (1), hold the irreversible promotion.
+>
+> **NEXT (after the stamp + push, or in parallel as reversible work):** Phase 2 = **Dual-LLM GDELT
+> quarantine** (formalize + a static guard proving no raw signal prose reaches any Investigator
+> prompt/tool). Gate: `verify` + extended `injection.test.ts`. Engage `/autopilot` to drive it.
+>
+> ----- prior resume (2026-06-25) below; valid for the Phase-0 discharge + the reorder -----
+
+> ============================================================================
+> ## CURRENT RESUME (2026-06-25) — Phase 0 discharged
 > ============================================================================
 >
 > **Stage: AGENTIC REWORK — Phase 0 (design-grill) DISCHARGED. Next: Phase 1 (P1 domain wins) via /autopilot.**

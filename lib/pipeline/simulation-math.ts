@@ -28,6 +28,11 @@ export type SimInputs = {
   horizonDays: number[];
   // Inventory positions for runout projection.
   inventory: { productId: string; onHandUnits: number; dailyUseUnits: number }[];
+  // P1 margin-at-risk: the contribution-margin fraction (0..1) applied to revenue-at-risk
+  // to get margin-at-risk. Optional + back-compat -- absent (e.g. the golden oracle inputs
+  // that predate it) means no marginAtRiskUsd is emitted, not a 0 (keeps the field truly
+  // optional through the round-trip).
+  marginPct?: number;
 };
 
 // Add whole days to a UTC instant, returning a YYYY-MM-DD date. UTC-pinned so the
@@ -38,24 +43,57 @@ export function addDaysUtc(baseIso: string, days: number): string {
   return new Date(new Date(baseIso).getTime() + days * 86_400_000).toISOString().slice(0, 10);
 }
 
+// Days of inventory cover for one position -- floored, since a partial day of cover
+// buys no extra whole day of runway (the runout-floor lesson).
+function coverDays(inv: { onHandUnits: number; dailyUseUnits: number }): number {
+  return Math.floor(inv.onHandUnits / inv.dailyUseUnits);
+}
+
 // The Simulator's deterministic arithmetic, recomputed from primitive inputs.
-// revenueAtRisk(H) = sum over affected suppliers of dailyRevenue x min(H, duration)
-// runout(product)  = baseDate + floor(onHand / dailyUse) days
+//
+// P1 TTS spine (HBR/Simchi-Levi): revenue is NOT lost while inventory still covers
+// demand -- the loss clock starts at RUNOUT (time-to-survive), not day 0. So the
+// exposure window at horizon H is the disruption days that fall AFTER the buffer is
+// gone: exposedDays(H) = max(0, min(H, duration) - survivalDays).
+//   survivalDays     = the EARLIEST product runout (the binding stockout across all
+//                      positions); 0 when there is no inventory to buffer with.
+//   revenueAtRisk(H) = sum over affected suppliers of dailyRevenue x exposedDays(H)
+//   marginAtRisk(H)  = revenueAtRisk(H) x marginPct           (only when marginPct set)
+//   runout(product)  = baseDate + floor(onHand / dailyUse) days
 export function recomputeSimulation(inputs: SimInputs): {
-  horizons: { days: number; revenueAtRiskUsd: number }[];
+  horizons: { days: number; revenueAtRiskUsd: number; marginAtRiskUsd?: number }[];
   productRunouts: { productId: string; runoutDate: string }[];
+  survivalDays: number | null;
 } {
+  // TTS = the earliest stockout. No inventory -> no buffer -> survivalDays 0 (loss from
+  // day 0, the pre-P1 behaviour) and a null TTS surfaced (nothing to project cover from).
+  const survivalDays =
+    inputs.inventory.length > 0 ? Math.min(...inputs.inventory.map(coverDays)) : null;
+  const buffer = survivalDays ?? 0;
+
   return {
-    horizons: inputs.horizonDays.map((days) => ({
-      days,
-      revenueAtRiskUsd: inputs.affected.reduce(
-        (sum, a) => sum + a.dailyRevenueUsd * Math.min(days, inputs.durationDays),
+    horizons: inputs.horizonDays.map((days) => {
+      const exposedDays = Math.max(0, Math.min(days, inputs.durationDays) - buffer);
+      const revenueAtRiskUsd = inputs.affected.reduce(
+        (sum, a) => sum + a.dailyRevenueUsd * exposedDays,
         0
-      )
-    })),
+      );
+      return {
+        days,
+        revenueAtRiskUsd,
+        // Emit margin ONLY when a contribution fraction was provided, so the field stays
+        // genuinely absent (not a 0) on the inputs that predate it. Rounded to whole USD
+        // (revenue is whole dollars; the x marginPct product is otherwise float-noisy --
+        // 450000 * 0.34 = 153000.00000000003 -- which would break exact-value assertions).
+        ...(inputs.marginPct !== undefined
+          ? { marginAtRiskUsd: Math.round(revenueAtRiskUsd * inputs.marginPct) }
+          : {})
+      };
+    }),
     productRunouts: inputs.inventory.map((inv) => ({
       productId: inv.productId,
-      runoutDate: addDaysUtc(inputs.baseDateIso, Math.floor(inv.onHandUnits / inv.dailyUseUnits))
-    }))
+      runoutDate: addDaysUtc(inputs.baseDateIso, coverDays(inv))
+    })),
+    survivalDays
   };
 }

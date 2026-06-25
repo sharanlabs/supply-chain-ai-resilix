@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { ingestSupplierCsv, type IngestResult } from "@/lib/ingest/supplier-csv";
-import type { SupplierUploadReport } from "@/lib/schemas";
+import type { Supplier, SupplierUploadReport } from "@/lib/schemas";
 import type { SupplierStore } from "@/lib/server/supplier-store";
 
 // ---------------------------------------------------------------------------
@@ -38,6 +38,40 @@ export const EXPECTED_SEED_ROW_COUNT = 150;
 
 export function readSeedCsv(): string {
   return readFileSync(SEED_CSV_PATH, "utf8");
+}
+
+// P1 backup linkage (SEED-ONLY enrichment). The P2.5 upload path deliberately leaves
+// backupSupplierId null -- cross-supplier linkage is relational territory, not a per-row
+// upload concern -- but with the whole seed left null, EVERY supplier reads as
+// single-source and the Atlas single-source penalty becomes a constant that discriminates
+// nothing. This overlay gives the seed a realistic dual-sourced cohort to contrast against.
+//
+// Rule (deterministic, domain-grounded): a supplier is DUAL-SOURCED (gets a backup) only
+// when a STABLE alternate exists -- another seed supplier in the SAME sector, a DIFFERENT
+// country, at LOW or MEDIUM risk tier (a high-risk alternate is not a qualified backup).
+// CRITICAL/HIGH-tier suppliers are left single-source on purpose: concentration in a
+// high-risk tier is exactly the case where no qualified substitute exists -- that is WHY
+// it reads high-risk. So the most exposed suppliers are the ones with no backup, which is
+// both realistic and what makes the demo's "single-source" call land. The alternate is
+// chosen by canonical-id order, so the linkage is stable across runs.
+const QUALIFIED_BACKUP_TIERS = new Set<Supplier["riskTier"]>(["LOW", "MEDIUM"]);
+
+export function linkBackupSuppliers(suppliers: Supplier[]): Supplier[] {
+  const byId = [...suppliers].sort((a, b) => a.id.localeCompare(b.id));
+  return suppliers.map((s) => {
+    // CRITICAL/HIGH stay single-source; only MEDIUM/LOW can be covered.
+    if (!QUALIFIED_BACKUP_TIERS.has(s.riskTier) || s.sector == null) {
+      return { ...s, backupSupplierId: null };
+    }
+    const backup = byId.find(
+      (o) =>
+        o.id !== s.id &&
+        o.sector === s.sector &&
+        o.country !== s.country &&
+        QUALIFIED_BACKUP_TIERS.has(o.riskTier)
+    );
+    return { ...s, backupSupplierId: backup ? backup.id : null };
+  });
 }
 
 // Ingest the seed through the P2.5 core. The seed is REQUIRED to ingest 100%
@@ -77,7 +111,9 @@ export function ingestSeed(): IngestResult {
     );
   }
 
-  return result;
+  // Apply the backup-linkage overlay AFTER the count guard (it adds backupSupplierId, never
+  // changes the row count), so the seed carries a realistic dual-sourced cohort.
+  return { ...result, suppliers: linkBackupSuppliers(result.suppliers) };
 }
 
 // Load the seed into a supplier store. The store is dependency-INJECTED so this

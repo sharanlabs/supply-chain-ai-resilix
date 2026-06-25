@@ -31,7 +31,11 @@ export function runSimulator(
         dailyRevenueUsd: params.dailyRevenueUsdPerSupplier
       })),
       horizonDays: params.horizonDays,
-      inventory: params.inventory
+      inventory: params.inventory,
+      // P1 margin-at-risk: thread the scenario's contribution-margin fraction so each
+      // horizon carries marginAtRiskUsd alongside revenueAtRiskUsd. survivalDays (TTS)
+      // rides along in `computed` from the shared math.
+      marginPct: params.marginPct
     });
     simulation = { ...computed, generatedAt: baseDateIso };
   } else {

@@ -280,6 +280,16 @@ export const CountryCodeSchema = z
 //   LABOR_DISRUPTION     - strike/work stoppage at a supplier or carrier.
 //   CYBER_DISRUPTION     - a cyber incident degrading a supplier/logistics operator.
 //   SUPPLIER_BANKRUPTCY  - a news-derived insolvency/liquidation threatening continuity.
+//   MATERIAL_SHORTAGE_ALLOCATION - a supplier puts a constrained material/part ON
+//                          ALLOCATION: demand outstrips supply, so each customer is
+//                          rationed to a capped volume (chip / resin / rare-earth
+//                          allocation -- one of the disruptions that dominate 2026 and,
+//                          before this vocab, fell into OTHER_UNMAPPED).
+//   EXPORT_CONTROL       - a government export-licensing / sanctions / entity-list action
+//                          blocking or licensing a cross-border component flow (e.g. the
+//                          semiconductor + rare-earth export-control regimes).
+//   QUALITY_RECALL       - a supplier quality failure / recall / contamination pulling a
+//                          part or lot out of the chain (a component recall, a pharma lot).
 //   OTHER_UNMAPPED       - the escape hatch: a real but unclassified event. NEVER
 //                          force-fit a named type; an honest OTHER_UNMAPPED beats a
 //                          confident wrong label (mirrors SectorSchema's escape hatch).
@@ -299,6 +309,10 @@ export const ThreatEventTypeSchema = z.enum([
   "LABOR_DISRUPTION",
   "CYBER_DISRUPTION",
   "SUPPLIER_BANKRUPTCY",
+  // 2026-dominant disruptions added in the agentic rework Phase 1 (P1 domain wins).
+  "MATERIAL_SHORTAGE_ALLOCATION",
+  "EXPORT_CONTROL",
+  "QUALITY_RECALL",
   "OTHER_UNMAPPED"
 ]);
 
@@ -337,6 +351,20 @@ export const ExposureResultSchema = z.object({
   sector: z.string(),
   exposureScore: z.number(),
   rationale: z.string(),
+  // --- P1 TTR/single-source spine (agentic rework Phase 1), ADDITIVE + back-compat ---
+  // Both .optional() so frozen pre-P1 fixtures (the SCN-HORMUZ replay, golden, live,
+  // demo) still parse; the Atlas producer ALWAYS stamps both, so live output carries them.
+  //   singleSource  - the supplier has NO qualified backup on file (backupSupplierId is
+  //                   null). A single-source supplier is the classic concentration risk:
+  //                   when its lane is disrupted there is no alternate to switch to, so
+  //                   recovery is slower. Atlas adds a fixed exposure penalty for it.
+  //   recoveryDays  - TTR (time-to-recover): a deterministic estimate of how many days
+  //                   this supplier needs to restore supply, proxied by its standard lead
+  //                   time and extended when single-source. Paired with the Simulator's
+  //                   survivalDays (TTS) it yields the exposed/covered read (HBR/Simchi-Levi
+  //                   TTR/TTS spine): covered when TTS >= TTR, exposed when TTS < TTR.
+  singleSource: z.boolean().optional(),
+  recoveryDays: z.number().nonnegative().optional(),
   evidenceIds: z.array(z.string())
 });
 
@@ -347,7 +375,13 @@ export const SimulationSchema = z.object({
   horizons: z.array(
     z.object({
       days: z.number().int().positive(),
-      revenueAtRiskUsd: z.number().nonnegative()
+      revenueAtRiskUsd: z.number().nonnegative(),
+      // P1 margin-at-risk (agentic rework Phase 1), ADDITIVE + back-compat. Finance
+      // decides on CONTRIBUTION, not gross revenue, so the packet carries the margin
+      // exposure alongside the revenue exposure: marginAtRiskUsd = revenueAtRiskUsd x
+      // the scenario's contribution-margin fraction. .optional() so a frozen pre-P1
+      // horizon (no margin) still parses; the Simulator stamps it when marginPct is set.
+      marginAtRiskUsd: z.number().nonnegative().optional()
     })
   ),
   productRunouts: z.array(
@@ -356,6 +390,11 @@ export const SimulationSchema = z.object({
       runoutDate: z.string()
     })
   ),
+  // P1 TTS (time-to-survive), ADDITIVE + back-compat. The days of inventory cover before
+  // the EARLIEST product stockout -- the point the revenue-loss clock starts (you lose
+  // nothing while you still have stock). null when there is no inventory to project from.
+  // .optional() so frozen pre-P1 simulation fixtures still parse.
+  survivalDays: z.number().int().nonnegative().nullable().optional(),
   generatedAt: z.string().datetime()
 });
 
@@ -619,6 +658,12 @@ export const DecisionPacketV2Schema = z.object({
   recommendation: RecommendationSchema.optional(),
   missingEvidence: z.array(MissingEvidenceSchema).optional(),
   playbooks: z.array(PlaybookSchema),
+  // P1 scored recovery options (agentic rework Phase 1), ADDITIVE + back-compat. The
+  // deterministic, structured mitigation set (EXPEDITE/REALLOCATE/SUBSTITUTE/ESCALATE with
+  // cost/speed/risk/reversibility). .optional() so frozen pre-P1 V2 fixtures (the SCN-HORMUZ
+  // replay, golden, live) still parse; the producer (build-packet) ALWAYS stamps it. On a
+  // NO_ACTION packet it is withheld (empty) -- enforced by the union superRefine below.
+  recoveryOptions: z.array(RecoveryOptionSchema).optional(),
   supplierMessages: z.array(SupplierMessageDraftSchema),
   actionItems: z.array(ActionItemSchema),
   gatekeeper: GatekeeperReportSchema,
@@ -656,12 +701,16 @@ export const DecisionPacketSchema = z
       if (
         packet.playbooks.length > 0 ||
         packet.supplierMessages.length > 0 ||
-        packet.actionItems.length > 0
+        packet.actionItems.length > 0 ||
+        // P1: scored recovery options are outbound mitigation too -- a refusal that cannot
+        // justify drafting messages cannot justify recommending scored options either
+        // ("the agent that refuses when it can't prove it"). Withheld on NO_ACTION.
+        (packet.recoveryOptions?.length ?? 0) > 0
       ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message:
-            "NO_ACTION packet must withhold all playbooks, supplier messages, and action items."
+            "NO_ACTION packet must withhold all playbooks, supplier messages, action items, and recovery options."
         });
       }
       if (!packet.missingEvidence || packet.missingEvidence.length === 0) {

@@ -357,11 +357,28 @@ export function gradeSimulatorArithmetic(
     const got = actual.horizons.find((h) => h.days === exp.days);
     if (!got) {
       failures.push(`missing ${exp.days}-day horizon`);
-    } else if (!sameFigure(got.revenueAtRiskUsd, exp.revenueAtRiskUsd)) {
-      failures.push(
-        `${exp.days}-day revenue-at-risk ${got.revenueAtRiskUsd} != expected ${exp.revenueAtRiskUsd}`
-      );
+    } else {
+      if (!sameFigure(got.revenueAtRiskUsd, exp.revenueAtRiskUsd)) {
+        failures.push(
+          `${exp.days}-day revenue-at-risk ${got.revenueAtRiskUsd} != expected ${exp.revenueAtRiskUsd}`
+        );
+      }
+      // P1 margin-at-risk: when the oracle inputs declare a margin fraction, the packet
+      // must carry the matching marginAtRiskUsd (a producer that drops it or computes it
+      // differently from the shared math is caught here).
+      if (exp.marginAtRiskUsd !== undefined && !sameFigure(got.marginAtRiskUsd ?? NaN, exp.marginAtRiskUsd)) {
+        failures.push(
+          `${exp.days}-day margin-at-risk ${String(got.marginAtRiskUsd)} != expected ${exp.marginAtRiskUsd}`
+        );
+      }
     }
+  }
+
+  // P1 TTS: the survivalDays the revenue clock anchors at must match the oracle.
+  if (actual.survivalDays !== expected.survivalDays) {
+    failures.push(
+      `survivalDays ${String(actual.survivalDays)} != expected ${String(expected.survivalDays)}`
+    );
   }
 
   // Symmetric to the horizon check: guard the count and reject a fabricated runout

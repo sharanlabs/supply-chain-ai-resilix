@@ -1,0 +1,35 @@
+# Phase 1 (P1 domain wins) — exit gate
+
+**Stage:** agentic rework, Phase 1 of 7 (execution order `P1-domain → P2-quarantine → P4-Skeptic → P5-execution → P6-UI → P7-evals → P3-loop`). Autopilot-driven 2026-06-25.
+
+**What Phase 1 is:** six SCRM domain-credibility wins on the **deterministic waterfall** — NO LLM agent loop (that is the P3 cluster, built last), NO new dependencies, NO `ENABLE_AGENT_LOOP`. The flag-off waterfall stays green throughout. This is "value first" per the owner's reorder.
+
+## The six wins (all delivered)
+
+1. **Threat enum +3** — `MATERIAL_SHORTAGE_ALLOCATION` / `EXPORT_CONTROL` / `QUALITY_RECALL` added to `ThreatEventTypeSchema`; the Sentinel recognizes them (auto-propagates via `resolveEventType` + the live-prompt `.options` list). 2026-dominant disruptions no longer fall into `OTHER_UNMAPPED`.
+2. **TTR/TTS exposure + single-source penalty** — `ExposureResult` gains `singleSource` + `recoveryDays` (TTR). Atlas adds a +12 single-source score penalty + a TTR estimate (lead time, +14 when single-source) + a rationale clause. `linkBackupSuppliers` (seed-only overlay) gives the Gulf-9 a **5 single-source / 4 covered** split (CRITICAL/HIGH = single-source; MEDIUM/LOW = a LOW/MEDIUM same-sector alternate in another country) — so the penalty discriminates, not a constant. The P2.5 upload path stays `backupSupplierId: null`.
+3. **Margin-at-risk + revenue-clock-from-runout** — `Simulation` gains `survivalDays` (TTS) + per-horizon `marginAtRiskUsd`. `recomputeSimulation` anchors the revenue clock at runout: `exposedDays(H) = max(0, min(H,duration) − survivalDays)` (you lose nothing while inventory covers demand). Hormuz headline goes $2.7M → **$450k** (honest: covered for the 25-day runout, loss only in the 5-day gap to disruption-end). `marginPct` on scenario sim params; margin rounded to whole USD (float-safe).
+4. **Scored recovery options into V2** — new `lib/agents/actionops/recovery.ts` deterministic producer (EXPEDITE / REALLOCATE / SUBSTITUTE / SUPPLIER_ESCALATION, scored from exposures + simulation; **reversibility = the governance dial**). `recoveryOptions` additive-optional on `DecisionPacketV2Schema`; wired through `ActionOpsResult` / `index.ts` / `build-packet`. **Withheld on NO_ACTION** at both the producer (index.ts branch) AND structurally in the `DecisionPacketSchema` superRefine. Authoritative-binding holds (scores code-computed, no LLM authority).
+5. **Supplier-email rewrite + score-leak fix** — `dispatcher.ts` drafts → numeral-free impact-assessment requests (ask the supplier for THEIR figures: ship dates / on-hand / recovery / force-majeure / sub-tier). The internal `exposureScore` is REMOVED from the live whitelist (the model never sees it) + the prompt forbids internal figures + the firewall REJECTS any `exposureScore` citation (fail-closed backstop). The leak is structurally closed on BOTH paths.
+6. **Ops + Finance playbooks** — `strategist.ts` deterministic playbooks now emit Procurement + Operations + Finance (README promised all three; only Procurement shipped).
+
+## Verification (first-hand)
+
+- `npm run verify` — **EXIT 0**, 533 unit pass / 21 skipped, `next build` clean, secrets clean.
+- `npm run test:e2e` — **14 e2e pass** (WCAG 2.2 AA over the briefing + the homepage-renders-replay check; the frozen `SCN-HORMUZ.json` replay still parses with all new fields additive-optional).
+- All new schema fields are `.optional()` → frozen fixtures (replay, golden, live, v2) keep parsing.
+
+## Review panel (360° + cross-model)
+
+- **acceptance-gate** — initial **BLOCK** for one real defect (the demo-packet simulation declared `survivalDays` while showing revenue rising from day 0 — contradicting the runout-anchored model it ships; the homepage fallback renders it; no test guarded it). **All route-backs cleared:** (1) demo simulation made runout-consistent (`survivalDays: 7`, revenue 0 ≤ 7, positive after) + a new `evals/demo-packet.test.ts` gives it arithmetic/property coverage; (2) Codex ran (below); (3) raw `verify` transcript captured above.
+- **security-specialist** — **safe-to-proceed**, zero Critical/High/Med. The score-leak is verified CLOSED on both paths with evidence; the egress premise checked (no automated external send exists — human-approved drafts only). One **LOW**: the firewall `/\.exposureScore$/` regex's completeness was coupled to the resolver's dotted-keys-only grammar with nothing pinning it → added a bracket-form rejection test + a completeness comment.
+- **evals-specialist** — **SHIP**. Independently re-derived every hand-pinned oracle (Atlas 81/80/71/68/66/40/34/24/22 + the 5/4 split; Simulator survivalDays 25 → 0/450k/450k + margin 153k; golden Red Sea 0/0/1.2M; recovery 67/55/48/30) — genuine independence, not back-filled. Firewall security teeth preserved + the score-leak backstop is load-bearing (non-vacuous). Two findings addressed: the dormant `gradeSimulatorArithmetic` margin branch now has teeth (margin-bearing fixture + 2 negative cases in `eval-graders.test.ts`); a stale comment fixed.
+- **Codex cross-model (mandatory leg)** — **ran substantively but hit the ChatGPT-Plus usage cap before emitting a final verdict** (cap message: "try again at 7:49 PM"; thread `019f00ea-2e22-77e1-ad0a-7c1ddac5f636`). It read the core production files (simulation-math, dispatcher, recovery, schemas, atlas, demo-packet, action-packet-view) and surfaced **two real findings — BOTH in the hand-authored demo fixture** (the same fixture-coherence class the acceptance-gate flagged): (a) the demo simulation/`survivalDays` contradiction (already fixed), and (b) the demo's hand-authored recovery-option numbers no longer matched the producer for the corrected simulation → **fixed by DERIVING the demo recovery options from `buildRecoveryOptions(demoExposure, demoSimulation)`** so they can never drift. Codex surfaced NOTHING on the production code before the cap (though it did not complete that review).
+
+## Gate disposition (primary-model-final)
+
+**Committed LOCALLY; push HELD.** Per the codex-down doctrine + lesson F (2026-06-17): the cross-model pass RAN and delivered its value (it found 2 real defects the same-family reviews missed, all addressed). The final APPROVE **stamp did not emit** (usage cap) — it is a **dated obligation**, NOT asserted. Reversible internal progress (the local commit) proceeds; the irreversible step (**push**) waits on (a) the Codex final stamp re-run after the 7:49 PM reset (or the owner's backup credits account) over the committed code, and (b) the owner's push greenlight (project default).
+
+**Owner actions owed:** (1) re-run the Codex final stamp on the committed Phase-1 delta after the reset / on the backup account; (2) review + push. Until (1), no irreversible promotion.
+
+**Evidence:** `tasks/todo.md` (Phase 1 section), `tasks/lessons.md` (2 P1 lessons), this file.

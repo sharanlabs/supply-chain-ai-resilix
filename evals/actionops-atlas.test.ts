@@ -27,19 +27,40 @@ function hormuzContext(): ActionOpsContext {
   };
 }
 
-// score = RISK_TIER_BASE[tier] + clamp(leadDays - 30, 0, 30); base CRITICAL 55 /
-// HIGH 40 / MEDIUM 25 / LOW 12. Worked: Abu Chemical Partners 078 = CRITICAL(55) +
-// clamp(44-30)=14 = 69. (tier/lead read from data/seed/us-suppliers.seed.csv.)
+// score = RISK_TIER_BASE[tier] + clamp(leadDays - 30, 0, 30) + (singleSource ? 12 : 0);
+// base CRITICAL 55 / HIGH 40 / MEDIUM 25 / LOW 12. P1 single-source: a CRITICAL/HIGH-tier
+// Gulf supplier has no qualified backup (the seed backup-linkage overlay leaves
+// CRITICAL/HIGH single-source), so it carries the +12 penalty; the MEDIUM/LOW Gulf
+// suppliers have a qualified backup (a LOW/MEDIUM same-sector alternate in another
+// country) so they do NOT. Worked: Abu Chemical Partners 078 = CRITICAL(55) +
+// clamp(44-30)=14 + single-source(12) = 81. (tier/lead from data/seed/us-suppliers.seed.csv;
+// backup status from linkBackupSuppliers in lib/ingest/seed-suppliers.ts.)
 const EXPECTED_SCORES: Record<string, number> = {
-  "Abu Chemical Partners 078": 69, // AE CRITICAL 44 -> 55 + 14
-  "Eastern Energy Partners 094": 68, // SA CRITICAL 43 -> 55 + 13
-  "Al Energy Solutions 096": 59, // KW HIGH 49 -> 40 + 19
-  "Ras Energy Systems 095": 56, // QA HIGH 46 -> 40 + 16
-  "Eastern Chemical Group 076": 54, // SA HIGH 44 -> 40 + 14
-  "Jubail Chemical Manufacturing 077": 40, // SA MEDIUM 45 -> 25 + 15
-  "Jebel Energy Group 092": 34, // AE MEDIUM 39 -> 25 + 9
-  "Ras Chemical Systems 079": 24, // QA LOW 42 -> 12 + 12
-  "Abu Energy Manufacturing 093": 22 // AE LOW 40 -> 12 + 10
+  "Abu Chemical Partners 078": 81, // AE CRITICAL 44 single-source -> 55 + 14 + 12
+  "Eastern Energy Partners 094": 80, // SA CRITICAL 43 single-source -> 55 + 13 + 12
+  "Al Energy Solutions 096": 71, // KW HIGH 49 single-source -> 40 + 19 + 12
+  "Ras Energy Systems 095": 68, // QA HIGH 46 single-source -> 40 + 16 + 12
+  "Eastern Chemical Group 076": 66, // SA HIGH 44 single-source -> 40 + 14 + 12
+  "Jubail Chemical Manufacturing 077": 40, // SA MEDIUM 45 backup -> 25 + 15 + 0
+  "Jebel Energy Group 092": 34, // AE MEDIUM 39 backup -> 25 + 9 + 0
+  "Ras Chemical Systems 079": 24, // QA LOW 42 backup -> 12 + 12 + 0
+  "Abu Energy Manufacturing 093": 22 // AE LOW 40 backup -> 12 + 10 + 0
+};
+
+// P1 single-source + TTR (recoveryDays) per Gulf supplier. singleSource is true for the
+// CRITICAL/HIGH-tier suppliers (no qualified backup), false for MEDIUM/LOW (backup on
+// file). recoveryDays = standardLeadTimeDays + (singleSource ? 14 : 0). Hand-derived,
+// independent of the producer.
+const EXPECTED_SINGLE_SOURCE: Record<string, { singleSource: boolean; recoveryDays: number }> = {
+  "Abu Chemical Partners 078": { singleSource: true, recoveryDays: 58 }, // 44 + 14
+  "Eastern Energy Partners 094": { singleSource: true, recoveryDays: 57 }, // 43 + 14
+  "Al Energy Solutions 096": { singleSource: true, recoveryDays: 63 }, // 49 + 14
+  "Ras Energy Systems 095": { singleSource: true, recoveryDays: 60 }, // 46 + 14
+  "Eastern Chemical Group 076": { singleSource: true, recoveryDays: 58 }, // 44 + 14
+  "Jubail Chemical Manufacturing 077": { singleSource: false, recoveryDays: 45 }, // backup
+  "Jebel Energy Group 092": { singleSource: false, recoveryDays: 39 }, // backup
+  "Ras Chemical Systems 079": { singleSource: false, recoveryDays: 42 }, // backup
+  "Abu Energy Manufacturing 093": { singleSource: false, recoveryDays: 40 } // backup
 };
 
 describe("Atlas exposure model (D.2, deterministic, key-OFF)", () => {
@@ -69,7 +90,35 @@ describe("Atlas exposure model (D.2, deterministic, key-OFF)", () => {
 
     const scores = exposureResults.map((e) => e.exposureScore);
     expect(scores).toEqual([...scores].sort((a, b) => b - a));
-    expect(scores[0]).toBe(69); // Abu Chemical Partners 078 leads
+    expect(scores[0]).toBe(81); // Abu Chemical Partners 078 leads (single-source CRITICAL)
+  });
+
+  it("flags single-source suppliers and sets TTR (recoveryDays), hand-pinned", () => {
+    const ctx = hormuzContext();
+    const { threatCard } = runSentinel(ctx);
+    const { exposureResults } = runAtlas(ctx, threatCard);
+
+    for (const exposure of exposureResults) {
+      const expected = EXPECTED_SINGLE_SOURCE[exposure.supplierName];
+      expect(expected, `unexpected supplier ${exposure.supplierName}`).toBeDefined();
+      expect(exposure.singleSource, `${exposure.supplierName} singleSource`).toBe(
+        expected.singleSource
+      );
+      expect(exposure.recoveryDays, `${exposure.supplierName} recoveryDays`).toBe(
+        expected.recoveryDays
+      );
+      // The rationale surfaces the status in prose for the war-room read, tier-token first.
+      expect(exposure.rationale).toMatch(
+        expected.singleSource ? /single-source \(no qualified backup\)/ : /qualified backup on file/
+      );
+    }
+
+    // The penalty DISCRIMINATES: the seed yields a real mix (the advisor's #1 -- a uniform
+    // null would make it a constant). Both cohorts are non-empty within the matched set.
+    const single = exposureResults.filter((e) => e.singleSource);
+    const covered = exposureResults.filter((e) => !e.singleSource);
+    expect(single.length).toBe(5);
+    expect(covered.length).toBe(4);
   });
 
   it("passes the handoff when the matched set fits the threat scope (Hormuz)", () => {

@@ -51,6 +51,10 @@ export type ScenarioSimParams = {
   // Per affected supplier; the Simulator fans this across the matched set.
   dailyRevenueUsdPerSupplier: number;
   inventory: { productId: string; onHandUnits: number; dailyUseUnits: number }[];
+  // P1 margin-at-risk: the contribution-margin fraction (0..1) for the affected lines.
+  // Finance decides on contribution, not gross revenue, so each scenario declares the
+  // margin the Simulator applies to revenue-at-risk. Illustrative, modeled per sector.
+  marginPct: number;
 };
 
 export type ActionOpsScenario = {
@@ -168,7 +172,9 @@ export const HORMUZ_SCENARIO: ActionOpsScenario = {
     durationDays: 30,
     horizonDays: [7, 30, 90],
     dailyRevenueUsdPerSupplier: 10_000,
-    inventory: [{ productId: "PROD-GULF-CHEM", onHandUnits: 1_000, dailyUseUnits: 40 }]
+    inventory: [{ productId: "PROD-GULF-CHEM", onHandUnits: 1_000, dailyUseUnits: 40 }],
+    // Gulf petrochemical inputs run a thinner contribution margin (commodity-ish).
+    marginPct: 0.34
   },
   dataTier: "SEEDED"
 };
@@ -265,7 +271,9 @@ const REDSEA_SCENARIO: ActionOpsScenario = {
     durationDays: 60,
     horizonDays: [7, 30, 90],
     dailyRevenueUsdPerSupplier: 8_000,
-    inventory: [{ productId: "PROD-IN-PHARMA", onHandUnits: 900, dailyUseUnits: 30 }]
+    inventory: [{ productId: "PROD-IN-PHARMA", onHandUnits: 900, dailyUseUnits: 30 }],
+    // Pharma inputs carry a higher contribution margin than commodity chemicals.
+    marginPct: 0.42
   },
   dataTier: "SEEDED"
 };
@@ -304,7 +312,9 @@ const HURRICANE_SCENARIO: ActionOpsScenario = {
     durationDays: 14,
     horizonDays: [7, 30],
     dailyRevenueUsdPerSupplier: 25_000,
-    inventory: [{ productId: "PROD-SINGLE-SOURCE", onHandUnits: 300, dailyUseUnits: 30 }]
+    inventory: [{ productId: "PROD-SINGLE-SOURCE", onHandUnits: 300, dailyUseUnits: 30 }],
+    // A specialty single-source part commands the richest contribution margin.
+    marginPct: 0.46
   },
   dataGaps: ["Single-source plant: no qualified backup supplier in the current dataset."],
   dataTier: "SEEDED",

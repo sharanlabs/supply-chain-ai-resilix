@@ -270,6 +270,50 @@ describe("gradeSimulatorArithmetic edge branches", () => {
     const result = gradeSimulatorArithmetic(packet, groundTruth({ simInputs: SIM_INPUTS }));
     expect(result.failures.some((f) => /missing runout for PROD-1/.test(f))).toBe(true);
   });
+
+  // P1 margin/TTS teeth. The margin check only ENGAGES when the graded inputs carry a
+  // marginPct, so it needs a margin-bearing fixture + negative cases or it stays dormant.
+  // survivalDays = floor(100/10) = 10; @30d revenue = 1000 x (30-10) = 20_000; margin =
+  // round(20_000 x 0.4) = 8_000.
+  const SIM_INPUTS_MARGIN: SimInputs = {
+    baseDateIso: BASE_DATE,
+    durationDays: 30,
+    affected: [{ supplierId: "SUP-100", dailyRevenueUsd: 1_000 }],
+    horizonDays: [30],
+    inventory: [{ productId: "PROD-1", onHandUnits: 100, dailyUseUnits: 10 }],
+    marginPct: 0.4
+  };
+
+  it("passes a margin-bearing simulation that matches the recompute (engages the branch)", () => {
+    const packet = makeV2Packet({
+      simulation: { ...recomputeSimulation(SIM_INPUTS_MARGIN), generatedAt: BASE_DATE }
+    });
+    expect(gradeSimulatorArithmetic(packet, groundTruth({ simInputs: SIM_INPUTS_MARGIN })).pass).toBe(
+      true
+    );
+  });
+
+  it("flags a wrong margin-at-risk (the margin branch, with teeth)", () => {
+    const sim = { ...recomputeSimulation(SIM_INPUTS_MARGIN), generatedAt: BASE_DATE };
+    sim.horizons[0].marginAtRiskUsd = (sim.horizons[0].marginAtRiskUsd ?? 0) + 1; // off by a dollar
+    const result = gradeSimulatorArithmetic(
+      makeV2Packet({ simulation: sim }),
+      groundTruth({ simInputs: SIM_INPUTS_MARGIN })
+    );
+    expect(result.pass).toBe(false);
+    expect(result.failures.some((f) => /margin-at-risk/.test(f))).toBe(true);
+  });
+
+  it("flags a wrong survivalDays / TTS", () => {
+    const sim = { ...recomputeSimulation(SIM_INPUTS_MARGIN), generatedAt: BASE_DATE };
+    sim.survivalDays = (sim.survivalDays ?? 0) + 5; // wrong TTS
+    const result = gradeSimulatorArithmetic(
+      makeV2Packet({ simulation: sim }),
+      groundTruth({ simInputs: SIM_INPUTS_MARGIN })
+    );
+    expect(result.pass).toBe(false);
+    expect(result.failures.some((f) => /survivalDays/.test(f))).toBe(true);
+  });
 });
 
 describe("other grader edge branches", () => {

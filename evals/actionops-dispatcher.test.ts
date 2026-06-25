@@ -64,27 +64,26 @@ function hormuzInputs(): { exposureResults: ExposureResult[]; simulation?: Simul
   return { exposureResults, simulation };
 }
 
-// A clean, firewall-valid LLM draft for exposure index i: cites its own exposure score
-// at the absolute sourcePath, plus the simulation window when present. No URL, no
-// unsourced numeral -- the control every reject test is measured against.
-function cleanDraft(e: ExposureResult, i: number, windowDays: number | null) {
-  const claims = [
-    {
-      value: e.exposureScore,
-      unit: "score",
-      sourcePath: `exposureResults[${i}].exposureScore`
-    }
-  ];
+// A clean, firewall-valid LLM draft: an IMPACT-ASSESSMENT REQUEST (P1) that asks the
+// supplier for THEIR figures and cites NONE of ours but the shared simulation window. No
+// internal exposureScore, no URL, no unsourced numeral -- the control every reject test is
+// measured against. The window is the one claimed figure, so the citation-machinery tests
+// (wrong-context, unsourced numeral) still have a claim to exercise.
+function cleanDraft(e: ExposureResult, windowDays: number | null) {
+  const claims: { value: number; unit: string; sourcePath: string }[] = [];
   let body =
-    "We are contacting you about a supply-chain disruption affecting your inbound lanes. " +
-    `Your exposure score for this event is ${e.exposureScore}.`;
+    "We are tracking a supply-chain disruption that may affect your inbound lanes. " +
+    "Please confirm your current shipment dates, on-hand position, and expected recovery timeline.";
   if (windowDays != null) {
     claims.push({ value: windowDays, unit: "days", sourcePath: "simulation.horizons[0].days" });
-    body += ` We are assessing impact over an initial ${windowDays}-day window and will confirm contingency routing after review.`;
-  } else {
-    body += " We are reviewing contingency options and will confirm next steps after review.";
+    body += ` We are coordinating an initial ${windowDays}-day impact review.`;
   }
-  return { supplierId: e.supplierId, subject: "Supply-chain disruption: contingency review", body, claims };
+  return {
+    supplierId: e.supplierId,
+    subject: "Supply-chain disruption: impact-assessment request",
+    body,
+    claims
+  };
 }
 
 function cleanResult(
@@ -94,7 +93,7 @@ function cleanResult(
   const windowDays =
     simulation != null && simulation.horizons.length > 0 ? simulation.horizons[0].days : null;
   return {
-    messages: exposureResults.slice(0, 5).map((e, i) => cleanDraft(e, i, windowDays))
+    messages: exposureResults.slice(0, 5).map((e) => cleanDraft(e, windowDays))
   };
 }
 
@@ -104,14 +103,19 @@ describe("Dispatcher deterministic fallback (D.7, key-OFF)", () => {
     const { exposureResults, simulation } = hormuzInputs();
     const { supplierMessages, actionItems, agentRun } = runDispatcher(ctx, exposureResults, simulation);
 
-    // The fallback is the D.1 template, byte-stable (the pipeline/golden suites assert
-    // against it): top-5 drafts, each MSG-<supplierId>, each carrying its score claim.
+    // The fallback is an IMPACT-ASSESSMENT REQUEST (P1 score-leak fix): top-5 drafts, each
+    // MSG-<supplierId>, asking the supplier for THEIR figures and leaking NONE of ours.
     expect(supplierMessages.length).toBe(Math.min(5, exposureResults.length));
     for (const msg of supplierMessages) {
       expect(msg.id).toBe(`MSG-${msg.supplierId}`);
       expect(msg.channel).toBe("email");
       expect(msg.approvalRequired).toBe(true);
-      expect(msg.claims.length).toBeGreaterThan(0);
+      // The internal exposure score NEVER leaves the building -- not in the body, not a claim.
+      expect(msg.body).not.toMatch(/exposure score/i);
+      expect(msg.claims.every((c) => !/exposureScore/.test(c.sourcePath))).toBe(true);
+      // It reads as an impact-assessment request (asks for the supplier's own status).
+      expect(msg.subject).toMatch(/impact-assessment/i);
+      expect(msg.body).toMatch(/please confirm|recovery timeline|force majeure/i);
     }
     expect(actionItems.map((a) => a.id)).toEqual(["AI-CONTINGENCY", "AI-REVIEW"]);
 
@@ -175,18 +179,18 @@ describe("Dispatcher output-validation firewall (D.7 injection eval)", () => {
   it("REJECTS a claim whose value does not match its sourcePath's resolved value", () => {
     const { exposureResults, simulation } = hormuzInputs();
     const clean = cleanResult(exposureResults, simulation);
-    const realScore = exposureResults[0].exposureScore;
-    const wrongScore = realScore + 11; // a value the sourcePath does NOT resolve to
+    const realWindow = simulation!.horizons[0].days;
+    const wrongWindow = realWindow + 11; // a value the window sourcePath does NOT resolve to
     const dirty: DispatcherLlmResult = {
       messages: clean.messages.map((m, i) =>
         i === 0
           ? {
               ...m,
               body:
-                "We are contacting you about a supply-chain disruption affecting your inbound lanes. " +
-                `Your exposure score for this event is ${wrongScore}.`,
+                "We are tracking a supply-chain disruption affecting your inbound lanes. " +
+                `We are coordinating an initial ${wrongWindow}-day impact review.`,
               claims: [
-                { value: wrongScore, unit: "score", sourcePath: `exposureResults[0].exposureScore` }
+                { value: wrongWindow, unit: "days", sourcePath: "simulation.horizons[0].days" }
               ]
             }
           : m
@@ -275,7 +279,7 @@ describe("Dispatcher output-validation firewall (D.7 injection eval)", () => {
   // A duplicate supplierId collides the minted MSG- id -> reject.
   it("REJECTS two drafts to the same supplier (a colliding minted id)", () => {
     const { exposureResults, simulation } = hormuzInputs();
-    const first = cleanDraft(exposureResults[0], 0, null);
+    const first = cleanDraft(exposureResults[0], null);
     const dup: DispatcherLlmResult = { messages: [first, { ...first }] };
     const outcome = applyDispatcherFirewall(dup, {
       exposureResults,
@@ -334,12 +338,12 @@ describe("Dispatcher firewall link forms (D.7 hardening: non-scheme link bypass)
   }
 });
 
-describe("Dispatcher firewall supplier binding (D.7 hardening: equal-value cross-supplier)", () => {
-  // Two exposures with an EQUAL exposureScore. A draft to supplier B that cites
-  // supplier A's score path (exposureResults[A].exposureScore) value-matches and
-  // unit-matches -- the old forward checks let it pass. The new supplier-binding check
-  // rejects it: a draft must cite THIS supplier's score, not another's equal-value one.
-  function equalScoreInputs(): ExposureResult[] {
+describe("Dispatcher firewall score-leak backstop (P1: the internal score never leaves)", () => {
+  // P1 score-leak fix. The internal exposureScore is RESILIX's private risk number; it must
+  // NEVER appear in an outbound supplier draft. The model is never shown it (out of the
+  // whitelist), so a draft citing exposureResults[i].exposureScore can only be a fabricated /
+  // laundered citation -- the firewall rejects the whole set, fail-closed.
+  function twoExposures(): ExposureResult[] {
     return [
       {
         id: "EXP-A",
@@ -347,8 +351,10 @@ describe("Dispatcher firewall supplier binding (D.7 hardening: equal-value cross
         supplierName: "Alpha Co",
         country: "AE",
         sector: "ENERGY",
-        exposureScore: 70, // equal score -- the collision the binding check guards
-        rationale: "Inbound lanes transit the affected route.",
+        exposureScore: 70,
+        rationale: "HIGH risk tier; 44-day lead time; single-source (no qualified backup).",
+        singleSource: true,
+        recoveryDays: 58,
         evidenceIds: []
       },
       {
@@ -357,24 +363,24 @@ describe("Dispatcher firewall supplier binding (D.7 hardening: equal-value cross
         supplierName: "Beta Co",
         country: "SA",
         sector: "ENERGY",
-        exposureScore: 70, // SAME value as A
-        rationale: "Inbound lanes transit the affected route.",
+        exposureScore: 65,
+        rationale: "MEDIUM risk tier; 39-day lead time; qualified backup on file.",
+        singleSource: false,
+        recoveryDays: 39,
         evidenceIds: []
       }
     ];
   }
 
-  it("REJECTS a draft to supplier B that cites supplier A's equal-value exposure score", () => {
-    const exposureResults = equalScoreInputs();
-    // Draft to B (index 1) but cite A's score path (index 0). Value (70) and unit
-    // ("score") match A's row, so ONLY the supplier-binding check can catch this.
+  it("REJECTS any draft that cites the internal exposureScore (leak backstop)", () => {
+    const exposureResults = twoExposures();
     const dirty: DispatcherLlmResult = {
       messages: [
         {
-          supplierId: "SUP-BBB",
-          subject: "Supply-chain disruption: contingency review",
+          supplierId: "SUP-AAA",
+          subject: "Supply-chain disruption: impact-assessment request",
           body:
-            "We are contacting you about a supply-chain disruption affecting your inbound lanes. " +
+            "We are tracking a disruption affecting your inbound lanes. " +
             "Your exposure score for this event is 70.",
           claims: [{ value: 70, unit: "score", sourcePath: "exposureResults[0].exposureScore" }]
         }
@@ -383,24 +389,47 @@ describe("Dispatcher firewall supplier binding (D.7 hardening: equal-value cross
     const outcome = applyDispatcherFirewall(dirty, { exposureResults });
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) {
-      expect(outcome.reason).toMatch(/is not this message's supplier/i);
-      expect(outcome.reason).toContain("SUP-BBB");
+      expect(outcome.reason).toMatch(/internal exposureScore|must not leave/i);
+      expect(outcome.reason).toContain("SUP-AAA");
     }
   });
 
-  it("CONTROL: a draft to supplier B citing B's OWN score (same value) crosses", () => {
-    const exposureResults = equalScoreInputs();
-    // Identical value (70), but the CORRECT index (1 -> B). This must PASS, proving the
-    // binding check rejects the wrong supplier, not the equal value itself.
+  it("REJECTS a BRACKET-FORM exposureScore sourcePath too (regex+resolver jointly complete)", () => {
+    // A bracket/alias accessor exposureResults[0]["exposureScore"] sidesteps the dotted
+    // `.exposureScore$` regex -- but it does NOT resolve (resolveSourcePath's grammar is
+    // dotted-keys + [n] only), so the citation check rejects it. This pins the joint
+    // completeness: if the resolver is ever taught bracket accessors, this test fails loudly
+    // (the regex would then need widening to keep the score backstop closed).
+    const exposureResults = twoExposures();
+    const dirty: DispatcherLlmResult = {
+      messages: [
+        {
+          supplierId: "SUP-AAA",
+          subject: "Supply-chain disruption: impact-assessment request",
+          body:
+            "We are tracking a disruption affecting your inbound lanes. " +
+            "Your exposure score for this event is 70.",
+          claims: [{ value: 70, unit: "score", sourcePath: 'exposureResults[0]["exposureScore"]' }]
+        }
+      ]
+    };
+    const outcome = applyDispatcherFirewall(dirty, { exposureResults });
+    expect(outcome.ok).toBe(false); // rejected (does not resolve / unsourced), never emitted
+  });
+
+  it("CONTROL: an impact-assessment request that cites NO internal figure crosses", () => {
+    const exposureResults = twoExposures();
+    // The clean draft asks for the supplier's own status and cites nothing internal --
+    // it must PASS, proving the backstop rejects the score citation, not the draft itself.
     const clean: DispatcherLlmResult = {
       messages: [
         {
-          supplierId: "SUP-BBB",
-          subject: "Supply-chain disruption: contingency review",
+          supplierId: "SUP-AAA",
+          subject: "Supply-chain disruption: impact-assessment request",
           body:
-            "We are contacting you about a supply-chain disruption affecting your inbound lanes. " +
-            "Your exposure score for this event is 70.",
-          claims: [{ value: 70, unit: "score", sourcePath: "exposureResults[1].exposureScore" }]
+            "We are tracking a supply-chain disruption that may affect your inbound lanes. " +
+            "Please confirm your current shipment dates, on-hand position, and recovery timeline.",
+          claims: []
         }
       ]
     };
@@ -509,9 +538,9 @@ describe("Dispatcher live drafts pass the merge-time gates (D.7)", () => {
     // ground truth is hormuz.groundTruth. Exposures are an INPUT to the Dispatcher, not
     // its output, so the firewall is fed the golden packet's OWN exposures + simulation;
     // the test then swaps ONLY the messages (the Dispatcher's output) and grades. This is
-    // what proves firewall <-> grader agreement: the drafts cite
-    // exposureResults[i].exposureScore resolving against the SAME array the graded packet
-    // carries, and simulation.horizons[0].days against the same simulation. Deriving a
+    // what proves firewall <-> grader agreement: the impact-assessment drafts cite
+    // simulation.horizons[0].days resolving against the SAME simulation the graded packet
+    // carries (the P1 drafts are otherwise numeral-free -- no internal score). Deriving a
     // separate pipeline packet would mismatch the golden frame's threat/playbook ids and
     // force hand-building the ground truth -- avoided here.
     const exposureResults = hormuz.packet.exposureResults;

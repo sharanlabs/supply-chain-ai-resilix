@@ -7,6 +7,7 @@ import type {
   Playbook,
   PublicSignal,
   Recommendation,
+  RecoveryOption,
   Simulation,
   Supplier,
   SupplierMessageDraft,
@@ -47,6 +48,9 @@ export type ActionOpsResult = {
   recommendation: Recommendation;
   missingEvidence: MissingEvidence[];
   playbooks: Playbook[];
+  // Scored, structured mitigation options (deterministic; see recovery.ts). Withheld
+  // (empty) on a NO_ACTION refusal, exactly like playbooks and supplierMessages.
+  recoveryOptions: RecoveryOption[];
   supplierMessages: SupplierMessageDraft[];
   actionItems: ActionItem[];
   gatekeeper: GatekeeperReport;

@@ -204,6 +204,37 @@ describe("Sentinel output-validation firewall (D.5)", () => {
     }
   });
 
+  // P1 domain win (agentic rework Phase 1): the 2026-dominant disruptions
+  // MATERIAL_SHORTAGE_ALLOCATION / EXPORT_CONTROL / QUALITY_RECALL are now closed-vocab
+  // members, so the Sentinel RECOGNIZES them instead of dropping them to OTHER_UNMAPPED.
+  // These are not chokepoint events, so the location omits a chokepoint (the firewall's
+  // chokepoint-coherence check is correctly skipped); evidence is a real allowlisted url
+  // and the summary is numeral-free, so the rest of the card crosses cleanly.
+  it.each([
+    ["MATERIAL_SHORTAGE_ALLOCATION", "MATERIAL_SHORTAGE_ALLOCATION"],
+    ["EXPORT_CONTROL", "EXPORT_CONTROL"],
+    ["QUALITY_RECALL", "QUALITY_RECALL"],
+    // case/format-insensitive: resolveEventType normalizes spacing + case + hyphens.
+    ["export control", "EXPORT_CONTROL"],
+    ["quality-recall", "QUALITY_RECALL"]
+  ])("recognizes the new 2026 threat type %s (not OTHER_UNMAPPED)", (rawType, expected) => {
+    const ctx = hormuzContext();
+    const card: SentinelLlmResult = {
+      eventType: rawType,
+      severity: "HIGH",
+      location: { country: "US" },
+      summary: "A supplier-side disruption is constraining inbound supply for affected parts.",
+      evidenceUrls: [HORMUZ_GDELT_URL],
+      confidence: 0.7
+    };
+    const outcome = applyThreatFirewall(card, ctx);
+    expect(outcome.ok, outcome.ok ? "" : outcome.reason).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.threatCard.eventType).toBe(expected);
+      expect(outcome.threatCard.eventType).not.toBe("OTHER_UNMAPPED");
+    }
+  });
+
   it("REJECTS a mismatched / injection-laden chokepoint (fail-closed, not a silent drop)", () => {
     const ctx = hormuzContext();
     // A chokepoint that is NOT the scenario's known one cannot be validated downstream and

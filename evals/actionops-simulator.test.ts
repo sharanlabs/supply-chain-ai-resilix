@@ -18,23 +18,34 @@ import type { ActionOpsContext } from "@/lib/agents/actionops/types";
 //
 // Hormuz sim params (lib/data/actionops-scenarios.ts):
 //   durationDays 30, horizonDays [7, 30, 90], dailyRevenueUsdPerSupplier 10_000,
-//   9 affected Gulf suppliers, inventory PROD-GULF-CHEM onHand 1000 / dailyUse 40.
+//   9 affected Gulf suppliers, inventory PROD-GULF-CHEM onHand 1000 / dailyUse 40,
+//   marginPct 0.34.
 
-// revenueAtRisk(H) = (affected suppliers) x (daily revenue) x min(H, durationDays).
-// Hand-worked with 9 affected suppliers at 10_000/day and a 30-day disruption:
-//   @7d  = 9 x 10_000 x min(7, 30)  = 9 x 10_000 x 7  = 630_000
-//   @30d = 9 x 10_000 x min(30, 30) = 9 x 10_000 x 30 = 2_700_000
-//   @90d = 9 x 10_000 x min(90, 30) = 9 x 10_000 x 30 = 2_700_000  (capped at duration)
+// P1 TTS spine: revenue-at-risk starts at RUNOUT (time-to-survive), not day 0 -- you lose
+// nothing while inventory still covers demand. survivalDays = floor(1000/40) = 25, so the
+// exposure window is exposedDays(H) = max(0, min(H, durationDays) - 25).
+//   @7d  = 9 x 10_000 x max(0, min(7,30)-25)  = 9 x 10_000 x 0 = 0  (still covered at 7d)
+//   @30d = 9 x 10_000 x max(0, min(30,30)-25) = 9 x 10_000 x 5 = 450_000
+//   @90d = 9 x 10_000 x max(0, min(90,30)-25) = 9 x 10_000 x 5 = 450_000  (capped at duration)
 const EXPECTED_REVENUE_AT_RISK_USD: Record<number, number> = {
-  7: 630_000,
-  30: 2_700_000,
-  90: 2_700_000
+  7: 0,
+  30: 450_000,
+  90: 450_000
+};
+
+// marginAtRisk(H) = revenueAtRisk(H) x marginPct (0.34), rounded to whole USD.
+//   @7d 0 ; @30d round(450_000 x 0.34) = 153_000 ; @90d = 153_000
+const EXPECTED_MARGIN_AT_RISK_USD: Record<number, number> = {
+  7: 0,
+  30: 153_000,
+  90: 153_000
 };
 
 // runout(PROD-GULF-CHEM) = floor(onHand / dailyUse) = floor(1000 / 40) = 25 days
-// after the run base date. Whole days only -- a partial day of cover buys no extra
-// whole day of runway.
+// after the run base date. This is also the TTS (survivalDays) the revenue clock starts at.
+// Whole days only -- a partial day of cover buys no extra whole day of runway.
 const EXPECTED_RUNOUT_DAYS = 25;
+const EXPECTED_SURVIVAL_DAYS = 25;
 const EXPECTED_AFFECTED_SUPPLIER_COUNT = 9;
 
 // Add whole days to a UTC instant by CALENDAR components (Date.UTC normalizes
@@ -65,13 +76,20 @@ describe("Simulator arithmetic (D.3, hand-pinned, independent of producer math)"
     expect(sim, "live Hormuz run must produce a simulation section").toBeDefined();
     if (!sim) return; // narrow for the type checker; the assertion above is the real gate.
 
+    // TTS: the revenue clock anchors at the 25-day runout, surfaced on the simulation.
+    expect(sim.survivalDays, "survivalDays (TTS)").toBe(EXPECTED_SURVIVAL_DAYS);
+
     // Exactly the three declared horizons -- no missing, no fabricated.
     expect(sim.horizons).toHaveLength(3);
     for (const horizon of sim.horizons) {
       const expected = EXPECTED_REVENUE_AT_RISK_USD[horizon.days];
       expect(expected, `unexpected horizon ${horizon.days}d`).toBeDefined();
-      // Strong teeth: the hand-pinned ABSOLUTE value, to the dollar.
+      // Strong teeth: the hand-pinned ABSOLUTE value, to the dollar (runout-anchored).
       expect(horizon.revenueAtRiskUsd, `${horizon.days}d revenue-at-risk`).toBe(expected);
+      // P1 margin-at-risk, hand-pinned to the dollar.
+      expect(horizon.marginAtRiskUsd, `${horizon.days}d margin-at-risk`).toBe(
+        EXPECTED_MARGIN_AT_RISK_USD[horizon.days]
+      );
     }
 
     // Exactly one runout, for the one declared product.

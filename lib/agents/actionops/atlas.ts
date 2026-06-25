@@ -38,6 +38,18 @@ function leadComponent(standardLeadTimeDays: number): number {
   return Math.min(Math.max(standardLeadTimeDays - LEAD_FLOOR_DAYS, 0), LEAD_CAP_POINTS);
 }
 
+// P1 single-source spine. A supplier with NO qualified backup on file
+// (backupSupplierId is null) is the classic concentration risk: there is no alternate
+// to switch to, so the same disruption bites harder and recovery runs longer.
+//   - the exposure SCORE gains a fixed penalty (kept well under the 100 ceiling: a
+//     CRITICAL 55 + lead cap 30 + 12 = 97), and
+//   - the TTR estimate (recoveryDays) is the supplier's standard lead time -- the time to
+//     push a fresh order through -- EXTENDED when single-source, since requalifying an
+//     alternate adds weeks. Integer by construction (lead time + integer extra), so the
+//     hand-derived fixtures stay immune to float rounding.
+const SINGLE_SOURCE_SCORE_PENALTY = 12;
+const SINGLE_SOURCE_RECOVERY_EXTRA_DAYS = 14;
+
 // The disruption's geographic AFFECTED SCOPE keyed by the threat's chokepoint -- the
 // countries whose inbound maritime trade transits it. This is the firewall's source
 // of truth: Atlas trusts the SCENARIO for WHO to match, but checks the matched set
@@ -159,6 +171,12 @@ export function runAtlas(
     .map((supplier) => {
       const base = RISK_TIER_BASE[supplier.riskTier];
       const lead = leadComponent(supplier.standardLeadTimeDays);
+      // P1: a supplier with no backup on file is single-source (concentration risk).
+      // == null catches both a null FK and an absent field. Drives both the score
+      // penalty and the longer TTR.
+      const singleSource = supplier.backupSupplierId == null;
+      const recoveryDays =
+        supplier.standardLeadTimeDays + (singleSource ? SINGLE_SOURCE_RECOVERY_EXTRA_DAYS : 0);
       return {
         id: `EXP-${scenario.id}-${supplier.id}`,
         supplierId: supplier.id,
@@ -168,18 +186,19 @@ export function runAtlas(
         // an off-taxonomy event, or a supplier sector not in the taxonomy, is held
         // as OTHER_UNMAPPED rather than force-fit to a named sector.
         sector: resolveSector(scenario.offTaxonomy === true, supplier.sector),
-        exposureScore: base + lead,
-        // Per-row rationale carries ONLY what varies between matched suppliers --
-        // the risk tier (leading token, parsed by the packet view to drive both
-        // the row label and its severity bar) and the standard lead time. The
-        // SHARED context every matched supplier has in common (all sit on a lane
-        // through the affected chokepoint, none with a qualified backup on file)
-        // is stated ONCE above the exposure table in the view, not repeated per
-        // row -- nine identical clauses read as boilerplate, not signal. The tier
-        // must stay the first token: tierFromRationale() in the view matches
+        exposureScore: base + lead + (singleSource ? SINGLE_SOURCE_SCORE_PENALTY : 0),
+        // Per-row rationale carries what VARIES between matched suppliers -- the risk
+        // tier (leading token, parsed by the packet view to drive the row label + its
+        // severity bar), the standard lead time, and now the single-source vs
+        // backup-on-file status (the P1 concentration-risk read). The tier MUST stay
+        // the first token: tierFromRationale() in the view matches
         // /^(LOW|MEDIUM|HIGH|CRITICAL)\b/. Graders check scores/structure, not this
-        // text (see evals/actionops-atlas.test.ts), so the wording is free to shorten.
-        rationale: `${supplier.riskTier} risk tier; ${supplier.standardLeadTimeDays}-day lead time.`,
+        // text (see evals/actionops-atlas.test.ts), so the wording is free to evolve.
+        rationale:
+          `${supplier.riskTier} risk tier; ${supplier.standardLeadTimeDays}-day lead time; ` +
+          `${singleSource ? "single-source (no qualified backup)" : "qualified backup on file"}.`,
+        singleSource,
+        recoveryDays,
         evidenceIds: [threatCard.id]
       };
     })

@@ -49,8 +49,8 @@ function clonePacket(packet: DecisionPacketV2): DecisionPacketV2 {
 describe("ActionOps gatekeeper -- full citation enforcement (D.4, key-OFF, deterministic)", () => {
   it("CLEARS the live Hormuz packet for human review (the control)", async () => {
     // useLiveSignals: false -> cached signals, no network, deterministic, key-OFF.
-    // The Dispatcher's claims are correct by construction (each cites the exposure
-    // score / sim horizon it states), so the rigorous check must ACCEPT them --
+    // The Dispatcher's claims are correct by construction (the impact-assessment draft
+    // cites only the sim horizon it states), so the rigorous check must ACCEPT them --
     // otherwise the gatekeeper would block the very packets it is meant to pass.
     const packet = await buildDecisionPacket({ useLiveSignals: false });
 
@@ -66,14 +66,15 @@ describe("ActionOps gatekeeper -- full citation enforcement (D.4, key-OFF, deter
 
   it("BLOCKS a WRONG-CONTEXT number: claim value no longer matches its sourcePath", async () => {
     const packet = clonePacket(await buildDecisionPacket({ useLiveSignals: false }));
-    // msg0.claim0 states value 69 and cites exposureResults[0].exposureScore (=69).
-    // Repoint it at exposureResults[1].exposureScore (=68): the path still RESOLVES
-    // and is a valid input root, but the resolved value (68) no longer equals the
-    // claimed value (69). That is a right-value/wrong-context citation, which must
-    // fail -- a draft asserting 69 must cite a 69, not a coincidentally-near 68.
+    // P1: the deterministic draft (impact-assessment request) carries ONE claim -- the
+    // shared assessment window, citing simulation.horizons[0].days (=7). Repoint it at
+    // simulation.horizons[1].days (=30): the path still RESOLVES and is a valid input root,
+    // but the resolved value (30) no longer equals the claimed value (7). That is a
+    // right-value/wrong-context citation, which must fail -- a draft asserting a 7-day
+    // window must cite the 7-day horizon, not the 30-day one.
     const claim = packet.supplierMessages[0].claims[0];
-    expect(claim.sourcePath).toBe("exposureResults[0].exposureScore"); // guard: the fixture is what we think
-    claim.sourcePath = "exposureResults[1].exposureScore";
+    expect(claim.sourcePath).toBe("simulation.horizons[0].days"); // guard: the fixture is what we think
+    claim.sourcePath = "simulation.horizons[1].days";
 
     const report = gatekeeperOver(packet);
     expect(report.status).toBe("BLOCKED");

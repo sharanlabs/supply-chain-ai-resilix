@@ -1,4 +1,9 @@
-import type { DecisionPacketV2, PublicSignal } from "@/lib/schemas";
+import type { DecisionPacketV2, PublicSignal, Simulation } from "@/lib/schemas";
+import { buildRecoveryOptions } from "@/lib/agents/actionops/recovery";
+
+// One source of truth for the demo run instant -- the simulation const + makeDemoPacket
+// share it so the runout dates, survivalDays, and createdAt stay coherent.
+const DEMO_RUN_AT = "2026-06-12T08:42:00.000Z";
 
 // ---------------------------------------------------------------------------
 // The seeded Hormuz demo packet, for the UI primary screen before the live
@@ -78,7 +83,9 @@ export const demoExposure: DecisionPacketV2["exposureResults"] = [
     sector: "CHEMICALS",
     exposureScore: 88,
     rationale:
-      "Abu Dhabi origin, CRITICAL risk tier; all inbound lanes transit the affected chokepoint and there is no qualified backup.",
+      "Abu Dhabi origin, CRITICAL risk tier; all inbound lanes transit the affected chokepoint; single-source (no qualified backup).",
+    singleSource: true,
+    recoveryDays: 58,
     evidenceIds: ["THREAT-HORMUZ-001", "SIG-GDELT-HORMUZ-01"]
   },
   {
@@ -89,7 +96,9 @@ export const demoExposure: DecisionPacketV2["exposureResults"] = [
     sector: "ENERGY",
     exposureScore: 81,
     rationale:
-      "Ras Laffan origin; Gulf-routed energy inputs face a 46-day standard lead time extended by the closure window.",
+      "Ras Laffan origin; Gulf-routed energy inputs face a long standard lead time extended by the closure window; single-source (no qualified backup).",
+    singleSource: true,
+    recoveryDays: 60,
     evidenceIds: ["THREAT-HORMUZ-001", "SIG-GDELT-HORMUZ-02"]
   },
   {
@@ -100,7 +109,9 @@ export const demoExposure: DecisionPacketV2["exposureResults"] = [
     sector: "CHEMICALS",
     exposureScore: 74,
     rationale:
-      "Eastern Province origin; sector reprices on a Gulf petrochem shock even where a partial alternate exists.",
+      "Eastern Province origin; sector reprices on a Gulf petrochem shock; qualified backup on file (a partial alternate exists).",
+    singleSource: false,
+    recoveryDays: 44,
     evidenceIds: ["THREAT-HORMUZ-001"]
   },
   {
@@ -111,7 +122,9 @@ export const demoExposure: DecisionPacketV2["exposureResults"] = [
     sector: "ENERGY",
     exposureScore: 69,
     rationale:
-      "CRITICAL-tier Eastern Province energy supplier; 43-day lead time leaves little buffer against an extended closure.",
+      "CRITICAL-tier Eastern Province energy supplier; a long lead time leaves little buffer against an extended closure; single-source (no qualified backup).",
+    singleSource: true,
+    recoveryDays: 57,
     evidenceIds: ["THREAT-HORMUZ-001"]
   },
   {
@@ -122,13 +135,35 @@ export const demoExposure: DecisionPacketV2["exposureResults"] = [
     sector: "ENERGY",
     exposureScore: 63,
     rationale:
-      "Al Ahmadi origin with the longest lead time in the Gulf subset (49 days); secondary exposure via shared routing.",
+      "Al Ahmadi origin with the longest lead time in the Gulf subset; secondary exposure via shared routing; single-source (no qualified backup).",
+    singleSource: true,
+    recoveryDays: 63,
     evidenceIds: ["THREAT-HORMUZ-001"]
   }
 ];
 
+// Illustrative (see the audit note), but INTERNALLY CONSISTENT with the runout-anchored P1
+// model: revenue-at-risk is 0 while inventory still covers demand and accrues only AFTER the
+// earliest runout. survivalDays = 7 (PROD-ELECTROLYTE-A runs out 2026-06-19, 7 days after the
+// 2026-06-12 capture), so a ~$50k/day Gulf-lane exposure gives @3d,@7d -> 0 (covered);
+// @14d -> (14-7) x 50k = 350,000; @30d -> (30-7) x 50k = 1,150,000. margin = revenue x ~0.34.
+export const demoSimulation: Simulation = {
+  horizons: [
+    { days: 3, revenueAtRiskUsd: 0, marginAtRiskUsd: 0 },
+    { days: 7, revenueAtRiskUsd: 0, marginAtRiskUsd: 0 },
+    { days: 14, revenueAtRiskUsd: 350_000, marginAtRiskUsd: 119_000 },
+    { days: 30, revenueAtRiskUsd: 1_150_000, marginAtRiskUsd: 391_000 }
+  ],
+  productRunouts: [
+    { productId: "PROD-ELECTROLYTE-A", runoutDate: "2026-06-19" },
+    { productId: "PROD-CATALYST-B", runoutDate: "2026-06-26" }
+  ],
+  survivalDays: 7,
+  generatedAt: DEMO_RUN_AT
+};
+
 export function makeDemoPacket(): DecisionPacketV2 {
-  const now = "2026-06-12T08:42:00.000Z";
+  const now = DEMO_RUN_AT;
   return {
     packetVersion: 2,
     id: "DP-DEMO-HORMUZ",
@@ -152,80 +187,75 @@ export function makeDemoPacket(): DecisionPacketV2 {
     },
     publicSignals: demoSignals,
     exposureResults: demoExposure,
-    simulation: {
-      horizons: [
-        { days: 3, revenueAtRiskUsd: 86_400 },
-        { days: 7, revenueAtRiskUsd: 214_700 },
-        { days: 14, revenueAtRiskUsd: 498_200 },
-        { days: 30, revenueAtRiskUsd: 1_142_500 }
-      ],
-      productRunouts: [
-        { productId: "PROD-ELECTROLYTE-A", runoutDate: "2026-06-29" },
-        { productId: "PROD-CATALYST-B", runoutDate: "2026-07-08" }
-      ],
-      generatedAt: now
-    },
+    simulation: demoSimulation,
     dataTier: "SEEDED",
     dataGaps: [],
+    // Numeral-free, grounded in exposure ids (the production Strategist contract): every
+    // figure lives in the structured exposure/simulation data, never restated in prose.
+    // All three roles ship (Procurement / Operations / Finance) -- the P1 domain win.
     playbooks: [
       {
         id: "PB-PROCUREMENT",
-        role: "Procurement lead",
+        role: "Procurement",
         summary:
-          "Hold the line on Gulf-exposed CHEMICALS inputs and open a qualified alternate before the 14-day horizon.",
+          "Secure alternate routing and backup capacity for the Gulf-exposed chemical and energy suppliers.",
         steps: [
-          "Issue contingency RFQs to the two non-Gulf backup chemical suppliers in the base.",
-          "Confirm a 30-day spot allocation against the $498,200 14-day exposure.",
-          "Lock expedited air-freight quotes for the CRITICAL-tier Abu Dhabi lane."
+          "Confirm current lead times and backup capacity with the most exposed suppliers.",
+          "Issue contingency RFQs on alternate, non-Gulf lanes for the single-source chemical inputs.",
+          "Hold a qualified-backup decision ahead of the next review."
         ],
-        groundedClaimIds: ["EXP-078", "simulation.horizons[2].revenueAtRiskUsd"]
+        groundedClaimIds: ["EXP-078", "EXP-095", "EXP-076"]
       },
       {
         id: "PB-OPERATIONS",
-        role: "Operations lead",
-        summary:
-          "Sequence builds against the earliest runout (PROD-ELECTROLYTE-A, 2026-06-29) to preserve launch-critical output.",
+        role: "Operations",
+        summary: "Protect production continuity for the lines the exposed parts feed.",
         steps: [
-          "Re-plan the electrolyte line around the June 29 runout date.",
-          "Stage safety stock for the catalyst line ahead of the July 8 runout."
+          "Re-plan the electrolyte line around its projected runout date.",
+          "Stage available safety stock for the catalyst line ahead of its runout.",
+          "Coordinate inbound rerouting and expedite slots with logistics."
         ],
         groundedClaimIds: ["EXP-078", "EXP-076"]
+      },
+      {
+        id: "PB-FINANCE",
+        role: "Finance",
+        summary: "Quantify and contain the revenue and margin exposure on the Gulf lanes.",
+        steps: [
+          "Review the modeled revenue- and margin-at-risk for the affected lines.",
+          "Pre-authorize expedite and substitution spend within approval policy.",
+          "Brief leadership on the contribution-margin impact and the funding ask."
+        ],
+        groundedClaimIds: ["EXP-078", "EXP-094"]
       }
     ],
+    // Scored, structured mitigation options (P1) -- reversibility is the governance dial.
+    // DERIVED from the demo exposures + simulation via the SAME deterministic producer the
+    // live pipeline uses, so the demo's option scores/costs can never drift from the model
+    // (Codex caught a hand-authored set that no longer matched the simulation it was scored
+    // against). The demo exposures + simulation are hand-authored illustrative data; the
+    // options computed from them show exactly what the engine would recommend for that frame.
+    recoveryOptions: buildRecoveryOptions(demoExposure, demoSimulation),
+    // P1 score-leak fix: impact-assessment REQUESTS -- they ask the supplier for THEIR
+    // figures and state NONE of ours (no internal exposure score, no internal dollar
+    // figure). Numeral-free, so claims[] is empty.
     supplierMessages: [
       {
         id: "MSG-078",
         supplierId: "SUP-078",
         channel: "email",
-        subject: "Hormuz transit risk — contingency confirmation request",
-        body: "We are tracking the Strait of Hormuz disruption against our Gulf-routed inbound. To plan around a 7-day exposure of $214,700, please confirm your current lead time and whether an alternate routing is available for our open orders.",
-        claims: [
-          {
-            value: 214_700,
-            unit: "USD",
-            sourcePath: "simulation.horizons[1].revenueAtRiskUsd"
-          },
-          {
-            value: 88,
-            unit: "exposure-score",
-            sourcePath: "exposureResults[0].exposureScore"
-          }
-        ],
+        subject: "Supply-chain disruption: impact-assessment request",
+        body: "We are tracking the Strait of Hormuz disruption against our Gulf-routed inbound. To assess the impact on our open orders, please confirm: your current shipment dates and any expected delay, your on-hand position, your expected recovery timeline, whether you are declaring force majeure, and any sub-tier exposure you are aware of.",
+        claims: [],
         approvalRequired: true
       },
       {
         id: "MSG-095",
         supplierId: "SUP-095",
         channel: "email",
-        subject: "Ras Laffan lane — extended lead-time check",
-        body: "Given the closure window on the Gulf lane, please confirm whether your 46-day standard lead time is holding or extending for shipments scheduled this month.",
-        claims: [
-          {
-            value: 81,
-            unit: "exposure-score",
-            sourcePath: "exposureResults[1].exposureScore"
-          }
-        ],
+        subject: "Supply-chain disruption: impact-assessment request",
+        body: "Given the closure window on the Gulf lane, please confirm whether your standard lead time is holding or extending for shipments scheduled this month, your on-hand position, and your expected recovery timeline.",
+        claims: [],
         approvalRequired: true
       }
     ],
@@ -239,7 +269,7 @@ export function makeDemoPacket(): DecisionPacketV2 {
       },
       {
         id: "AI-002",
-        title: "Re-plan electrolyte line around June 29 runout",
+        title: "Re-plan electrolyte line around its projected runout",
         owner: "Operations lead",
         status: "OPEN",
         dueDate: "2026-06-18"

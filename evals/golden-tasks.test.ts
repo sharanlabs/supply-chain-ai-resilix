@@ -134,17 +134,18 @@ describe("the deterministic graders BLOCK on corruption (teeth)", () => {
 // ---------------------------------------------------------------------------
 describe("independent arithmetic + matching anchors (not f(x)===f(x))", () => {
   it("Hormuz simulation matches the hand-computed values to the cent/day", () => {
-    // 9 Gulf suppliers x $10,000/day x min(H, 30-day duration):
-    //   7d  = 90,000 x 7  = 630,000
-    //   30d = 90,000 x 30 = 2,700,000
-    //   90d = 90,000 x 30 = 2,700,000 (capped at the 30-day disruption)
+    // 9 Gulf suppliers x $10,000/day = $90,000/day. P1 TTS spine: loss starts at RUNOUT,
+    // not day 0 -- survivalDays = floor(1,000/40) = 25, so exposedDays(H) = max(0, min(H,30)-25):
+    //   7d  = 90,000 x 0 = 0          (still covered -- 25-day inventory buffer)
+    //   30d = 90,000 x 5 = 450,000    (5 exposed days between runout and the 30-day end)
+    //   90d = 90,000 x 5 = 450,000    (capped at the 30-day disruption)
     //   runout = floor(1,000 / 40) = 25 days from 2026-06-17 = 2026-07-12
     const sim = hormuz.packet.simulation;
     expect(sim).toBeDefined();
     const at = (days: number) => sim!.horizons.find((h) => h.days === days)?.revenueAtRiskUsd;
-    expect(at(7)).toBe(630_000);
-    expect(at(30)).toBe(2_700_000);
-    expect(at(90)).toBe(2_700_000);
+    expect(at(7)).toBe(0);
+    expect(at(30)).toBe(450_000);
+    expect(at(90)).toBe(450_000);
     expect(sim!.productRunouts[0].runoutDate).toBe("2026-07-12");
   });
 
@@ -167,23 +168,27 @@ describe("independent arithmetic + matching anchors (not f(x)===f(x))", () => {
   });
 
   it("Red Sea simulation matches the hand-computed values (5 IN suppliers x $8,000, 60-day cap)", () => {
-    //   7d  = 40,000 x 7  = 280,000;  30d = 40,000 x 30 = 1,200,000
-    //   90d = 40,000 x min(90,60) = 2,400,000;  runout = floor(900/30)=30d = 2026-07-17
+    //   5 IN suppliers x $8,000/day = $40,000/day. P1 TTS: survivalDays = floor(900/30) = 30,
+    //   exposedDays(H) = max(0, min(H,60)-30):
+    //   7d = 0; 30d = 0 (covered through the 30-day buffer); 90d = 40,000 x (60-30) = 1,200,000
+    //   runout = floor(900/30)=30d = 2026-07-17
     const sim = redSea.packet.simulation!;
     const at = (d: number) => sim.horizons.find((h) => h.days === d)?.revenueAtRiskUsd;
-    expect(at(7)).toBe(280_000);
-    expect(at(30)).toBe(1_200_000);
-    expect(at(90)).toBe(2_400_000);
+    expect(at(7)).toBe(0);
+    expect(at(30)).toBe(0);
+    expect(at(90)).toBe(1_200_000);
     expect(sim.productRunouts[0].runoutDate).toBe("2026-07-17");
   });
 
   it("Hurricane simulation matches the hand-computed values (1 supplier x $25,000, 14-day cap)", () => {
-    //   7d = 25,000 x 7 = 175,000;  30d = 25,000 x min(30,14) = 350,000
+    //   1 supplier x $25,000/day. P1 TTS: survivalDays = floor(300/30) = 10,
+    //   exposedDays(H) = max(0, min(H,14)-10):
+    //   7d = 0 (covered); 30d = 25,000 x (min(30,14)-10) = 25,000 x 4 = 100,000
     //   runout = floor(300/30)=10d = 2026-06-27
     const sim = hurricane.packet.simulation!;
     const at = (d: number) => sim.horizons.find((h) => h.days === d)?.revenueAtRiskUsd;
-    expect(at(7)).toBe(175_000);
-    expect(at(30)).toBe(350_000);
+    expect(at(7)).toBe(0);
+    expect(at(30)).toBe(100_000);
     expect(sim.productRunouts[0].runoutDate).toBe("2026-06-27");
   });
 });

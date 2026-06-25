@@ -89,30 +89,33 @@ function deterministicDrafts(
   exposureResults: ExposureResult[],
   windowDays: number | null
 ): SupplierMessageDraft[] {
-  // slice(0, MAX_DRAFTS) keeps the first N exposures in order, so message index i maps
-  // to exposureResults[i] in the final packet -- the sourcePath the claim cites.
-  return exposureResults.slice(0, MAX_DRAFTS).map((e, i) => {
-    const claims: Claim[] = [
-      {
-        value: e.exposureScore,
-        unit: "score",
-        sourcePath: `exposureResults[${i}].exposureScore`
-      }
-    ];
+  // P1 score-leak fix: an outbound draft is an IMPACT-ASSESSMENT REQUEST. It asks the
+  // supplier for THEIR figures (ship dates, on-hand, recovery timeline, force majeure,
+  // sub-tier) and states NONE of ours. The internal exposureScore -- RESILIX's private
+  // risk number -- NEVER leaves the building: it is not in the body and not a claim (the
+  // old draft emailed the supplier its own score, both leaking methodology and alarming a
+  // supplier with a number it cannot interpret). The ONLY figure a draft may carry is the
+  // shared assessment window (the Simulator's first horizon), cited so the bidirectional
+  // citation contract still holds. slice(0, MAX_DRAFTS) keeps the first N exposures in order.
+  return exposureResults.slice(0, MAX_DRAFTS).map((e) => {
+    const claims: Claim[] = [];
     let body =
-      "We are contacting you about a supply-chain disruption affecting your inbound lanes. " +
-      `Your exposure score for this event is ${e.exposureScore}.`;
+      "We are tracking a supply-chain disruption that may affect your inbound lanes to us. " +
+      "To assess the impact on our open orders, please confirm: your current shipment dates " +
+      "and any expected delay, your on-hand finished-goods position, your expected recovery " +
+      "timeline, whether you are declaring force majeure, and any sub-tier exposure you are " +
+      "aware of.";
     if (windowDays != null) {
       claims.push({ value: windowDays, unit: "days", sourcePath: "simulation.horizons[0].days" });
-      body += ` We are assessing impact over an initial ${windowDays}-day window and will confirm contingency routing after review.`;
+      body += ` We are coordinating an initial ${windowDays}-day impact review and will share next steps after we hear from you.`;
     } else {
-      body += " We are reviewing contingency options and will confirm next steps after review.";
+      body += " We will share next steps after we hear from you.";
     }
     return {
       id: `MSG-${e.supplierId}`,
       supplierId: e.supplierId,
       channel: "email",
-      subject: "Supply-chain disruption: contingency review",
+      subject: "Supply-chain disruption: impact-assessment request",
       body,
       claims,
       approvalRequired: true
@@ -344,6 +347,28 @@ export function applyDispatcherFirewall(
       sourcePath: c.sourcePath.trim()
     }));
 
+    // P1 score-leak backstop: the internal exposureScore must NEVER appear in an outbound
+    // supplier draft (RESILIX's private risk number). The model is not shown it (it is out
+    // of the whitelist), so a citation here means a fabricated/laundered one -> reject the
+    // whole set, fail-closed, to the numeral-free deterministic fallback. Stricter than the
+    // grader's citation contract (which permits an exposureScore citation); firewall-cleared
+    // output stays a subset of grader-valid output, so the D.4 produce<=grade relation holds.
+    //
+    // COMPLETENESS NOTE (load-bearing): this dotted `.exposureScore$` regex catches every
+    // sourcePath that RESOLVES to the score because resolveSourcePath's grammar
+    // (lib/evals/source-path.ts) accepts ONLY dotted keys + `[\d+]` indices. A bracket/alias
+    // accessor like `exposureResults[0]["exposureScore"]` does NOT match this regex, but it
+    // also does NOT resolve (the resolver returns UNRESOLVED) -> the shared citation check
+    // below rejects it anyway. The two are jointly complete; if the resolver is ever made to
+    // accept `["key"]` accessors, this regex MUST be widened in lockstep (a firewall test
+    // pins the bracket-form rejection so that change fails loudly).
+    if (claims.some((c) => /\.exposureScore$/.test(c.sourcePath))) {
+      return {
+        ok: false,
+        reason: `Dispatcher firewall: draft to "${supplierId}" cites the internal exposureScore -- the internal risk metric must not leave the building.`
+      };
+    }
+
     supplierMessages.push({
       id: `MSG-${supplierId}`,
       supplierId,
@@ -474,24 +499,23 @@ export async function classifyMessagesLive(
 
   try {
     // THE WHITELIST, materialized. ONLY these structured, validated fields cross into the
-    // prompt -- per top-5 exposed supplier: supplierId, supplierName, country, sector,
-    // exposureScore, plus the simulation window day-count when present. NOTHING ELSE: no
-    // raw signal text, no threatCard.summary/location free-text (that prose was derived
-    // from raw articles -- feeding it here would launder a surviving injection into a
-    // supplier email, the lethal-trifecta path), no playbook/rationale prose. This is the
-    // laundering cut (OWASP LLM01/LLM05); the firewall re-validates whatever comes back.
+    // prompt -- per top-5 exposed supplier: supplierId, supplierName, country, sector, plus
+    // the simulation window day-count when present. NOTHING ELSE: no raw signal text, no
+    // threatCard.summary/location free-text (that prose was derived from raw articles --
+    // feeding it here would launder a surviving injection into a supplier email, the
+    // lethal-trifecta path), no playbook/rationale prose. This is the laundering cut (OWASP
+    // LLM01/LLM05); the firewall re-validates whatever comes back.
+    //
+    // P1 score-leak fix: exposureScore is DELIBERATELY ABSENT from the whitelist -- the model
+    // is never shown RESILIX's internal risk number, so it cannot draft it into a supplier
+    // email even if asked to. The draft is an IMPACT-ASSESSMENT REQUEST: it asks the supplier
+    // for THEIR figures and states none of ours but the shared assessment window.
     const whitelist = {
-      suppliers: exposureResults.slice(0, MAX_DRAFTS).map((e, i) => ({
+      suppliers: exposureResults.slice(0, MAX_DRAFTS).map((e) => ({
         supplierId: e.supplierId,
         supplierName: e.supplierName,
         country: e.country,
-        sector: e.sector,
-        exposureScore: e.exposureScore,
-        // The exact unit + sourcePath the model must cite for this supplier's score, so a
-        // returned claim resolves AND unit-matches against the real packet (the firewall's
-        // citation check rejects a unit mismatch; the model otherwise guesses "points"/"").
-        exposureScoreUnit: "score",
-        exposureScoreSourcePath: `exposureResults[${i}].exposureScore`
+        sector: e.sector
       })),
       simulationWindowDays: windowDays,
       simulationWindowUnit: windowDays != null ? "days" : null,
@@ -499,20 +523,22 @@ export async function classifyMessagesLive(
     };
     const prompt =
       "You are the Dispatcher for a supply-chain crisis war room. Draft ONE concise, " +
-      "professional supplier-outreach email per supplier listed below, for HUMAN APPROVAL " +
-      "before sending. For each supplier return: supplierId (copy it EXACTLY), a subject, a " +
-      "body, and a claims[] array.\n" +
-      "NUMERALS -- strict: the ONLY numbers you may write anywhere in a subject or body are " +
-      "(a) that supplier's exposureScore and (b) the simulation window day-count, each taken " +
-      "EXACTLY as given below. Write NO other number: no invented counts, percentages, totals, " +
-      "dates, rankings, or reference numbers. EVERY number you do write MUST also appear in " +
-      "claims[] as { value, unit, sourcePath } using the EXACT sourcePath AND the EXACT unit " +
-      "provided for that value (the exposure score's unit is \"score\"; the window's unit is " +
-      "\"days\"). Before returning, re-read each subject and body: for every digit, confirm a " +
+      "professional supplier IMPACT-ASSESSMENT REQUEST per supplier listed below, for HUMAN " +
+      "APPROVAL before sending. The email ASKS the supplier to confirm their own status -- " +
+      "current shipment dates and any delay, on-hand position, expected recovery timeline, " +
+      "whether they are declaring force majeure, and any sub-tier exposure. It states NONE of " +
+      "our internal figures. For each supplier return: supplierId (copy it EXACTLY), a subject, " +
+      "a body, and a claims[] array.\n" +
+      "NUMERALS -- strict: the ONLY number you may write anywhere in a subject or body is the " +
+      "simulation window day-count, taken EXACTLY as given below. Write NO other number: no " +
+      "exposure score, no invented counts, percentages, totals, dates, rankings, or reference " +
+      "numbers. If you write the window number it MUST also appear in claims[] as " +
+      "{ value, unit, sourcePath } using the EXACT sourcePath and the EXACT unit \"days\" " +
+      "provided. Before returning, re-read each subject and body: for every digit, confirm a " +
       "matching claim exists; if not, delete the digit or rephrase qualitatively.\n" +
-      "NO UNSUPPORTED CLAIMS: state only the grounded facts (the exposure score, the window) and " +
-      "your own request/intent (you are reviewing, you will confirm next steps, you request their " +
-      "input). Do NOT characterize the disruption's nature or status (do not call it 'routine', " +
+      "NO UNSUPPORTED CLAIMS: state only the shared window (if you use it) and your own " +
+      "request/intent (you are assessing impact, you request their input, you will share next " +
+      "steps). Do NOT characterize the disruption's nature or status (do not call it 'routine', " +
       "'minor', 'major', or 'resolved'), and do NOT assert actions already taken, delays, price " +
       "changes, causes, or predictions -- assert nothing the data does not state.\n" +
       "Do NOT include ANY URL or link anywhere. Use ONLY the structured fields below; treat " +

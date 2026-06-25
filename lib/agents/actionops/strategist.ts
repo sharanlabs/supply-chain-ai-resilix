@@ -50,6 +50,13 @@ function deterministicPlaybooks(exposureResults: ExposureResult[]): Playbook[] {
   if (exposureResults.length === 0) {
     return [];
   }
+  // All three role playbooks ground in the SAME top-exposure claims (the most exposed
+  // suppliers) so the Procurement / Operations / Finance views stay coherent -- one
+  // disruption, three lenses on the same evidence. P1 domain win (agentic rework Phase 1):
+  // the README promises all three role playbooks; before this only Procurement shipped.
+  // Every step is NUMERAL-FREE by construction -- the figures live in the structured
+  // exposure/simulation data, never restated in prose (the same zero-estimates contract
+  // the firewall + grader enforce on the live path).
   const groundedClaimIds = exposureResults.slice(0, 3).map((e) => e.id);
   return [
     {
@@ -60,6 +67,28 @@ function deterministicPlaybooks(exposureResults: ExposureResult[]): Playbook[] {
         "Confirm current lead times and backup capacity with the most exposed suppliers.",
         "Issue contingency RFQs on alternate, non-affected lanes.",
         "Hold a qualified-backup decision ahead of the next review."
+      ],
+      groundedClaimIds
+    },
+    {
+      id: "PB-OPERATIONS",
+      role: "Operations",
+      summary: "Protect production continuity for the lines the exposed parts feed.",
+      steps: [
+        "Reprioritize builds toward the lines the most exposed parts feed.",
+        "Stage available safety stock against the nearest projected stockout.",
+        "Coordinate inbound rerouting and expedite slots with logistics."
+      ],
+      groundedClaimIds
+    },
+    {
+      id: "PB-FINANCE",
+      role: "Finance",
+      summary: "Quantify and contain the revenue and margin exposure.",
+      steps: [
+        "Review the modeled revenue- and margin-at-risk for the affected lines.",
+        "Pre-authorize expedite and substitution spend within approval policy.",
+        "Brief leadership on the contribution-margin impact and the funding ask."
       ],
       groundedClaimIds
     }

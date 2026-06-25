@@ -128,10 +128,12 @@ describe("NO_ACTION pipeline (deterministic, SCN-THIN-EVIDENCE)", () => {
     expect(packet.recommendation).toBe("NO_ACTION");
     expect(packet.missingEvidence?.length ?? 0).toBeGreaterThan(0);
 
-    // The action is withheld.
+    // The action is withheld -- including the scored recovery options (P1): a refusal that
+    // cannot justify drafting messages cannot justify recommending mitigation options.
     expect(packet.supplierMessages).toEqual([]);
     expect(packet.playbooks).toEqual([]);
     expect(packet.actionItems).toEqual([]);
+    expect(packet.recoveryOptions ?? []).toEqual([]);
 
     // The exposure is real and kept (situational awareness), flagged contingent.
     expect(packet.exposureResults.length).toBeGreaterThan(0);

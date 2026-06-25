@@ -94,6 +94,7 @@ export async function buildDecisionPacket(
     recommendation: result.recommendation,
     missingEvidence: result.missingEvidence,
     playbooks: result.playbooks,
+    recoveryOptions: result.recoveryOptions,
     supplierMessages: result.supplierMessages,
     actionItems: result.actionItems,
     gatekeeper: result.gatekeeper,
