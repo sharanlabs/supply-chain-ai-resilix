@@ -31,8 +31,9 @@
 > validation** — owner provided `GEMINI_API_KEY`; ran the gated D.9 live eval (`gemini-2.5-flash`):
 > **8/8 scenarios genuinely live** (LIVE_AI, cost>0, ≤$5/scenario, <5 min), the live `NO_ACTION`
 > refusal holds, and `runGraders().blocked===false` on every real draft → the **Wave-2 citation/numeral
-> grader calibration is closed** (no false-positive blocks on real Gemini output). Exact $ not captured
-> (vitest intercepts the cost log; bound >$0 ≤$5/scenario). **Deploy is owner-SEQUENCED behind design
+> grader calibration is closed** (no false-positive blocks on real Gemini output). **Measured cost:
+> $0.0284 TOTAL for all 8 scenarios** (console-visible re-run; max $0.008/scenario) — ~180× under the
+> $5/scenario cap. **Deploy is owner-SEQUENCED behind design
 > (owner directive 2026-06-24): the owner finalizes the design FIRST, THEN Claude deploys** (host choice
 > + `REQUIRE_APPROVAL_TOKEN=true` for a shared demo). Do NOT deploy before design is finalized. All other
 > non-design machine-completable work is DONE.
