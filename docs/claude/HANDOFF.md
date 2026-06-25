@@ -31,7 +31,19 @@
 > **OWNER ACTIONS OWED (push is the irreversible gate):** (1) re-run the **Codex final stamp** on
 > the committed Phase-1 delta after the 7:49 PM reset (or on the backup credits account) — the gate's
 > value is served (it found + we fixed real defects) but the APPROVE stamp is a dated obligation, not
-> asserted; (2) **review + push**. Until (1), hold the irreversible promotion.
+> asserted, AND it is the FIRST real cross-model look at the production math/security (it capped while
+> reading the UI — both its findings were demo-fixture only); (2) **review + push**. Until (1), hold
+> the irreversible promotion.
+>
+> **RESIDUALS (advisor-flagged, owner-pending — full detail in `gates/agentic-rework/PHASE1-GATE.md`):**
+> (a) **the local `/` still renders the PRE-Phase-1 frozen `SCN-HORMUZ.json`** — old scores + score-citing
+> emails + zero wins; the leak is closed in the ENGINE but the rendered (local-only) surface still shows
+> it. A $0 deterministic re-capture is blocked by the replay guard (`effectiveMode==LIVE_AI` + cost>0
+> required); refreshing `/` to reflect Phase 1 needs a **live re-capture** (~$0.03, owner-gated) OR folds
+> into deploy. The $0 Phase-1-correct showcase lives in the demo FALLBACK (`makeDemoPacket`).
+> (b) **domain-credibility was maker-self-assessed** — 3 calls pending the owner's SCRM eye (or
+> guidelines-monitor): single-source direction (CRITICAL/HIGH=single-source), "0 revenue until runout",
+> TTR=lead-time proxy.
 >
 > **NEXT (after the stamp + push, or in parallel as reversible work):** Phase 2 = **Dual-LLM GDELT
 > quarantine** (formalize + a static guard proving no raw signal prose reaches any Investigator
