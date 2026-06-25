@@ -1,4 +1,39 @@
-# HANDOFF — resume pointer (updated 2026-06-24)
+# HANDOFF — resume pointer (updated 2026-06-25)
+
+> ============================================================================
+> ## CURRENT RESUME (2026-06-25) — READ THIS FIRST; supersedes every block below
+> ============================================================================
+>
+> **Stage: AGENTIC REWORK — Phase 0 (design-grill) DISCHARGED. Next: Phase 1 (P1 domain wins) via /autopilot.**
+>
+> A new, owner-locked initiative is underway: turn RESILIX from a deterministic pipeline-with-LLM-prose
+> into a **governed multi-agent system** (tool-using Investigator + cross-family Skeptic + governed action
+> execution). Canonical plan: `~/.claude/plans/read-last-handoff-and-keen-globe.md`. This is ADDITIVE —
+> everything below (the shipped/pushed front-screen redesign, the live-validated deterministic ActionOps
+> pipeline) remains the working product and the baseline the rework builds on.
+>
+> **Phase 0 done (2026-06-25):** persisted 2 decisions to memory ([[resilix-agentic-rework-direction]],
+> [[resilix-authoritative-binding-moat]]); ran the Codex design-grill → **VERDICT: APPROVED in 3 rounds**
+> (REVISE-13 → REVISE-3+4 → APPROVED), **zero code written**. The grill went past the plan's own risk list
+> and hardened 17 real findings (tool-input integrity, in-loop budget via `prepareStep`, `stepCountIs(~6)`
+> bug, fail-closed tool errors, Skeptic quarantine, transactional-outbox execution, per-action approval,
+> server-side Slack auth, telemetry redaction, two-tier provenance snapshots, …). Gate artifacts:
+> `docs/claude/gates/agentic-rework/PHASE0-GRILL.md` + `PHASE0-REVIEW-LOG.md`. Codex thread
+> `019f001e-2158-7652-a94e-77d6be40bf3d`.
+>
+> **Owner decisions (2026-06-25):** (1) **REORDER** — value first, loop last & gated. Execution order:
+> `P1-domain → P2-quarantine → P4-Skeptic → P5-execution → P6-war-room-UI → P7-evals → P3-loop (optional,
+> gated on trajectory-evals-beat-waterfall)`. (2) Run mode = **`/autopilot`** for Phases 1+.
+>
+> **NEXT SESSION — pick up here:** engage **`/autopilot`** to drive **Phase 1 = P1 domain wins** on the
+> deterministic waterfall (threat-type enum +`MATERIAL_SHORTAGE_ALLOCATION`/`EXPORT_CONTROL`/`QUALITY_RECALL`,
+> supplier-email rewrite to impact-assessment requests + fix the score-leak bug, TTR/TTS exposure +
+> single-source penalty, `marginPct`, resurrect the scored `RecoveryOptionSchema`, ship Ops + Finance
+> playbooks). Each phase exits through `acceptance-gate` + a Codex cross-model leg + `verify`/`verify:full`,
+> flag-off waterfall stays green throughout. **Carry-forward → Phase 5:** `CLAIMED`-lease-expiry-after-
+> possible-send auto-replays only if provider idempotency is safe, else `NEEDS_RECONCILE`.
+>
+> ----- prior resume (2026-06-24) below; valid for the front-screen redesign + deploy-after-design state -----
 
 > ============================================================================
 > ## CURRENT RESUME (2026-06-24, later) — READ THIS FIRST; supersedes every block below

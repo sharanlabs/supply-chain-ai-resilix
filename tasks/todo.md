@@ -3,6 +3,10 @@
 ## Idea (2026-06-11 21:20)
 > RESILIX ActionOps — crisis-to-action war room: live disruption signal + supplier CSV → evidence-cited, human-approved action packet in under 5 minutes
 
+## ⚠️ SUPERSEDING POINTER (2026-06-25) — NEW INITIATIVE: agentic rework
+
+A new owner-locked initiative is underway, **ADDITIVE** on the shipped ActionOps product below: turn RESILIX into a **governed multi-agent system** (tool-using Investigator + cross-family Skeptic + governed action execution). **Phase 0 (design-grill) DISCHARGED 2026-06-25 — Codex APPROVED in 3 rounds, zero code.** Owner decisions: **REORDER** (value-first/loop-last-gated) + **`/autopilot`**. **NEXT: `/autopilot` → Phase 1 = the P1 domain wins.** Full resume context: `docs/claude/HANDOFF.md` (top "CURRENT RESUME (2026-06-25)" block) + `~/.claude/plans/read-last-handoff-and-keen-globe.md` + gate artifacts `docs/claude/gates/agentic-rework/`. The ActionOps status below remains the working baseline the rework builds on.
+
 ## CURRENT STATUS (2026-06-20) — reconciled
 
 **The full ActionOps pipeline is BUILT, GATED, and PUSHED to `origin/main`.** This block supersedes the stale per-phase checkboxes below (the gate docs under `docs/claude/gates/` are the authoritative record; the inline markers lagged behind the autopilot/Wave-2 work).
