@@ -32,8 +32,10 @@
 > **8/8 scenarios genuinely live** (LIVE_AI, cost>0, ≤$5/scenario, <5 min), the live `NO_ACTION`
 > refusal holds, and `runGraders().blocked===false` on every real draft → the **Wave-2 citation/numeral
 > grader calibration is closed** (no false-positive blocks on real Gemini output). Exact $ not captured
-> (vitest intercepts the cost log; bound >$0 ≤$5/scenario). **The ONE owner action left = the actual
-> hosted deploy** (host choice + `REQUIRE_APPROVAL_TOKEN=true` for a shared demo).
+> (vitest intercepts the cost log; bound >$0 ≤$5/scenario). **Deploy is owner-SEQUENCED behind design
+> (owner directive 2026-06-24): the owner finalizes the design FIRST, THEN Claude deploys** (host choice
+> + `REQUIRE_APPROVAL_TOKEN=true` for a shared demo). Do NOT deploy before design is finalized. All other
+> non-design machine-completable work is DONE.
 >
 > **NEXT SESSION:** redesign + build are shipped + gated + pushed; live path validated. Remaining are
 > the non-blocking owner judgment-calls (briefing length · per-claim "Source detail" density · masthead
