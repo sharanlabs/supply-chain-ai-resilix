@@ -411,7 +411,7 @@ export function gradeSimulatorArithmetic(
 // and "ignore.all.previous" all reduce to the same token stream -- trivial
 // whitespace/punctuation splitting cannot smuggle a denied string past a raw
 // substring scan.
-function normalizeForLeak(text: string): string {
+export function normalizeForLeak(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 

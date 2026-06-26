@@ -8,10 +8,10 @@ import {
 } from "@/lib/agents/run";
 import { summarizeCost } from "@/lib/agents/cost-summary";
 import { validateDecisionPacket } from "@/lib/agents/gatekeeper";
-import { getActionOpsScenario } from "@/lib/data/actionops-scenarios";
+import { getActionOpsScenario, type ActionOpsScenario } from "@/lib/data/actionops-scenarios";
 import { ingestSeed } from "@/lib/ingest/seed-suppliers";
 import { fetchPublicSignals } from "@/lib/signals/fetchers";
-import type { DecisionPacketV2 } from "@/lib/schemas";
+import type { DecisionPacketV2, Supplier } from "@/lib/schemas";
 
 export type BuildPacketOptions = {
   scenarioId?: string;
@@ -26,6 +26,15 @@ export type BuildPacketOptions = {
   // Threaded so a test can drive the Skeptic gate through the FULL assemble+validate path (proving
   // the NO_ACTION withhold and the schema superRefine hold end-to-end) with NO network.
   skeptic?: SkepticInjection;
+  // Test/DI seam (Phase 7 -- NEVER set in production), mirroring the `skeptic` seam above. The
+  // scenario registry (getActionOpsScenario) is a closed set of CURATED scenarios, so it cannot
+  // hold the ADVERSARIAL, GDELT-shaped inputs the indirect-injection red-team must push through the
+  // FULL deterministic assemble+validate path. These overrides let a red-team test run a poisoned
+  // scenario / supplier set through buildDecisionPacket key-OFF (no network) and assert the
+  // lethal-trifecta cut end to end. Production calls pass scenarioId (resolved from the registry)
+  // and let suppliers come from the seed -- both overrides stay undefined.
+  scenarioOverride?: ActionOpsScenario;
+  suppliersOverride?: Supplier[];
 };
 
 // Assemble a DecisionPacketV2 from the ActionOps agents -- PURE: no persistence,
@@ -37,8 +46,9 @@ export type BuildPacketOptions = {
 export async function buildDecisionPacket(
   options: BuildPacketOptions = {}
 ): Promise<DecisionPacketV2> {
-  const { scenarioId, useLiveSignals = false, live = false, skeptic } = options;
-  const scenario = getActionOpsScenario(scenarioId);
+  const { scenarioId, useLiveSignals = false, live = false, skeptic, scenarioOverride, suppliersOverride } = options;
+  // scenarioOverride is the test/DI red-team seam (above); production resolves from the registry.
+  const scenario = scenarioOverride ?? getActionOpsScenario(scenarioId);
   const now = new Date().toISOString();
 
   // Replay path (the demo + the live-AI showcase): the scenario's OWN dated signals, so
@@ -49,7 +59,9 @@ export async function buildDecisionPacket(
   const signals = useLiveSignals
     ? await fetchPublicSignals({ useLive: true })
     : scenario.replaySignals;
-  const suppliers = ingestSeed().suppliers;
+  // suppliersOverride is the test/DI red-team seam (an adversarial supplier set ingested from a
+  // poisoned CSV); production uses the in-memory seed.
+  const suppliers = suppliersOverride ?? ingestSeed().suppliers;
 
   // Preflight (LIVE runs only): assert the configured Gemini model is actually available
   // on this key BEFORE the agents run, and FAIL LOUD (listing what IS available) if not.
