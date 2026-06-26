@@ -417,6 +417,68 @@ describe("Dispatcher firewall score-leak backstop (P1: the internal score never 
     expect(outcome.ok).toBe(false); // rejected (does not resolve / unsourced), never emitted
   });
 
+  it("REJECTS internal-risk PROSE with NO numeral (the qualitative leak -- Codex [Med])", () => {
+    // The numeric backstop has nothing to catch (claims=[]), so the prose gate must: a draft
+    // that characterizes the supplier's internal risk in words still leaks the methodology.
+    const exposureResults = twoExposures();
+    const dirty: DispatcherLlmResult = {
+      messages: [
+        {
+          supplierId: "SUP-AAA",
+          subject: "Supply-chain disruption: impact-assessment request",
+          body:
+            "We have classified your lane as high exposure for this event and flagged you as a " +
+            "critical-tier supplier.",
+          claims: []
+        }
+      ]
+    };
+    const outcome = applyDispatcherFirewall(dirty, { exposureResults });
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.reason).toMatch(/internal risk assessment|risk read/i);
+  });
+
+  it("REJECTS a score-like value-collision wording (e.g. '7/10')", () => {
+    // A score phrased as "7/10" launders a forbidden score-like figure even if the 7
+    // value-collides with an allowed window-days claim (prose numerals match by value, not
+    // span). The prose gate rejects the score-like FORM regardless.
+    const exposureResults = twoExposures();
+    const dirty: DispatcherLlmResult = {
+      messages: [
+        {
+          supplierId: "SUP-AAA",
+          subject: "Supply-chain disruption: impact-assessment request",
+          body: "Please confirm your status; we rate this lane 7/10 on our internal scale.",
+          claims: [{ value: 7, unit: "days", sourcePath: "simulation.horizons[0].days" }]
+        }
+      ]
+    };
+    const outcome = applyDispatcherFirewall(dirty, { exposureResults });
+    expect(outcome.ok).toBe(false);
+  });
+
+  it("CONTROL: the legit request (incl. 'sub-tier exposure') is NOT flagged as risk prose", () => {
+    // The impact-assessment request legitimately asks about the supplier's own sub-tier
+    // exposure (n-tier visibility) -- this must NOT trip the internal-risk-prose gate (no
+    // false positive on the question vs. an internal-risk DISCLOSURE).
+    const exposureResults = twoExposures();
+    const clean: DispatcherLlmResult = {
+      messages: [
+        {
+          supplierId: "SUP-AAA",
+          subject: "Supply-chain disruption: impact-assessment request",
+          body:
+            "We are tracking a disruption affecting your inbound lanes. Please confirm your " +
+            "shipment dates, on-hand position, recovery timeline, any force majeure, and any " +
+            "sub-tier exposure you are aware of.",
+          claims: []
+        }
+      ]
+    };
+    const outcome = applyDispatcherFirewall(clean, { exposureResults });
+    expect(outcome.ok, outcome.ok ? "" : outcome.reason).toBe(true);
+  });
+
   it("CONTROL: an impact-assessment request that cites NO internal figure crosses", () => {
     const exposureResults = twoExposures();
     // The clean draft asks for the supplier's own status and cites nothing internal --

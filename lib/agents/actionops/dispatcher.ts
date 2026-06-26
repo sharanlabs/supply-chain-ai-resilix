@@ -52,9 +52,11 @@ import { MAX_FIELD_LEN, MAX_SUMMARY_LEN, sanitizeText } from "@/lib/signals/sani
 //
 // ---------------------------------------------------------------------------
 // THE WHITELIST (the crux). The live prompt is built from STRUCTURED, VALIDATED fields
-// ONLY -- per top-5 exposed supplier: supplierId, supplierName, country, sector,
-// exposureScore (from Atlas's ExposureResult), plus simulation.horizons[0].days when a
-// simulation exists. That is the ENTIRE set the model ever sees.
+// ONLY -- per top-5 exposed supplier: supplierId, supplierName, country, sector, plus
+// simulation.horizons[0].days when a simulation exists. That is the ENTIRE set the model
+// ever sees. The internal exposureScore is DELIBERATELY EXCLUDED (P1 score-leak fix): the
+// model is never shown RESILIX's private risk number, so it cannot draft it (and the firewall
+// rejects any exposureScore citation + any internal-risk PROSE as fail-closed backstops).
 //
 // EXCLUDED -- and this is the load-bearing exclusion, not a nice-to-have:
 //   - raw signal text (ctx.signals summaries / article bodies) -- never serialized in.
@@ -77,13 +79,34 @@ import { MAX_FIELD_LEN, MAX_SUMMARY_LEN, sanitizeText } from "@/lib/signals/sani
 
 const MAX_DRAFTS = 5;
 
+// P1 (Codex final-stamp [Med], 2026-06-26): the NUMERIC exposureScore is blocked, but a live
+// draft could still LEAK RESILIX's internal risk ASSESSMENT in PROSE -- "we classified your
+// lane as high exposure", "your risk score is 7/10" -- with claims=[] (no numeral for the
+// citation check to catch). An impact-assessment request asks the supplier for THEIR status
+// and must NEVER characterize the supplier's internal risk/score/ranking. This fail-closed
+// prose gate is the QUALITATIVE sibling of the numeric backstop: a draft whose subject/body
+// discloses an internal risk read is rejected to the neutral deterministic fallback. Patterns
+// target risk-DISCLOSURE specifically, NOT the legitimate request language ("assess the impact
+// on our orders", "sub-tier exposure you are aware of") -- exposure/risk must be paired with a
+// score/level/severity word, or be an explicit "we classified/ranked YOU" or an "X/10" form.
+const INTERNAL_RISK_PROSE: RegExp[] = [
+  /\b(exposure|risk)\s+(score|level|rating|tier|ranking|rank)\b/i,
+  /\b(critical|high|medium|low)[-\s]tier\b/i,
+  /\b(high|critical|severe|elevated|extreme)\s+(exposure|risk)\b/i,
+  /\bwe\s+(have\s+)?(classified|scored|ranked|rated|assessed|flagged|graded)\s+(you|your)\b/i,
+  /\byour\s+(exposure|risk)\s+(is|as|score|level|rating)/i,
+  /\b\d+\s*(\/|\s+out\s+of\s+)\s*\d+\b/, // "7/10", "7 out of 10" (a score-like form)
+  /\brank(ed|ing)?\s+(#|no\.?|number)\s*\d/i // "ranked #2"
+];
+
 // ---------------------------------------------------------------------------
-// The deterministic drafts (the fallback): the D.1 template, unchanged. Pure + sync;
-// this is what key-OFF emits and what the firewall falls back to on any rejection.
-// Extracted so runDispatcher and the live path's key-OFF/fallback CANNOT drift from
-// D.1 (mirrors deterministicThreatCard / deterministicPlaybooks). The bodies carry NO
-// URL and every numeral has a backing claim, so the fallback ALWAYS clears both the
-// firewall and the gatekeeper -- a safe landing on any live rejection.
+// The deterministic drafts (the fallback): the P1 numeral-free impact-assessment request.
+// Pure + sync; this is what key-OFF emits and what the firewall falls back to on any
+// rejection. Extracted so runDispatcher and the live path's key-OFF/fallback CANNOT drift
+// (mirrors deterministicThreatCard / deterministicPlaybooks). The bodies carry NO URL, NO
+// internal exposure score, NO internal-risk prose, and at most the cited disruption-window
+// numeral -- so the fallback ALWAYS clears the firewall (links / exposureScore / risk-prose)
+// and the gatekeeper, a safe landing on any live rejection.
 // ---------------------------------------------------------------------------
 function deterministicDrafts(
   exposureResults: ExposureResult[],
@@ -334,6 +357,16 @@ export function applyDispatcherFirewall(
       return {
         ok: false,
         reason: `Dispatcher firewall: link "${links[0]}" smuggled into a supplier draft (a draft links to nothing external -- exfiltration risk).`
+      };
+    }
+
+    // P1 internal-risk-prose gate (the qualitative score-leak sibling): reject a draft that
+    // discloses RESILIX's internal risk read in words, even with no numeral. Fail-closed.
+    const riskProse = INTERNAL_RISK_PROSE.find((re) => re.test(`${subject}\n${body}`));
+    if (riskProse) {
+      return {
+        ok: false,
+        reason: `Dispatcher firewall: draft to "${supplierId}" discloses an internal risk assessment in prose (the internal risk read must not leave the building).`
       };
     }
 

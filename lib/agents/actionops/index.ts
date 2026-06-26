@@ -176,9 +176,10 @@ export async function runActionOpsAgents(ctx: ActionOpsContext): Promise<ActionO
     supplierMessages,
     agentRuns,
     checkedAt: baseDateIso,
-    // The resolvable input slices the D.4 citation check needs: claims cite
-    // `simulation.horizons[0].days` and `exposureResults[i].exposureScore`, so the
-    // gatekeeper must see both to walk the paths (signals included for completeness
+    // The resolvable input slices the D.4 citation check needs: an impact-assessment claim
+    // cites `simulation.horizons[0].days` (the internal exposureScore is Dispatcher-forbidden
+    // now), but exposureResults stays in the root for citation-resolution compatibility and
+    // the supplier-binding check (signals included for completeness
     // -- a claim may legitimately cite publicSignals).
     publicSignals: signals,
     simulation
