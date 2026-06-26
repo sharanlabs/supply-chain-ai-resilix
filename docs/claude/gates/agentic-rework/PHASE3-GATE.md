@@ -1,0 +1,17 @@
+# Phase 3 (Investigator loop) — independent cross-model gate
+
+**2026-06-26, autopilot.** The capstone phase + the hand-applied batched-closure fixes (#3/#4) got their FIRST INDEPENDENT Codex gate here (the batched P2→P7 closure diffed `a3f1758..68a668d`, EXCLUDING P3, which landed after as `29141be`; the advisor's declaring-done check caught this maker≠judge gap). First attempt capped mid-review; re-run after the reset. Codex gpt-5.5, xhigh, over `git diff 68a668d..29141be -- lib/ app/`.
+
+## VERDICT: REVISE — but the MOAT HELD (the headline)
+Codex confirmed the load-bearing invariant: **Investigator prose binds NO packet number or the recommendation** — final slices are re-read from `state`, `decideRecommendation` + `applySkepticGate` run in code; heavy inputs are closure-bound; only `supplierId` is model-supplied and it is matched-set-validated (`OffContextToolInputError`); raw signal prose + `threatCard.summary` never enter the prompt/tool results; flag-off (no injected model) routes to the unchanged waterfall. SDK evidence verified (`ai@5.0.204`: `prepareStep` runs before `doGenerate`; `maxRetries:0` disables SDK retries).
+
+## Findings + disposition (primary-model-final) — applied 2026-06-26
+- **[High] budget undercount** (`investigator.ts`): in ai@5.0.204 tools execute BEFORE `onStepFinish`, so the same-step live Skeptic tool calls Groq using `budgetForNext()` before the just-billed Gemini Investigator step is folded into `spentUsd` — the $5 cap could be exceeded though both guards fired. **→ FIX:** reserve the current step's estimate before `doGenerate`, include it in the tool budgets until `onStepFinish` replaces it with actual usage (+ test).
+- **[High] non-live Groq leak** (`investigator.ts:138`): `completeInvestigation`/`challengeFinding` call `challengeFindingLive` without forcing the Skeptic off when `ctx.live` is false → a non-live DI run with an ambient `GROQ_API_KEY` makes a REAL Groq call (breaks the no-spend seam). **→ FIX:** thread `live` into the tool deps; `enabled: deps.skeptic?.enabled ?? (() => live)` (+ test).
+- **[Med] my #3 guard breaks the gated live tests** (`build-packet.ts:63`): `record-live-packets` + `actionops-live-real` legitimately call `buildDecisionPacket({live:true, skeptic:{generate}})` (an always-accept Skeptic so the recorder's ACT scenarios stay ACT); my blanket live+DI guard throws on them. **→ FIX:** narrow the guard to also require `NODE_ENV !== "test"` (block production misuse, allow the in-test injection).
+- **[Low] index.ts:72** — add the live+DI rejection to `runActionOpsAgents` too (defense-in-depth).
+- **[Low] skeptic.ts:294** — an unknown `SKEPTIC_MODEL` fails LOUD before the try (not the documented HOLD); make it consistent (document the fail-loud as intentional, or catch → HOLD).
+- **[Low] tools.ts:274** — comments overclaim "live always gets the live critic"; narrow after the [High] #2 live-gating.
+
+## Disposition
+Fixes dispatched to the P3 maker (it has the loop context); re-verify + commit + then "all-gated" is TRUE. The independent gate did its job — it found 2 High + a regression in the hand-applied fix that the maker's own Codex + primary-model diligence missed (the exact maker≠judge value). Push stays HELD.

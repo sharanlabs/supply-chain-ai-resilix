@@ -9,6 +9,7 @@ import { runSimulator } from "@/lib/agents/actionops/simulator";
 import { buildRecoveryOptions } from "@/lib/agents/actionops/recovery";
 import {
   challengeFindingLive,
+  runSkeptic,
   type SkepticInjection,
   type SkepticVerdict
 } from "@/lib/agents/actionops/skeptic";
@@ -83,12 +84,14 @@ export type InvestigationState = {
   skeptic?: { verdict: SkepticVerdict; run: AgentRun };
 };
 
-// What the tools need from the loop: the running budget context (so the Skeptic's hard-stop
-// accounts for spend already incurred this run), the shared retry reserve, the Skeptic DI seam
-// (test/live -- the cross-family challenge self-gates on its own Groq key + this injection, so
-// no `live` flag is needed here), and a callback to fold a completed run's real cost into the
-// run total.
+// What the tools need from the loop: whether the run is live (the Skeptic challenge routes to its
+// cross-family LIVE body only when live OR an injected generate is present -- the EXACT
+// `runSkepticLive = live || generate` gating the waterfall uses, so a NON-live run never makes a
+// Groq call even if an ambient GROQ_API_KEY is set), the running budget context (so the Skeptic's
+// hard-stop accounts for spend already incurred this run), the shared retry reserve, the Skeptic
+// DI seam (test/live), and a callback to fold a completed run's real cost into the run total.
 export type InvestigatorToolDeps = {
+  live: boolean;
   budgetForNext: () => BudgetContext;
   retry?: RetryReserve;
   skeptic?: SkepticInjection;
@@ -271,25 +274,22 @@ export function makeInvestigatorTools(
           };
         }
         if (!state.skeptic) {
-          // ALWAYS the cross-family challengeFindingLive -- it SELF-GATES: key-OFF with no
-          // injected generate it short-circuits to the deterministic affirmative pass (byte-equal
-          // to runSkeptic), and key-ON (Groq key) or with an injected generate it runs the live
-          // critic. So a live run always gets the live critic; a deterministic run is unchanged;
-          // and a test can drive the live critic with an injected generate (no `deps.live` branch
-          // that would skip it). The Skeptic gates on its OWN Groq key, independent of the Gemini
-          // live flag -- exactly as the waterfall does.
-          const { verdict, agentRun } = await challengeFindingLive(
-            ctx,
-            state.threatCard,
-            state.verifier.checks,
-            state.exposure.results,
-            {
-              budget: deps.budgetForNext(),
-              retry: deps.retry,
-              enabled: deps.skeptic?.enabled,
-              generate: deps.skeptic?.generate
-            }
-          );
+          // Route to the cross-family LIVE critic ONLY when the run is live OR a generate is
+          // injected -- the EXACT `runSkepticLive = live || generate` gating the waterfall uses.
+          // A NON-live run with no injected generate uses the deterministic runSkeptic, so it makes
+          // NO Groq call even if an ambient GROQ_API_KEY happens to be set (the no-network/no-spend
+          // seam). challengeFindingLive then self-gates on its own Groq key INTERNALLY (a live run
+          // with no Groq key short-circuits to the affirmative pass -- never a Gemini cross-family
+          // call). A test drives the live critic with an injected generate.
+          const runLive = deps.live || deps.skeptic?.generate != null;
+          const { verdict, agentRun } = runLive
+            ? await challengeFindingLive(ctx, state.threatCard, state.verifier.checks, state.exposure.results, {
+                budget: deps.budgetForNext(),
+                retry: deps.retry,
+                enabled: deps.skeptic?.enabled,
+                generate: deps.skeptic?.generate
+              })
+            : runSkeptic(ctx, state.threatCard, state.verifier.checks, state.exposure.results);
           deps.foldCost(agentRun);
           state.skeptic = { verdict, run: agentRun };
         }

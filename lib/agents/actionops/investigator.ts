@@ -10,6 +10,7 @@ import { runSimulator } from "@/lib/agents/actionops/simulator";
 import {
   applySkepticGate,
   challengeFindingLive,
+  runSkeptic,
   type SkepticInjection
 } from "@/lib/agents/actionops/skeptic";
 import { classifyPlaybooksLive, runStrategist } from "@/lib/agents/actionops/strategist";
@@ -111,13 +112,13 @@ function activeToolsFor(state: InvestigationState): Array<keyof InvestigatorTool
 // what keeps a budget-stopped / errored loop SAFE rather than incomplete.
 //
 // The Verifier / Atlas / Simulator completions are deterministic on BOTH paths (they have no
-// live body, exactly like the waterfall). The SKEPTIC completion routes through the SAME
-// self-gating challengeFindingLive the tool uses (Codex P3 High): key-OFF with no injected
-// generate it short-circuits to the deterministic affirmative pass (byte-equal to runSkeptic),
-// and key-ON (Groq key) or with an injected generate it runs the live critic -- so a live loop
-// where the model SKIPPED the challenge tool STILL gets the live safety critic (a fail-closed
-// HOLD on a broken/budget critic), never a silent downgrade to the deterministic pass. Async so
-// the live critic can be awaited here.
+// live body, exactly like the waterfall). The SKEPTIC completion routes via the SAME
+// `runSkepticLive = live || generate` gating the tool + the waterfall use: on a LIVE run a missing
+// Skeptic is filled with the cross-family challengeFindingLive (so a live loop where the model
+// SKIPPED the challenge tool STILL gets the live safety critic, fail-closed HOLD on a broken/budget
+// critic -- never a silent downgrade); a NON-live run with no injected generate uses the
+// deterministic runSkeptic (byte-equal to the waterfall, and NO Groq call even if an ambient
+// GROQ_API_KEY is set). Async so the live critic can be awaited here.
 async function completeInvestigation(
   ctx: ActionOpsContext,
   state: InvestigationState,
@@ -136,18 +137,15 @@ async function completeInvestigation(
     state.simulation = { simulation, dataGaps, run: agentRun };
   }
   if (!state.skeptic) {
-    const { verdict, agentRun } = await challengeFindingLive(
-      ctx,
-      state.threatCard,
-      state.verifier.checks,
-      state.exposure.results,
-      {
-        budget: deps.budgetForNext(),
-        retry: deps.retry,
-        enabled: deps.skeptic?.enabled,
-        generate: deps.skeptic?.generate
-      }
-    );
+    const runLive = deps.live || deps.skeptic?.generate != null;
+    const { verdict, agentRun } = runLive
+      ? await challengeFindingLive(ctx, state.threatCard, state.verifier.checks, state.exposure.results, {
+          budget: deps.budgetForNext(),
+          retry: deps.retry,
+          enabled: deps.skeptic?.enabled,
+          generate: deps.skeptic?.generate
+        })
+      : runSkeptic(ctx, state.threatCard, state.verifier.checks, state.exposure.results);
     deps.foldCost(agentRun);
     state.skeptic = { verdict, run: agentRun };
   }
@@ -199,6 +197,7 @@ export async function runInvestigatorLoop(
   // post-loop Skeptic completion (one deps object, no drift).
   let toolBreach = false;
   const toolDeps: InvestigatorToolDeps = {
+    live,
     budgetForNext,
     retry: retryReserve,
     skeptic: deps.skeptic,
@@ -218,6 +217,13 @@ export async function runInvestigatorLoop(
   let stepCount = 0;
   let degraded = false;
   let degradeReason = "";
+  // The current step's RESERVED estimate (Codex independent-gate High). In ai@5.x a tool's
+  // `execute` runs WITHIN the step, BEFORE onStepFinish folds that step's Gemini cost into
+  // spentUsd -- so a same-step live Skeptic tool call would otherwise budget-check against a
+  // spentUsd that omits the just-billed Investigator step, and the $5 cap could be exceeded even
+  // though both guards "fired". We RESERVE the step's estimate in prepareStep (so any in-step
+  // tool sees it) and REPLACE it with the actual cost in onStepFinish.
+  let reservedStepUsd = 0;
   // The ACTUAL tool-call order the model drove (Codex P3 Low) -- recorded on the audit run so the
   // canonical agentRuns order does not mask what the loop really did.
   const toolSequence: string[] = [];
@@ -275,13 +281,20 @@ export async function runInvestigatorLoop(
       // billable call is never made (the cap as a guard, not a hope). The shaping gates the
       // tool menu to the valid next moves so the model is steered down a DAG-valid order.
       prepareStep: async () => {
-        assertWithinBudget(spentUsd, estimateLiveCallCostUsd(modelId), DEFAULT_BUDGET_CAP_USD);
+        const stepEstimate = estimateLiveCallCostUsd(modelId);
+        // Assert FIRST against the pre-reservation total (a would-breach step throws here, before
+        // the billable call), THEN reserve the step's estimate so any tool that executes WITHIN
+        // this step (e.g. the live Skeptic) budget-checks against a spentUsd that already includes
+        // this step's Investigator cost. onStepFinish replaces the reservation with the real cost.
+        assertWithinBudget(spentUsd, stepEstimate, DEFAULT_BUDGET_CAP_USD);
+        reservedStepUsd = stepEstimate;
+        spentUsd += reservedStepUsd;
         return { activeTools: activeToolsFor(state) };
       },
-      // onStepFinish -- fold THIS step's real cost into the running total AS IT ACCRUES, so the
-      // next prepareStep accounts for it (a later step can never silently overshoot). Aggregate
-      // usage drives the Investigator audit run's cost below; the tool names drive the audit
-      // sequence.
+      // onStepFinish -- REPLACE this step's reservation with its REAL cost (so the running total is
+      // exact again) AS IT ACCRUES, so the next prepareStep accounts for it (a later step can never
+      // silently overshoot). Aggregate usage drives the Investigator audit run's cost below; the
+      // tool names drive the audit sequence.
       onStepFinish: (step) => {
         stepCount += 1;
         const inTok = step.usage?.inputTokens ?? 0;
@@ -289,7 +302,8 @@ export async function runInvestigatorLoop(
         aggInputTokens += inTok;
         aggOutputTokens += outTok;
         lastFinishReason = step.finishReason ?? lastFinishReason;
-        spentUsd += costUsd(modelId, inTok, outTok);
+        spentUsd += costUsd(modelId, inTok, outTok) - reservedStepUsd;
+        reservedStepUsd = 0;
         for (const call of step.toolCalls ?? []) {
           toolSequence.push(call.toolName);
         }

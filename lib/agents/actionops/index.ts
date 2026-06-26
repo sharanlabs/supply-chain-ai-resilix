@@ -63,6 +63,20 @@ export async function runActionOpsAgents(
 
   const live = ctx.live === true && liveAiEnabled();
 
+  // DI-seam enforcement (Codex independent-gate, defense-in-depth). Production routes through
+  // buildDecisionPacket (which guards the seams above), but this is the lower export, so harden it
+  // too. BOTH DI seams are test-only at THIS layer (the production path -- run-exception ->
+  // buildDecisionPacket -- never passes either): the `investigator` model seam routes the LOOP with
+  // a caller-supplied model, and the `skeptic` generate seam injects a caller-supplied critic
+  // (forcing the live body even on a non-live ctx). Reject BOTH outside the test env (vitest pins
+  // NODE_ENV=test; prod="production"/dev="development" do not) -- a tighter backstop than the
+  // packet's live-only skeptic guard, catching a non-live injected critic the upper layer allows.
+  if (process.env.NODE_ENV !== "test" && (deps.investigator || deps.skeptic)) {
+    throw new Error(
+      "runActionOpsAgents: the `investigator`/`skeptic` DI seams are test-only and must never be set outside tests."
+    );
+  }
+
   // PHASE 3 ROUTING (the agentic-rework capstone). Route to the tool-using Investigator LOOP
   // when ENABLE_AGENT_LOOP is on AND the run is live, OR when a test injects a model (the DI
   // seam, NEVER set in production). Otherwise fall through to the UNCHANGED deterministic

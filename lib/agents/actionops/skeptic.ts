@@ -291,6 +291,15 @@ export async function challengeFindingLive(
   // model; for a configured cheap Gemini + pricier cross-family Skeptic that would UNDER-price the
   // precheck and could let a Skeptic call bill past the cap. Keep the caller's running spentUsd
   // (the per-run total) but recompute the next-call estimate for THIS call's actual model.
+  //
+  // INTENTIONAL CONFIG FAIL-LOUD (Codex independent-gate Low): estimateLiveCallCostUsd -> costUsd
+  // THROWS on an unpriced SKEPTIC_MODEL. This is a CONFIG error (an operator pinned a model not in
+  // the price table), and it is treated like the Gemini preflight (assertConfiguredModelAvailable):
+  // FAIL LOUD, not a silent HOLD that would mask the misconfiguration and bill an unbudgetable
+  // call. It is DISTINCT from the runtime fail-closed HOLD below (a broken/over-budget critic at
+  // call time): a config mistake should surface at the boundary so it is fixed, never swallowed.
+  // It only ever fires on the genuine live path (this code is past the deterministic short-circuit
+  // above), so a non-live run is unaffected.
   const budget: BudgetContext = deps.budget
     ? { ...deps.budget, estimatedNextUsd: estimateLiveCallCostUsd(model) }
     : { spentUsd: 0, estimatedNextUsd: estimateLiveCallCostUsd(model) };

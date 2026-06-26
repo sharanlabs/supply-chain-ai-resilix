@@ -55,16 +55,28 @@ export async function buildDecisionPacket(
   const { scenarioId, useLiveSignals = false, live = false, skeptic, scenarioOverride, suppliersOverride, investigator } =
     options;
 
-  // DI-seam enforcement (Codex P3 closure, Med -- defense-in-depth): skeptic / scenarioOverride /
-  // suppliersOverride / investigator are TEST-ONLY injection seams. They are safe today (the page
-  // render and the /api/run-exception route never set them), but the exported type inherits them,
-  // so enforce the "never on a billed run" contract HERE -- a LIVE invocation carrying ANY DI
-  // override is a misuse: fail loud rather than bill with a forged scenario / supplier / critic / model.
-  if (live && (skeptic || scenarioOverride || suppliersOverride || investigator)) {
-    throw new Error(
-      "buildDecisionPacket: a test/DI override (skeptic/scenarioOverride/suppliersOverride/" +
-        "investigator) was passed on a LIVE run -- these seams are test-only and must never bill."
-    );
+  // DI-seam enforcement (Codex independent-gate, defense-in-depth). skeptic / scenarioOverride /
+  // suppliersOverride / investigator are TEST-ONLY injection seams the exported type inherits. The
+  // page render and the /api/run-exception route never set them, but harden the contract HERE.
+  // NODE_ENV==="test" (vitest) EXEMPTS the in-test injections -- the gated live suites legitimately
+  // inject a deterministic-ACCEPT skeptic on a LIVE run (record-live-packets / actionops-live-real)
+  // so their LIVE_AI assertions do not flake on the Skeptic's stochastic verdict. Outside tests
+  // (prod = "production", dev = "development") the seams are rejected:
+  //   - `investigator` (the model seam) routes the agent LOOP even on a NON-live call, so it is
+  //     rejected UNCONDITIONALLY -- it must never be honored outside a test.
+  //   - the others only subvert a BILLED run, so they are rejected on a LIVE invocation.
+  if (process.env.NODE_ENV !== "test") {
+    if (investigator) {
+      throw new Error(
+        "buildDecisionPacket: the `investigator` DI seam is test-only and must never be set outside tests."
+      );
+    }
+    if (live && (skeptic || scenarioOverride || suppliersOverride)) {
+      throw new Error(
+        "buildDecisionPacket: a test/DI override (skeptic/scenarioOverride/suppliersOverride) was " +
+          "passed on a LIVE run -- these seams are test-only and must never bill."
+      );
+    }
   }
   // scenarioOverride is the test/DI red-team seam (above); production resolves from the registry.
   const scenario = scenarioOverride ?? getActionOpsScenario(scenarioId);

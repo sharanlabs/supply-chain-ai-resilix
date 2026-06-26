@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { LanguageModelV2 } from "@ai-sdk/provider";
 
 import { runActionOpsAgents } from "@/lib/agents/actionops";
@@ -14,6 +14,7 @@ import { getActionOpsScenario, type ActionOpsScenario } from "@/lib/data/actiono
 import { ingestSeed } from "@/lib/ingest/seed-suppliers";
 import { poisonScenario } from "@/evals/golden/injection-corpus";
 import { DEFAULT_BUDGET_CAP_USD } from "@/lib/agents/budget";
+import { estimateLiveCallCostUsd, resolvedGeminiModel } from "@/lib/agents/run";
 import { compareTrajectories, deriveTrajectory, scoreTrajectory } from "@/lib/evals/trajectory";
 import type { ActionOpsContext } from "@/lib/agents/actionops/types";
 
@@ -118,6 +119,7 @@ describe("(A) the investigation tools enforce their input constraints", () => {
     const ctx = buildCtx(getActionOpsScenario("SCN-HORMUZ"));
     const state: InvestigationState = { threatCard: runSentinel(ctx).threatCard };
     const tools = makeInvestigatorTools(ctx, state, {
+      live: false,
       budgetForNext: () => ({ spentUsd: 0, estimatedNextUsd: 0 }),
       foldCost: () => {}
     });
@@ -167,6 +169,7 @@ describe("(A) the investigation tools enforce their input constraints", () => {
     const ctx = buildCtx(getActionOpsScenario("SCN-HORMUZ"));
     const state: InvestigationState = { threatCard: runSentinel(ctx).threatCard };
     const tools = makeInvestigatorTools(ctx, state, {
+      live: false,
       budgetForNext: () => ({ spentUsd: 0, estimatedNextUsd: 0 }),
       foldCost: () => {}
     });
@@ -259,6 +262,73 @@ describe("(B2) the live cross-family Skeptic still runs when the model skips the
     expect(skepticRun?.mode).toBe("LIVE_AI"); // it genuinely ran the (injected) live critic
     expect(loop.playbooks).toEqual([]); // NO_ACTION withholds outbound action
     expect(loop.supplierMessages).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// (B3) SAME-STEP BUDGET RESERVATION -- a live Skeptic tool call executes WITHIN the Investigator
+// step, BEFORE onStepFinish folds that step's cost in. The reservation in prepareStep makes the
+// in-step Skeptic see the current step's cost, so the $5 cap holds even when both guards fire in
+// the same step. Proven: with spentUsd seeded so the reserved step cost tips the in-step Skeptic
+// over the cap, the Skeptic budget-breaches (and never calls its generate).
+// ---------------------------------------------------------------------------
+describe("(B3) the in-step budget reservation makes a same-step Skeptic call see the step cost", () => {
+  it("a reserved step cost tips the in-step Skeptic over the cap (it breaches before billing)", async () => {
+    const R = estimateLiveCallCostUsd(resolvedGeminiModel()); // the reserved per-step estimate
+    const ctx = buildCtx(getActionOpsScenario("SCN-HORMUZ"));
+    const { model } = makeMockModel([
+      { tool: "assessExposure" },
+      { tool: "checkCorroboration" },
+      { tool: "challengeFinding" } // called IN-step; the reservation must already be in spentUsd
+    ]);
+    let skepticGenerateCalled = false;
+    // Seed spentUsd to cap - R: every step's prepareStep reserves R (spentUsd -> cap DURING the
+    // step), so the in-step Skeptic budget-checks against cap and breaches. WITHOUT the reservation
+    // it would see cap - R and (Groq being cheaper than the reservation) pass -- so the breach is
+    // the reservation's signature.
+    const result = await runInvestigatorLoop(ctx, {
+      model,
+      initialSpentUsd: DEFAULT_BUDGET_CAP_USD - R,
+      skeptic: {
+        generate: async () => {
+          skepticGenerateCalled = true;
+          return { object: { accepted: true, reason: "would-accept if it ran" } };
+        }
+      }
+    });
+
+    const skepticRun = result.agentRuns.find((r) => r.agentName === "Skeptic");
+    expect(skepticRun?.errorClass).toBe("BUDGET_EXCEEDED"); // the in-step guard saw the reserved cost
+    expect(skepticGenerateCalled).toBe(false); // breached BEFORE the billable Groq call
+    expect(result.recommendation).toBe("NO_ACTION"); // a fail-closed HELD Skeptic forces NO_ACTION
+  });
+});
+
+// ---------------------------------------------------------------------------
+// (B4) NO-NETWORK SEAM -- a NON-live injected run must make NO cross-family call even if an ambient
+// GROQ_API_KEY is set. The Skeptic routes to the LIVE critic only when live OR an injected generate
+// is present (the waterfall's `runSkepticLive = live || generate`); a non-live run with neither
+// uses the deterministic runSkeptic. Proven: with a fake ambient Groq key, the Skeptic run is
+// DETERMINISTIC_RULES (had challengeFindingLive run against the fake key it would FAIL_TO_FALLBACK).
+// ---------------------------------------------------------------------------
+describe("(B4) a non-live injected run makes no Groq call even with an ambient GROQ_API_KEY", () => {
+  it("the Skeptic runs deterministically (no network) when not live and no generate is injected", async () => {
+    const prior = process.env.GROQ_API_KEY;
+    process.env.GROQ_API_KEY = "fake-ambient-key-should-not-be-called";
+    try {
+      const ctx = buildCtx(getActionOpsScenario("SCN-HORMUZ")); // live: false
+      const { model } = makeMockModel(FULL_INVESTIGATION); // the model DOES call challengeFinding
+      const result = await runInvestigatorLoop(ctx, { model }); // no skeptic injection
+
+      const skepticRun = result.agentRuns.find((r) => r.agentName === "Skeptic");
+      // DETERMINISTIC_RULES proves runSkeptic ran (no Groq attempt); a real call against the fake
+      // key would have surfaced as FAILED_TO_FALLBACK / LIVE_AI instead.
+      expect(skepticRun?.mode).toBe("DETERMINISTIC_RULES");
+      expect(result.recommendation).toBe("ACT"); // the deterministic affirmative pass, unchanged
+    } finally {
+      if (prior === undefined) delete process.env.GROQ_API_KEY;
+      else process.env.GROQ_API_KEY = prior;
+    }
   });
 });
 
@@ -405,18 +475,45 @@ describe("(F) the loop is scored by the P7 trajectory harness vs the waterfall b
 });
 
 // ---------------------------------------------------------------------------
-// (F) the test-only DI seam is REJECTED on a LIVE run (Codex P3 closure, defense-in-depth). The
-// skeptic / scenarioOverride / suppliersOverride / investigator fields are test-only injection
-// seams; the build-packet guard fails loud rather than let one reach a billed path. The CONTROL
-// (the same seam ALLOWED key-OFF) is the parity suite (B), which drives the loop via the
-// investigator DI seam with live:false.
+// (F) the test-only DI seam is REJECTED OUTSIDE the test env (Codex independent-gate, defense-in-
+// depth). The investigator / skeptic / scenarioOverride / suppliersOverride fields are test-only
+// injection seams. Outside tests (prod = "production", dev = "development") the guard fails loud
+// rather than let one reach a billed path; NODE_ENV==="test" exempts the legitimate in-test
+// injections (so the gated live suites that inject a deterministic-ACCEPT skeptic on a LIVE run
+// keep working). The CONTROL -- the same seam ALLOWED under test -- is the second case + suite (B).
 // ---------------------------------------------------------------------------
-describe("(F) the test-only DI seam is rejected on a LIVE run", () => {
-  it("buildDecisionPacket throws if a DI override is passed with live:true (never bills)", async () => {
-    const model = {} as LanguageModelV2; // unreachable: the guard fires before any live call
-    await expect(
-      buildDecisionPacket({ scenarioId: "SCN-HORMUZ", live: true, investigator: { model } })
-    ).rejects.toThrow(/test-only|never bill/i);
+describe("(F) the test-only DI seam is rejected outside the test env (defense-in-depth)", () => {
+  it("buildDecisionPacket + runActionOpsAgents reject the investigator seam when NODE_ENV !== test", async () => {
+    vi.stubEnv("NODE_ENV", "production"); // simulate a non-test runtime: the guards must fire
+    try {
+      const model = {} as LanguageModelV2; // unreachable -- the guard fires before any live call
+      // The investigator model seam routes the LOOP even on a NON-live call -> rejected unconditionally.
+      await expect(
+        buildDecisionPacket({ scenarioId: "SCN-HORMUZ", investigator: { model } })
+      ).rejects.toThrow(/test-only/i);
+      // ...and on a live run too.
+      await expect(
+        buildDecisionPacket({ scenarioId: "SCN-HORMUZ", live: true, investigator: { model } })
+      ).rejects.toThrow(/test-only/i);
+      // The lower export carries the same defense-in-depth guard -- for BOTH the investigator model
+      // seam AND the skeptic critic seam (a non-live injected critic the packet's live-only skeptic
+      // guard would not catch).
+      const ctx = buildCtx(getActionOpsScenario("SCN-HORMUZ"));
+      await expect(runActionOpsAgents(ctx, { investigator: { model } })).rejects.toThrow(/test-only/i);
+      await expect(
+        runActionOpsAgents(ctx, { skeptic: { generate: async () => ({ object: { accepted: true, reason: "x" } }) } })
+      ).rejects.toThrow(/test-only/i);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("the SAME seam is ALLOWED under the test env (the parity suite relies on it)", async () => {
+    // NODE_ENV=test (vitest) -> the investigator seam is honored, no throw. Suite (B) proves the
+    // loop runs end-to-end through it; this is the explicit control for the rejection above.
+    const ctx = buildCtx(getActionOpsScenario("SCN-HORMUZ"));
+    const { model } = makeMockModel(FULL_INVESTIGATION);
+    await expect(runActionOpsAgents(ctx, { investigator: { model } })).resolves.toBeDefined();
   });
 });
 
