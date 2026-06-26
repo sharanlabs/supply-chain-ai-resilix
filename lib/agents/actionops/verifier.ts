@@ -1,5 +1,6 @@
-import type { AgentRun, PublicSignal, ThreatCard } from "@/lib/schemas";
+import type { AgentRun, ThreatCard } from "@/lib/schemas";
 import { makeAgentRun } from "@/lib/agents/actionops/agent-run";
+import { type QuarantinedSignal, quarantineSignals } from "@/lib/agents/actionops/quarantine";
 import type { ActionOpsContext } from "@/lib/agents/actionops/types";
 
 // Verifier (deterministic). A DISTINCT agent with its own run record -- kept
@@ -20,7 +21,11 @@ export function runVerifier(
   threatCard: ThreatCard
 ): { checks: VerifierChecks; agentRun: AgentRun } {
   const { signals, baseDateIso } = ctx;
-  const checks = computeChecks(signals, threatCard);
+  // QUARANTINE BOUNDARY: the Verifier corroborates from STRUCTURED signal fields only (source
+  // count, recency, geo) -- it never needs the raw prose, so it receives the quarantined view.
+  // The `summary` is structurally absent here (quarantine.ts), so a future edit cannot make the
+  // Verifier read untrusted article text.
+  const checks = computeChecks(quarantineSignals(signals), threatCard);
 
   const agentRun = makeAgentRun({
     id: "RUN-VERIFIER",
@@ -38,7 +43,7 @@ export function runVerifier(
   return { checks, agentRun };
 }
 
-function computeChecks(signals: PublicSignal[], threatCard: ThreatCard): VerifierChecks {
+function computeChecks(signals: QuarantinedSignal[], threatCard: ThreatCard): VerifierChecks {
   const freshestMinutes =
     signals.length > 0 ? Math.min(...signals.map((s) => s.freshnessMinutes)) : null;
   const threatCountry = threatCard.location.country;
