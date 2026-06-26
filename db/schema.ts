@@ -328,3 +328,43 @@ export const supplierMessages = pgTable("supplier_messages", {
   index("supplier_messages_disruption_event_id_idx").on(table.disruptionEventId),
   index("supplier_messages_supplier_id_idx").on(table.supplierId)
 ]);
+
+// ===========================================================================
+// Phase 5: governed action execution -- the TRANSACTIONAL OUTBOX table (ADDITIVE,
+// mirrors the P2.4 purely-additive style: a brand-new table + indexes, NO ALTER
+// to any existing table). One row per governable action per packet; it is the
+// IMMUTABLE per-action audit record AND the outbox claim.
+// ===========================================================================
+
+// `idempotency_key` carries a UNIQUE constraint (.unique()) -- it is the
+// reserve-in-txn claim (mirrors run_idempotency_keys / processed_approval_events):
+// a retry/double-fire INSERT ... ON CONFLICT (idempotency_key) DO NOTHING returns
+// no row for the loser, so the dispatcher runs EXACTLY ONCE for one logical action.
+//
+// action_type / channel / reversibility / status are TEXT (not pgEnum): they reuse
+// the codebase's "closed vocab owned by the phase, enforced app-layer via Zod"
+// pattern (like action_items.status / suppliers.sector / disruption_events.event_type).
+// This keeps the migration a clean CREATE TABLE (no new CREATE TYPE) AND makes the
+// forward-compat status states (CLAIMED/EXPIRED/NEEDS_RECONCILE) a no-migration add.
+export const executedActions = pgTable("executed_actions", {
+  id: text("id").primaryKey(),
+  packetId: text("packet_id")
+    .notNull()
+    .references(() => decisionPackets.id, { onDelete: "cascade" }),
+  actionType: text("action_type").notNull(),
+  channel: text("channel").notNull(),
+  reversibility: text("reversibility").notNull(),
+  status: text("status").notNull(),
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  payloadHash: text("payload_hash").notNull(),
+  requestedAt: timestamp("requested_at", { withTimezone: true }).notNull(),
+  // Nullable: stamped only on a terminal dispatch (EXECUTED/FAILED).
+  executedAt: timestamp("executed_at", { withTimezone: true }),
+  auditDetail: text("audit_detail").notNull(),
+  // Nullable: set only on a FAILED dispatch (the fail-closed error class).
+  errorClass: text("error_class"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull()
+}, (table) => [
+  index("executed_actions_packet_id_idx").on(table.packetId),
+  index("executed_actions_status_idx").on(table.status)
+]);

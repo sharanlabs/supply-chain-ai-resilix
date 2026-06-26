@@ -13,7 +13,7 @@
     "format:check": "prettier --check .",
     "typecheck": "next typegen && node scripts/clean-next-dev-types.mjs && tsc --noEmit",
     "test": "vitest run",
-    "test:db": "vitest run evals/db-persistence.test.ts evals/db-concurrency-integrity.test.ts evals/db-supplier-store.test.ts evals/db-supplier-seed.test.ts",
+    "test:db": "vitest run evals/db-persistence.test.ts evals/db-concurrency-integrity.test.ts evals/db-supplier-store.test.ts evals/db-supplier-seed.test.ts evals/db-action-execution-integrity.test.ts",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "test:e2e": "playwright test",

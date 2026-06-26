@@ -1,0 +1,32 @@
+# Phase 5 (governed action execution) — exit gate
+
+**Stage:** agentic rework, Phase 5 (reorder `P1→P2→P4→**P5**→P6→P7→P3`). Autopilot 2026-06-26, built by backend-specialist, gated primary-model-final.
+
+## What Phase 5 is
+The machinery that CLOSES THE LOOP after a human approves a decision packet: it executes governed actions (alert the role owner, log, ticket draft, supplier-email send, n8n→ERP case) with **graduated autonomy** — reversible/internal may auto-fire (behind a default-OFF flag); irreversible/outward ALWAYS require explicit human approval, enforced server-side. **No real external call fires by default**; building the machinery is reversible, firing a real send is owner-gated at runtime.
+
+## Architecture (hexagonal + transactional outbox)
+- **`lib/server/action-taxonomy.ts`** — `classifyAction` + `deriveGovernableActions`. **The governance moat:** reversibility is decided in CODE keyed on the action TYPE, NEVER a packet-supplied field — a mis-stamped/injection-shaped packet cannot auto-send an outward action.
+- **`lib/server/action-transport.ts`** — the `ActionTransport` port + `NoopTransport` default (logs, never sends). Slack/SES/n8n enterprise path named in comments only (no real SDK added).
+- **`lib/server/action-executor.ts`** — the transactional outbox: reserve a PENDING `executed_actions` row under a UNIQUE idempotency_key in the SAME txn as the state change, then only the winner dispatches OUTSIDE the txn, then finalize EXECUTED or fail-closed FAILED + audited. Exactly-once intent (a retry/double-fire dedupes to one row, transport called once). Memory + Postgres stores.
+- **`POST /api/decision-packets/[id]/execute`** — auth-gated entry point (reuses the P2.7 fail-closed APPROVAL_TOKEN / secure-mode gate + rate-limit + APPROVED-only). New env flag `ENABLE_REVERSIBLE_AUTO_EXECUTE`, default OFF.
+- **`db/migrations/0003_*`** — additive `executed_actions` table (CREATE + FK + indexes; zero ALTER/DROP). Zod `ExecutedAction` contract in `lib/schemas.ts`.
+
+## Verification (first-hand)
+- `npm run verify` GREEN (typecheck + lint + test + build + secrets); `test:e2e` 14 (homepage replay + a11y untouched).
+- Gated `test:db` on a throwaway **PostgreSQL 17** (initdb/pg_ctl): **11 passed**, incl. the concurrent same-key double-execute proof (exactly one EXECUTED row, transport called once, both callers get the winner).
+
+## Security review (independent, read-only) — VERDICT: safe-to-proceed
+All six invariants HOLD with evidence: (1) auth boundary AIRTIGHT (401/503/422; APPROVED forward-terminal, no un-approve/edit path); (2) NO real external send STRUCTURALLY IMPOSSIBLE by default (NoopTransport + outward-never-auto-fired, two independent guards; the only outward path is an unwired typed seam); (3) taxonomy moat CODE-OWNED, UNSPOOFABLE (a tampered `approvalRequired:false` still classifies IRREVERSIBLE); (4) idempotency exactly-once SOUND (UNIQUE key + ON CONFLICT DO NOTHING, winner-only dispatch); (5) FAIL-CLOSED (transport throw → FAILED + audited, no partial); (6) injection/secret hygiene HOLDS (pino redaction, parameterized SQL, additive migration). No Critical, no High.
+
+**[Med] — FIXED 2026-06-26 (`action-taxonomy.ts`).** Unsanitized packet strings (LLM-classified `eventType`, LLM-authored `owner`/`status`, `draftChannel`) rode into the transport DIGEST, contradicting the "IDs/enums/numbers-only" claim — inert today (NoopTransport never delivers/logs/persists the digest) but an injection vector the moment a real transport is wired. **Fixed at the seam (code invariant, not producer convention):** `eventType` coerced to the closed `ThreatEventTypeSchema` (unknown → OTHER_UNMAPPED); `owner`/`status`/`draftChannel` control-stripped + 64-char-bounded. Regression test added (poisoned eventType → OTHER_UNMAPPED; long owner → ≤64).
+
+## Tracked forward-guardrails (LOW, for the future enterprise/real-transport path — NOT blocking)
+- **`approved == executed`** rests on packet immutability (no edit/PATCH endpoint exists). If a packet-edit path is ever added, the executor must compare each action's `payloadHash` to an approval-time baseline, or the human gate becomes content-bypassable.
+- **`executed_actions` FK is `ON DELETE cascade`** — the immutable audit is erased if a packet is deleted (no delete path today). Switch to `restrict`/`set null` (or a retained audit sink) if a purge/retention feature lands.
+- **Idempotency key truncates SHA-256 to 64 bits** — negligible at the handful-of-same-type-actions-per-packet scale; no security boundary crossed.
+- **Exactly-once *intent*, not *delivery*** — a finalize failure after a (future) real send leaves a stuck-PENDING row with NO re-dispatch (key reserved); irrelevant under Noop, needs a reconcile path before a real transport.
+- Fixed comment: the executor's approval re-check is defense-in-depth on the approved snapshot, NOT real TOCTOU protection.
+
+## Disposition (primary-model-final)
+Committed LOCALLY; push HELD. The security boundary is airtight for the default (no-real-send) build; the one [Med] is closed at the seam. A batched Codex cross-model closure over P2+P4+P5 is banked for a checkpoint. **Owner action: review + push; wiring a real transport (Slack/SES/n8n) is a deliberate later owner step (the typed seam + the forward-guardrails above gate it).**

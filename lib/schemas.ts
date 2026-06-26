@@ -725,6 +725,93 @@ export const DecisionPacketSchema = z
     }
   });
 
+// ===========================================================================
+// Phase 5 -- Governed action execution (close-the-loop) contracts.
+//
+// After a human APPROVES a decision packet, RESILIX executes governed actions
+// with GRADUATED AUTONOMY (the three-tier-HITL / EU AI Act Art. 14 framing):
+// reversible/internal actions (alert, log, ticket) may auto-fire (still behind a
+// default-OFF config flag); irreversible/OUTWARD actions (supplier email, RFQ,
+// n8n->ERP case) ALWAYS require an explicit human-approved execution -- they are
+// never auto-sent.
+//
+// THE GOVERNANCE MOAT: the reversible-vs-irreversible gate keys on the CODE-OWNED
+// action TYPE below, NEVER on a packet-supplied field. RecoveryOption.reversibility
+// / .approvalRequired are advisory display data on the packet; trusting them to
+// decide whether something auto-sends would let a mis-stamped (or injection-shaped)
+// packet auto-fire an outward action. Classification lives in code (action-taxonomy.ts),
+// fail-closed: an outward channel is human-gated even if a payload says otherwise.
+// ===========================================================================
+
+// The CODE-OWNED execution taxonomy. RFQ_DISPATCH / ERP_CASE are named + classified
+// here (later phases derive them from a chosen alternate / an n8n case); the Phase 5
+// derivation maps supplier-message drafts -> SUPPLIER_EMAIL_SEND and internal items
+// -> the reversible types.
+export const GovernableActionTypeSchema = z.enum([
+  // REVERSIBLE / INTERNAL -- auto-fire eligible (still behind the config flag).
+  "ROLE_OWNER_ALERT",
+  "AUDIT_LOG",
+  "TICKET_DRAFT",
+  // IRREVERSIBLE / OUTWARD -- ALWAYS human-gated; never auto-sent.
+  "SUPPLIER_EMAIL_SEND",
+  "RFQ_DISPATCH",
+  "ERP_CASE"
+]);
+
+export const ReversibilitySchema = z.enum(["REVERSIBLE", "IRREVERSIBLE"]);
+
+// Transport channel an action routes to. Each maps to a pluggable transport
+// (default Noop -- logs, never sends). SLACK/EMAIL/N8N name the enterprise
+// transports; TICKET/INTERNAL are in-app.
+export const ActionChannelSchema = z.enum([
+  "SLACK",
+  "EMAIL",
+  "TICKET",
+  "N8N",
+  "INTERNAL"
+]);
+
+// Execution lifecycle (the task's locked status set). PENDING = recorded, awaiting a
+// human-gated execution OR a disabled-autonomy hold; EXECUTED = the transport
+// delivered (or the Noop logged) -- terminal; FAILED = the transport threw
+// (fail-closed, audited, never a silent partial) -- terminal; SKIPPED = a reversible
+// action whose auto-execute is disabled by config.
+//
+// Forward-compat: the richer outbox state machine (CLAIMED / EXPIRED /
+// NEEDS_RECONCILE per the grill NEW-4 enterprise path) is purely ADDITIVE future
+// values; the column is text (not a pgEnum) so adding one is no migration, and
+// readers must tolerate an unknown value rather than assume this closed set.
+export const ExecutedActionStatusSchema = z.enum([
+  "PENDING",
+  "EXECUTED",
+  "FAILED",
+  "SKIPPED"
+]);
+
+// The persisted executed-action record (the immutable, per-action audit row). One
+// row per governable action per packet; the idempotencyKey is the transactional-
+// outbox claim that makes a retry/double-fire execute EXACTLY ONCE.
+export const ExecutedActionSchema = z.object({
+  id: z.string(),
+  packetId: z.string(),
+  actionType: GovernableActionTypeSchema,
+  channel: ActionChannelSchema,
+  reversibility: ReversibilitySchema,
+  status: ExecutedActionStatusSchema,
+  // Deterministic per-action dedupe key (UNIQUE in the table) -- the outbox claim.
+  idempotencyKey: z.string(),
+  // SHA-256 of the canonical action payload (content-hash, grill R10): the approved
+  // thing must equal the executed thing.
+  payloadHash: z.string(),
+  requestedAt: z.string().datetime(),
+  // null until a terminal dispatch (EXECUTED/FAILED) stamps it.
+  executedAt: z.string().datetime().nullable(),
+  // Immutable, human-readable audit line for THIS action.
+  auditDetail: z.string(),
+  // The error class on a FAILED dispatch (fail-closed); null otherwise.
+  errorClass: z.string().nullable()
+});
+
 export const ScenarioSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -772,3 +859,9 @@ export type DecisionPacketV1 = z.infer<typeof DecisionPacketV1Schema>;
 export type DecisionPacketV2 = z.infer<typeof DecisionPacketV2Schema>;
 export type DecisionPacket = z.infer<typeof DecisionPacketSchema>;
 export type Scenario = z.infer<typeof ScenarioSchema>;
+// Phase 5 governed-execution types.
+export type GovernableActionType = z.infer<typeof GovernableActionTypeSchema>;
+export type Reversibility = z.infer<typeof ReversibilitySchema>;
+export type ActionChannel = z.infer<typeof ActionChannelSchema>;
+export type ExecutedActionStatus = z.infer<typeof ExecutedActionStatusSchema>;
+export type ExecutedAction = z.infer<typeof ExecutedActionSchema>;
