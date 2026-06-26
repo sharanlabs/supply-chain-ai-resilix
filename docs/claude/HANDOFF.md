@@ -4,9 +4,15 @@
 > ## CURRENT RESUME (2026-06-26) — READ THIS FIRST; supersedes every block below
 > ============================================================================
 >
-> **Stage: AGENTIC REWORK — Phases 1, 2, 4, 5, 6 DONE + committed locally (push HELD, range
-> `3385d0f..5185414`). NEXT: Phase 7 (agentic evals + adaptive injection red-team), then P3
-> (Investigator loop, LAST, gated) per the reorder.**
+> **Stage: AGENTIC REWORK — Phases 1, 2, 4, 5, 6, 7 DONE + committed locally (push HELD, range
+> `3385d0f..68a668d`). NEXT + LAST: Phase 3 (the Investigator loop, behind ENABLE_AGENT_LOOP,
+> gated on P7's trajectory-evals-beating-the-waterfall) per the reorder. A batched Codex closure
+> over the P2→P7 production delta is running at this checkpoint.**
+> P7 = adaptive injection red-team (200 cases, 0-leak) + the trajectory-eval HARNESS (the
+> deterministic waterfall is the baseline P3 must beat: no-safety-regression + within-budget) +
+> the NO_ACTION regression; verify:full GREEN 642/24 + 20 e2e. A cross-model self-review caught +
+> fixed a real safety bug (the trajectory outcome term defaulted to the gatekeeper, which doesn't
+> run the injection quarantine -> a leaky loop could have promoted; now composes findOutputSafetyLeaks).
 > P5 = governed action execution (transactional outbox, code-owned reversibility moat, NoopTransport
 > default, human-gated outward, auth-gated execute route, `executed_actions` table); security-reviewed
 > safe-to-proceed + [Med] digest-sanitization fixed; gate doc `PHASE5-GATE.md`.
