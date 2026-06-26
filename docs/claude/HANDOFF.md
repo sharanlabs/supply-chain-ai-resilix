@@ -1,10 +1,50 @@
-# HANDOFF — resume pointer (updated 2026-06-25, later)
+# HANDOFF — resume pointer (updated 2026-06-26)
 
 > ============================================================================
-> ## CURRENT RESUME (2026-06-25, later) — READ THIS FIRST; supersedes every block below
+> ## CURRENT RESUME (2026-06-26) — READ THIS FIRST; supersedes every block below
 > ============================================================================
 >
-> **Stage: AGENTIC REWORK — Phase 1 (P1 domain wins) BUILT + GATED LOCALLY (committed, push HELD). Next: Phase 2 (Dual-LLM GDELT quarantine) per the reorder.**
+> **Stage: AGENTIC REWORK — Phases 1, 2, 4 DONE + committed locally (push HELD). NEXT: Phase 5
+> (governed action execution), then P6 → P7 → P3 per the reorder.**
+>
+> **OWNER DIRECTIVE (2026-06-26): complete ALL remaining phases in this session; auto-resume on
+> usage-limit reset (a `/schedule` cloud routine + a durable local cron drive the autopilot from
+> THIS resume pointer).** So a fresh session / cloud run: read this block + `tasks/todo.md` (the
+> phase checklist) + `~/.claude/plans/read-last-handoff-and-keen-globe.md`, then engage
+> `/autopilot` to drive the NEXT unchecked phase. Each phase: maker (dispatch the right specialist)
+> → `npm run verify`/`verify:full` GREEN → acceptance-gate → batched Codex → local commit. Push HELD
+> (owner action). Flag-off deterministic waterfall stays GREEN throughout.
+>
+> **DONE + committed (push held):** P1 domain wins (6) + the guidelines-monitor domain fixes
+> (single-source decoupled from tier; TTR disruption-type-aware) + the homepage re-capture (8/8
+> genuine-live, no score leak) + the Codex final-stamp REVISE closure (qualitative-prose leak gate);
+> P2 Dual-LLM quarantine (QuarantinedSignal type + static guard); P4 cross-family Skeptic critic
+> (Groq Llama-4, fail-closed, gates the finding → NO_ACTION on non-accept, quarantine-respecting,
+> authoritative-binding). `npm run verify` GREEN (558/22). Commits `3385d0f..da996b1`.
+>
+> **OPEN obligations (owner / next-run, NOT blocking the next phase):** (a) **push** the whole
+> `3385d0f..da996b1` range (owner action); (b) the **Phase-4 Skeptic calibration** is RUN_LIVE_AI_TESTS-
+> gated + UNMEASURED — run it once on a Groq key (`RUN_LIVE_AI_TESTS=true GROQ_API_KEY=... node
+> --env-file=.env node_modules/vitest/vitest.mjs run evals/actionops-skeptic-calibration.test.ts`); (c)
+> a batched **Codex closure** over P2+P4 at the next checkpoint; (d) update the Success_Criteria
+> "3 (+2 reserve)" LLM-call line to name the Skeptic's 4th cross-family call.
+>
+> **NEXT PHASE — Phase 5 (governed action execution):** build the execution machinery — classify
+> reversible-vs-irreversible; an executor abstraction (Slack/email/n8n + the enterprise path per the
+> tech-stack steer `resilix-tech-stack-alignment`); server-side auth; idempotent; audited; a new
+> `executed_actions` table; transactional outbox; per-action approval. Auto-fire reversible/internal
+> (BUILT but gated); human-gate irreversible/outward. **REAL external sends stay owner-gated at
+> RUNTIME** (building the machinery is reversible; firing a real email/Slack/n8n call is the
+> owner-gate). Gate: `verify:full` + idempotency/auth tests. Dispatch backend-specialist (+ a
+> security-specialist review of the auth/idempotency/outbox).
+>
+> ----- prior resume (2026-06-25) below; superseded for stage but valid for P1 build history -----
+
+> ============================================================================
+> ## RESUME (2026-06-25, later) — Phase 1 detail
+> ============================================================================
+>
+> **Stage: AGENTIC REWORK — Phase 1 (P1 domain wins) BUILT + GATED LOCALLY (committed, push HELD).**
 >
 > **Phase 1 done (2026-06-25, autopilot):** all six SCRM domain wins landed on the deterministic
 > waterfall (NO agent loop — that's P3, last): (1) threat enum +3; (2) TTR/TTS exposure +
