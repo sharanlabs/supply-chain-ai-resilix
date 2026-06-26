@@ -777,10 +777,12 @@ export const ActionChannelSchema = z.enum([
 // (fail-closed, audited, never a silent partial) -- terminal; SKIPPED = a reversible
 // action whose auto-execute is disabled by config.
 //
-// Forward-compat: the richer outbox state machine (CLAIMED / EXPIRED /
-// NEEDS_RECONCILE per the grill NEW-4 enterprise path) is purely ADDITIVE future
-// values; the column is text (not a pgEnum) so adding one is no migration, and
-// readers must tolerate an unknown value rather than assume this closed set.
+// Forward-compat (Codex P3 closure, Low -- corrected): the richer outbox state machine
+// (CLAIMED / EXPIRED / NEEDS_RECONCILE per the grill NEW-4 enterprise path) is purely ADDITIVE
+// -- the column is text (not a pgEnum), so adding a value is no migration. But this Zod enum is
+// CLOSED on purpose: it VALIDATES against the known set and fails loud on an unknown rather than
+// silently passing it. Adding a status is therefore an explicit additive change HERE, not a
+// silently-tolerated unknown -- the reader contract is the current closed set.
 export const ExecutedActionStatusSchema = z.enum([
   "PENDING",
   "EXECUTED",

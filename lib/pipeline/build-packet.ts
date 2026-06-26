@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { runActionOpsAgents, type SkepticInjection } from "@/lib/agents/actionops";
+import { type InvestigatorDeps, runActionOpsAgents, type SkepticInjection } from "@/lib/agents/actionops";
 import {
   assertConfiguredModelAvailable,
   computeEffectiveMode,
@@ -35,18 +35,37 @@ export type BuildPacketOptions = {
   // and let suppliers come from the seed -- both overrides stay undefined.
   scenarioOverride?: ActionOpsScenario;
   suppliersOverride?: Supplier[];
+  // Phase 3 test/DI seam (NEVER set in production -- production routes to the Investigator
+  // loop via ENABLE_AGENT_LOOP). Injecting a model here drives the tool-using loop through the
+  // FULL assemble+validate path with NO network, so a parity / quarantine / budget test can
+  // prove the loop's packet against the waterfall's. Threaded straight into runActionOpsAgents.
+  investigator?: InvestigatorDeps;
 };
 
 // Assemble a DecisionPacketV2 from the ActionOps agents -- PURE: no persistence,
-// no idempotency. This is the seam the cutover needs in two places: the read-only
-// demo render (app/page.tsx calls it with cached signals, so a page load does NOT
-// write a packet and does NOT hit the network), and runExceptionPipeline (which
-// wraps it with saveDecisionPacket + the idempotency mutex for the API path).
-// Splitting "assemble" from "persist" is what keeps the UI render side-effect-free.
+// no idempotency. The cutover uses it where a live or recorded packet is built: the live-AI
+// recorder (evals/record-live-packets.test.ts) and runExceptionPipeline (the /api/run-exception
+// POST -- it wraps this with saveDecisionPacket + the idempotency mutex). NOTE: the read-only
+// homepage (app/page.tsx) renders a FROZEN recorded packet via loadReplayPacket(), so a page load
+// does NOT call this, write a packet, or hit the network. Splitting "assemble" from "persist" is
+// what keeps the render side-effect-free.
 export async function buildDecisionPacket(
   options: BuildPacketOptions = {}
 ): Promise<DecisionPacketV2> {
-  const { scenarioId, useLiveSignals = false, live = false, skeptic, scenarioOverride, suppliersOverride } = options;
+  const { scenarioId, useLiveSignals = false, live = false, skeptic, scenarioOverride, suppliersOverride, investigator } =
+    options;
+
+  // DI-seam enforcement (Codex P3 closure, Med -- defense-in-depth): skeptic / scenarioOverride /
+  // suppliersOverride / investigator are TEST-ONLY injection seams. They are safe today (the page
+  // render and the /api/run-exception route never set them), but the exported type inherits them,
+  // so enforce the "never on a billed run" contract HERE -- a LIVE invocation carrying ANY DI
+  // override is a misuse: fail loud rather than bill with a forged scenario / supplier / critic / model.
+  if (live && (skeptic || scenarioOverride || suppliersOverride || investigator)) {
+    throw new Error(
+      "buildDecisionPacket: a test/DI override (skeptic/scenarioOverride/suppliersOverride/" +
+        "investigator) was passed on a LIVE run -- these seams are test-only and must never bill."
+    );
+  }
   // scenarioOverride is the test/DI red-team seam (above); production resolves from the registry.
   const scenario = scenarioOverride ?? getActionOpsScenario(scenarioId);
   const now = new Date().toISOString();
@@ -76,7 +95,7 @@ export async function buildDecisionPacket(
 
   const result = await runActionOpsAgents(
     { scenario, signals, suppliers, baseDateIso: now, live },
-    { skeptic }
+    { skeptic, investigator }
   );
 
   // requested = what the run intended; effective = what actually happened across the

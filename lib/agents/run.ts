@@ -57,6 +57,16 @@ function geminiModel(modelId: string) {
   return provider(modelId);
 }
 
+// geminiLanguageModel: the SAME GEMINI_API_KEY-bound model handle, exported for the
+// Phase-3 Investigator loop (lib/agents/actionops/investigator.ts), which drives a
+// generateText tool loop rather than a single generateObject call. Routed through the
+// one geminiModel construction point above so the loop, the structured-output agents, and
+// the preflight can never drift on the key (the same single-source rule the rest of the
+// pipeline follows). Resolved at call time, so a key set after import is still picked up.
+export function geminiLanguageModel(modelId: string) {
+  return geminiModel(modelId);
+}
+
 // listGeminiModels: the preflight's ListModels, over the REST endpoint. @ai-sdk/google
 // v2 exposes no model-listing method, so we hit the documented REST surface directly
 // (GET /v1beta/models). Returns the raw ids ("models/gemini-2.5-flash"); the preflight
@@ -141,7 +151,10 @@ export type BudgetContext = {
 // LARGEST agent output -- the Dispatcher's top-5 supplier drafts (subject + body + claims each):
 // too tight TRUNCATES the structured JSON mid-object and the parse throws. Kept in lockstep with
 // estimateLiveCallCostUsd's output envelope so the estimate can never under-price a real call.
-const MAX_LIVE_OUTPUT_TOKENS = 8_000;
+// EXPORTED (Codex P3 High): the Phase-3 Investigator loop's generateText caps its per-step output
+// to this SAME envelope the estimate prices -- without the cap a single loop step could emit more
+// than the estimate and bill above the pre-step hard-stop check. One constant, no drift.
+export const MAX_LIVE_OUTPUT_TOKENS = 8_000;
 
 // liveGenerateObject: the SINGLE live-call boundary for the ActionOps LLM agents.
 // Two jobs, in order:
@@ -184,7 +197,12 @@ export async function liveGenerateObject(args: {
         prompt: a.prompt,
         // Bound the output so the pre-call estimate is a TRUE ceiling (the $5 hard-stop checks
         // the estimate BEFORE this call; without a cap the model could overshoot it).
-        maxOutputTokens: MAX_LIVE_OUTPUT_TOKENS
+        maxOutputTokens: MAX_LIVE_OUTPUT_TOKENS,
+        // Disable the SDK's own transport retry loop (Codex P3 High): an SDK retry is NOT guarded
+        // by the pre-call budget check and its billed-but-failed attempts are not ledgered, so a
+        // hidden retry could bill past the cap. The app has its OWN bounded retry (RetryReserve),
+        // which re-checks the budget per attempt -- the only retry path we want billing through.
+        maxRetries: 0
       });
       return {
         object: result.object,

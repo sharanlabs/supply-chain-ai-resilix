@@ -16,3 +16,14 @@ export function envBool(name: string): boolean {
 export function liveAiEnabled(): boolean {
   return envBool("ENABLE_LIVE_AI") && Boolean(process.env.GEMINI_API_KEY?.trim());
 }
+
+// Phase 3 (the agentic rework capstone): route the run through the tool-using Investigator
+// LOOP instead of the deterministic waterfall. DEFAULT OFF -- the loop ships dark and is
+// promoted to default-on only by the owner once the P7 trajectory evals show it beats the
+// waterfall at acceptable cost. A flag-OFF run takes the unchanged waterfall, byte-for-byte.
+// NOTE: this only governs the ARCHITECTURE; the loop still AND-gates every billable call on
+// liveAiEnabled() (a flag-ON but key-OFF run has no model to drive the loop, so the
+// orchestrator routes to the waterfall -- see lib/agents/actionops/index.ts).
+export function agentLoopEnabled(): boolean {
+  return envBool("ENABLE_AGENT_LOOP");
+}

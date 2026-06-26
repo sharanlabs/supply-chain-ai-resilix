@@ -286,10 +286,14 @@ export async function challengeFindingLive(
   }
 
   const model = resolvedSkepticModel();
-  const budget: BudgetContext = deps.budget ?? {
-    spentUsd: 0,
-    estimatedNextUsd: estimateLiveCallCostUsd(model)
-  };
+  // Price the pre-call hard-stop with the SKEPTIC model's estimate, not the caller's (Codex P3
+  // Med). The orchestrator/loop pass a budget whose estimatedNextUsd was priced with the GEMINI
+  // model; for a configured cheap Gemini + pricier cross-family Skeptic that would UNDER-price the
+  // precheck and could let a Skeptic call bill past the cap. Keep the caller's running spentUsd
+  // (the per-run total) but recompute the next-call estimate for THIS call's actual model.
+  const budget: BudgetContext = deps.budget
+    ? { ...deps.budget, estimatedNextUsd: estimateLiveCallCostUsd(model) }
+    : { spentUsd: 0, estimatedNextUsd: estimateLiveCallCostUsd(model) };
   const startedAt = Date.now();
 
   // The cross-family generate: an injected generate (test/DI) ALWAYS wins; otherwise bind Groq from
@@ -332,6 +336,19 @@ export async function challengeFindingLive(
       })
     };
   };
+
+  // Fail-closed cross-family guard (Codex P3 closure, Low): NEVER fall through to
+  // liveGenerateObject's DEFAULT Gemini provider. The Skeptic MUST be cross-family (ADR-0002 --
+  // a Gemini critic judging Gemini output is the self-preference bias this defends against). The
+  // real path only reaches here key-ON (skepticEnabled requires a Groq key) or with an injected
+  // generate; but a FORCED `enabled:() => true` with no Groq key + no generate would otherwise
+  // bind nothing and silently call Gemini -- HOLD instead.
+  if (!generate) {
+    return hold(
+      "Skeptic could not bind a cross-family generator (no Groq key, no injected generate); failing closed.",
+      "NO_CROSS_FAMILY_GENERATOR"
+    );
+  }
 
   try {
     const prompt = buildSkepticPrompt(finding);

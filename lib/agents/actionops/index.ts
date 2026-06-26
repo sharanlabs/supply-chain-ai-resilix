@@ -14,6 +14,7 @@ import {
 } from "@/lib/agents/actionops/skeptic";
 import { classifyPlaybooksLive, runStrategist } from "@/lib/agents/actionops/strategist";
 import { runVerifier } from "@/lib/agents/actionops/verifier";
+import { type InvestigatorDeps, runInvestigatorLoop } from "@/lib/agents/actionops/investigator";
 import { DEFAULT_BUDGET_CAP_USD } from "@/lib/agents/budget";
 import {
   type BudgetContext,
@@ -22,11 +23,13 @@ import {
   makeRetryReserve,
   resolvedGeminiModel
 } from "@/lib/agents/run";
+import { agentLoopEnabled } from "@/lib/server/env-flags";
 import type { ActionItem, AgentRun, Playbook, RecoveryOption, SupplierMessageDraft } from "@/lib/schemas";
 import type { ActionOpsContext, ActionOpsResult } from "@/lib/agents/actionops/types";
 
 export type { ActionOpsContext, ActionOpsResult } from "@/lib/agents/actionops/types";
 export type { SkepticInjection } from "@/lib/agents/actionops/skeptic";
+export type { InvestigatorDeps } from "@/lib/agents/actionops/investigator";
 
 // The ActionOps pipeline (PLAN Phases 4-7 + the Phase-4 agentic-rework Skeptic). Canonical order:
 // Sentinel (threat) -> Verifier (corroboration) -> Atlas (exposure) -> Simulator (runway) ->
@@ -54,11 +57,28 @@ export async function runActionOpsAgents(
   // Production passes nothing; the Skeptic then runs its live body only on the billable `live`
   // path and gates on its OWN Groq key. Threading it here is what lets a test drive the gate
   // end-to-end with a controlled verdict and NO network.
-  deps: { skeptic?: SkepticInjection } = {}
+  deps: { skeptic?: SkepticInjection; investigator?: InvestigatorDeps } = {}
 ): Promise<ActionOpsResult> {
   const { signals, baseDateIso } = ctx;
 
   const live = ctx.live === true && liveAiEnabled();
+
+  // PHASE 3 ROUTING (the agentic-rework capstone). Route to the tool-using Investigator LOOP
+  // when ENABLE_AGENT_LOOP is on AND the run is live, OR when a test injects a model (the DI
+  // seam, NEVER set in production). Otherwise fall through to the UNCHANGED deterministic
+  // waterfall below -- a flag-OFF run is byte-for-byte the pre-Phase-3 behavior, so the whole
+  // existing suite stays green. The loop AND-gates on `live` because a flag-ON but key-OFF run
+  // has no model to drive the loop, and the waterfall is the right (billing-free) path there.
+  if ((agentLoopEnabled() && live) || deps.investigator?.model) {
+    return runInvestigatorLoop(ctx, {
+      model: deps.investigator?.model,
+      initialSpentUsd: deps.investigator?.initialSpentUsd,
+      // The Skeptic DI seam: prefer an investigator-scoped injection, else the top-level one
+      // (the waterfall's seam), so a caller threading `skeptic` reaches the loop's critic too.
+      skeptic: deps.investigator?.skeptic ?? deps.skeptic
+    });
+  }
+
   const model = resolvedGeminiModel();
 
   // The CUMULATIVE budget threaded across the 3 LLM calls so the $5 cap is a PER-RUN

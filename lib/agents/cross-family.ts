@@ -49,7 +49,10 @@ export function makeGroqGenerate(apiKey: string, maxOutputTokens: number = 4_000
       model: groq(a.model),
       schema: a.schema,
       prompt: a.prompt,
-      maxOutputTokens
+      maxOutputTokens,
+      // Disable the SDK transport retry loop (Codex P3 High) so no un-ledgered, un-budget-guarded
+      // retry can bill past the cap -- the cross-family Skeptic's budget hard-stop stays hard.
+      maxRetries: 0
     });
     return {
       object: result.object,
