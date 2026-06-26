@@ -4,25 +4,32 @@
 > ## CURRENT RESUME (2026-06-26) — READ THIS FIRST; supersedes every block below
 > ============================================================================
 >
-> **Stage: AGENTIC REWORK — Phases 1, 2, 4, 5, 6, 7 DONE + committed locally (push HELD, range
-> `3385d0f..68a668d`). NEXT + LAST: Phase 3 (the Investigator loop, behind ENABLE_AGENT_LOOP,
-> gated on P7's trajectory-evals-beating-the-waterfall) per the reorder. A batched Codex closure
-> over the P2→P7 production delta is running at this checkpoint.**
-> P7 = adaptive injection red-team (200 cases, 0-leak) + the trajectory-eval HARNESS (the
-> deterministic waterfall is the baseline P3 must beat: no-safety-regression + within-budget) +
-> the NO_ACTION regression; verify:full GREEN 642/24 + 20 e2e. A cross-model self-review caught +
-> fixed a real safety bug (the trajectory outcome term defaulted to the gatekeeper, which doesn't
-> run the injection quarantine -> a leaky loop could have promoted; now composes findOutputSafetyLeaks).
-> P5 = governed action execution (transactional outbox, code-owned reversibility moat, NoopTransport
-> default, human-gated outward, auth-gated execute route, `executed_actions` table); security-reviewed
-> safe-to-proceed + [Med] digest-sanitization fixed; gate doc `PHASE5-GATE.md`.
-> P6 = war-room deliberation UI (agent trajectory + Skeptic verdict + the P1 fields, all data-driven
-> from `packet.agentRuns` so the $0 REPLAY holds; storytelling-arc extended, WCAG 2.2 AA); verify:full
-> GREEN 596/24 + 20 e2e.
-> P7 (in flight, evals-specialist): adaptive indirect-injection red-team (GDELT-shaped, full-pipeline,
-> zero-leak + zero-laundering) + the trajectory-eval HARNESS (P3's promotion gate, baseline = the
-> deterministic waterfall) + the NO_ACTION/corroboration regression. Then P3 = the Investigator loop
-> behind ENABLE_AGENT_LOOP, promoted to default ONLY if its trajectory evals beat the waterfall.
+> **Stage: AGENTIC REWORK — ✅ ALL 7 PHASES DONE + committed locally (push HELD, range
+> `3385d0f..29141be`). The deterministic-pipeline → governed multi-agent system rework is COMPLETE.
+> `npm run verify` GREEN (656/25 + 20 e2e + gated PG-17 11). Next is the OWNER's call (below).**
+>
+> **What shipped (all behind their gates, flag-off waterfall green throughout):** P1 six SCRM domain
+> wins (+ guidelines-monitor domain fixes + homepage re-capture + Codex-REVISE close); P2 Dual-LLM
+> quarantine (type boundary + static guard); P4 cross-family Skeptic critic (Groq, fail-closed,
+> quarantine-respecting, gates the finding); P5 governed action execution (transactional outbox,
+> code-owned reversibility moat, NoopTransport default, human-gated outward, auth-gated execute route,
+> `executed_actions` table); P6 war-room deliberation UI (trajectory + Skeptic verdict + P1 fields,
+> data-driven, WCAG 2.2 AA); P7 adaptive injection red-team (200 cases, 0-leak) + trajectory-eval
+> harness + NO_ACTION regression; P3 (LAST) the tool-using Investigator loop behind `ENABLE_AGENT_LOOP`
+> (default OFF) with the authoritative-binding moat (PARITY-proven byte-equal to the waterfall).
+> Cross-model gated throughout: Codex APPROVED P1; a batched P2→P7 closure REVISE (all safety invariants
+> HELD; refinements applied — `CLOSURE-P2-P7.md`); P3's own Codex gate APPROVED (3 rounds). Gate docs in
+> `docs/claude/gates/agentic-rework/`.
+>
+> **OWNER ACTIONS (owner-gated; autopilot complete):** (1) **review + push** `3385d0f..29141be`;
+> (2) **promote the loop** (`ENABLE_AGENT_LOOP=true`) IF more live runs justify it — the deterministic
+> trajectory ties the baseline; the qualitative win + the live delta are the owner's judgment (live
+> cost ~$0.0022/run); (3) **wire a real transport** (Slack/SES/n8n) — a deliberate step gated by the
+> typed seam + the `PHASE5-GATE.md` forward-guardrails (esp. the outbox crash-recovery lease/reconcile);
+> (4) **run the gated live calibrations** once on a Groq key — the Skeptic TPR/TNR
+> (`RUN_LIVE_AI_TESTS=true GROQ_API_KEY=… node --env-file=.env node_modules/vitest/vitest.mjs run
+> evals/actionops-skeptic-calibration.test.ts`) + the loop live smoke; (5) optional: re-capture the
+> homepage fixture so `/` shows the Skeptic run in the deliberation.
 >
 > **OWNER DIRECTIVE (2026-06-26): complete ALL remaining phases in this session; auto-resume on
 > usage-limit reset (a `/schedule` cloud routine + a durable local cron drive the autopilot from
