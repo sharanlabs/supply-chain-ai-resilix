@@ -3,7 +3,90 @@ import "@testing-library/jest-dom/vitest";
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { ActionOpsPacketView } from "@/components/actionops-dashboard";
+import type { AgentRun, RecoveryOption } from "@/lib/schemas";
 import { makeV2Packet } from "./fixtures/decision-packet-v2";
+
+// A minimal valid AgentRun for the deliberation-trail render tests. Defaults to a
+// deterministic step; override mode/model/validationStatus/summary per case.
+function makeRun(partial: Partial<AgentRun> & { agentName: string }): AgentRun {
+  return {
+    id: `RUN-${partial.agentName.toUpperCase()}`,
+    model: "deterministic-rules",
+    mode: "DETERMINISTIC_RULES",
+    latencyMs: 0,
+    tokenEstimate: 10,
+    inputHash: "aaaaaaaa",
+    outputHash: "bbbbbbbb",
+    validationStatus: "PASS",
+    summary: `${partial.agentName} ran.`,
+    createdAt: "2026-06-13T12:00:00.000Z",
+    ...partial
+  };
+}
+
+// The full ordered chain a live ActionOps run emits (the Skeptic sits between the
+// deterministic findings and the LLM responders). A Groq model on the Skeptic marks the
+// genuine cross-family challenge (distinct from the deterministic affirmative placeholder).
+const SEVEN_RUN_CHAIN: AgentRun[] = [
+  makeRun({
+    agentName: "Sentinel",
+    model: "gemini-2.5-flash",
+    mode: "LIVE_AI",
+    summary: "Classified threat CHOKEPOINT_CLOSURE at CRITICAL severity."
+  }),
+  makeRun({ agentName: "Verifier", summary: "3 source(s); corroboration met." }),
+  makeRun({ agentName: "Atlas", summary: "9 supplier(s) matched and scored." }),
+  makeRun({ agentName: "Simulator", summary: "Projected 3 revenue horizon(s)." }),
+  makeRun({
+    agentName: "Skeptic",
+    model: "groq/llama-4-maverick",
+    mode: "LIVE_AI",
+    summary: "Accepted: the cross-family critic stands behind acting on this finding."
+  }),
+  makeRun({
+    agentName: "Strategist",
+    model: "gemini-2.5-flash",
+    mode: "LIVE_AI",
+    summary: "3 playbook(s) grounded in 9 exposure claim(s)."
+  }),
+  makeRun({
+    agentName: "Dispatcher",
+    model: "gemini-2.5-flash",
+    mode: "LIVE_AI",
+    summary: "5 draft(s) queued for approval."
+  })
+];
+
+const RECOVERY_OPTIONS: RecoveryOption[] = [
+  {
+    id: "REC-EXPEDITE",
+    title: "Expedite inbound on the most exposed lanes",
+    actionType: "EXPEDITE",
+    summary: "Move the most exposed inbound to priority freight.",
+    estimatedCostUsd: 67_500,
+    speedGainDays: 24,
+    riskReductionPct: 50,
+    confidence: "HIGH",
+    reversibility: "HIGH",
+    score: 67,
+    evidenceIds: ["EXP-001"],
+    approvalRequired: true
+  },
+  {
+    id: "REC-ESCALATE",
+    title: "Escalate allocation with the single-source suppliers",
+    actionType: "SUPPLIER_ESCALATION",
+    summary: "Escalate to secure allocation from the single-source suppliers.",
+    estimatedCostUsd: 22_500,
+    speedGainDays: 12,
+    riskReductionPct: 30,
+    confidence: "LOW",
+    reversibility: "LOW",
+    score: 29,
+    evidenceIds: ["EXP-001"],
+    approvalRequired: true
+  }
+];
 
 // Fixture-based render test for the V2 (ActionOps) view. The live pipeline does
 // not emit V2 yet, so this is the only place the V2 branch is exercised -- it
@@ -190,5 +273,220 @@ describe("ActionOpsPacketView (V2 render)", () => {
     expect(screen.getByTestId("mode-status")).toHaveTextContent(
       /running on recorded data/i
     );
+  });
+});
+
+// ===========================================================================
+// Phase 6 -- the war-room deliberation UI: the multi-agent trajectory, the
+// cross-family Skeptic's verdict, and the Phase-1 domain fields woven in. All
+// additive-optional, so absence renders nothing (never a crash).
+// ===========================================================================
+describe("ActionOpsPacketView (Phase 6 deliberation surfaces)", () => {
+  it("renders the ordered agent trail with honest, humanized run modes", () => {
+    render(<ActionOpsPacketView packet={makeV2Packet({ agentRuns: SEVEN_RUN_CHAIN })} />);
+
+    // The disclosure that holds the machinery (machinery off the default glass).
+    expect(screen.getByText(/How this was reasoned/i)).toBeInTheDocument();
+    // Every step in the chain renders by name -- the visible multi-agent loop.
+    for (const name of [
+      "Sentinel",
+      "Verifier",
+      "Atlas",
+      "Simulator",
+      "Skeptic",
+      "Strategist",
+      "Dispatcher"
+    ]) {
+      expect(screen.getByText(name)).toBeInTheDocument();
+    }
+    // The mode is humanized, never the raw enum on the glass: live calls read
+    // "Live AI", deterministic steps read "Rules". The exact enum lives only in the
+    // chip title (agentModeTitle), so it is NOT a visible text node.
+    expect(screen.getAllByText("Live AI").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Rules").length).toBeGreaterThan(0);
+    expect(screen.queryByText("LIVE_AI")).not.toBeInTheDocument();
+    expect(screen.queryByText("DETERMINISTIC_RULES")).not.toBeInTheDocument();
+  });
+
+  it("labels a degraded (FAILED_TO_FALLBACK) agent step honestly, not as live", () => {
+    const runs = [
+      makeRun({ agentName: "Sentinel", model: "gemini-2.5-flash", mode: "LIVE_AI" }),
+      makeRun({
+        agentName: "Skeptic",
+        model: "groq/llama-4-maverick",
+        mode: "FAILED_TO_FALLBACK",
+        validationStatus: "FAIL",
+        summary: "Skeptic live AI call failed. Holding the finding (fail-closed)."
+      })
+    ];
+    render(<ActionOpsPacketView packet={makeV2Packet({ agentRuns: runs })} />);
+    // The degraded step reads "Degraded" + carries the "Needs review" validation badge.
+    expect(screen.getByText("Degraded")).toBeInTheDocument();
+    expect(screen.getByText("Needs review")).toBeInTheDocument();
+  });
+
+  it("shows the Skeptic trust line as HELD on a cleared (ACT) cross-family challenge", () => {
+    render(<ActionOpsPacketView packet={makeV2Packet({ agentRuns: SEVEN_RUN_CHAIN })} />);
+    // The calm, on-glass trust signal -- a different AI model challenged it and it held.
+    expect(
+      screen.getByText(/a different AI model.*challenged this finding, and it held/i)
+    ).toBeInTheDocument();
+  });
+
+  it("shows the Skeptic line as ON HOLD on a NO_ACTION reject -- never 'it held'", () => {
+    // A live REJECT is a HEALTHY run (validationStatus PASS) that forces NO_ACTION: keying
+    // the verdict off validationStatus would ship a false "it held". The held-vs-hold read
+    // must come from the packet recommendation.
+    const rejectChain = SEVEN_RUN_CHAIN.map((r) =>
+      r.agentName === "Skeptic"
+        ? makeRun({
+            agentName: "Skeptic",
+            model: "groq/llama-4-maverick",
+            mode: "LIVE_AI",
+            validationStatus: "PASS",
+            summary:
+              "Rejected: the cross-family critic could not stand behind acting -- holding."
+          })
+        : r
+    );
+    render(
+      <ActionOpsPacketView
+        packet={makeV2Packet({
+          agentRuns: rejectChain,
+          recommendation: "NO_ACTION",
+          missingEvidence: [
+            {
+              requirement: "Independent adversarial review",
+              detail: "An independent cross-family critic could not stand behind acting.",
+              wouldFlipIf: "An analyst confirms the finding is sound."
+            }
+          ],
+          // NO_ACTION withholds all outbound action (mirrors the schema superRefine).
+          playbooks: [],
+          supplierMessages: [],
+          actionItems: [],
+          recoveryOptions: []
+        })}
+      />
+    );
+    // The held-back copy is NEUTRAL by design: it states the reviewer ran and action is on
+    // hold, WITHOUT claiming "it held" (false) or attributing the hold to the Skeptic (a
+    // thin-evidence hold can co-occur with a Skeptic accept; the AgentRun has no accepted bool).
+    expect(
+      screen.getByText(/reviewed this finding; outbound\s+action is on hold/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/and it held/i)).not.toBeInTheDocument();
+  });
+
+  it("shows NO Skeptic trust line for the deterministic affirmative pass (no real challenge)", () => {
+    // A deterministic-pass Skeptic (model "deterministic-rules") adds no real adversarial
+    // gate -- claiming "a second AI challenged this" would overclaim. It still appears in
+    // the trail, but earns no on-glass trust line.
+    const runs = [
+      makeRun({ agentName: "Sentinel", model: "gemini-2.5-flash", mode: "LIVE_AI" }),
+      makeRun({ agentName: "Skeptic" }) // deterministic default: model "deterministic-rules"
+    ];
+    render(<ActionOpsPacketView packet={makeV2Packet({ agentRuns: runs })} />);
+    expect(screen.getByText("Skeptic")).toBeInTheDocument(); // in the trail
+    expect(screen.queryByText(/challenged this finding/i)).not.toBeInTheDocument();
+  });
+
+  it("renders nothing for the deliberation/Skeptic when there are no agent runs", () => {
+    // The demo fallback packet ships agentRuns: [] -- the surface must not blank or break.
+    render(<ActionOpsPacketView packet={makeV2Packet({ agentRuns: [] })} />);
+    expect(screen.queryByText(/How this was reasoned/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/challenged this finding/i)).not.toBeInTheDocument();
+  });
+
+  it("renders the scored recovery options with reversibility as the governance dial", () => {
+    render(
+      <ActionOpsPacketView packet={makeV2Packet({ recoveryOptions: RECOVERY_OPTIONS })} />
+    );
+    expect(screen.getByText(/What we could do/i)).toBeInTheDocument();
+    expect(
+      screen.getByText("Expedite inbound on the most exposed lanes")
+    ).toBeInTheDocument();
+    // The action label is humanized; the governance signal (reversibility) is on the glass.
+    expect(screen.getByText("Expedite")).toBeInTheDocument();
+    expect(screen.getByText("Escalate")).toBeInTheDocument();
+    expect(screen.getByText("Easily reversible")).toBeInTheDocument();
+    expect(screen.getByText("Hard to reverse")).toBeInTheDocument();
+    // Ranked by score: the top option is marked, and the harder-to-reverse move needs sign-off.
+    expect(screen.getByText("Lead option")).toBeInTheDocument();
+    expect(screen.getAllByText("Needs your approval").length).toBeGreaterThan(0);
+  });
+
+  it("withholds the recovery options on a NO_ACTION packet", () => {
+    render(
+      <ActionOpsPacketView
+        packet={makeV2Packet({
+          recommendation: "NO_ACTION",
+          missingEvidence: [
+            { requirement: "Corroboration", detail: "thin", wouldFlipIf: "a second source" }
+          ],
+          playbooks: [],
+          supplierMessages: [],
+          actionItems: [],
+          recoveryOptions: RECOVERY_OPTIONS
+        })}
+      />
+    );
+    expect(screen.queryByText(/What we could do/i)).not.toBeInTheDocument();
+  });
+
+  it("weaves in the Phase-1 fields: single-source count, TTR, survival read, and margin", () => {
+    render(
+      <ActionOpsPacketView
+        packet={makeV2Packet({
+          exposureResults: [
+            {
+              id: "EXP-SS",
+              supplierId: "SUP-SS",
+              supplierName: "Abu Chemical Partners",
+              country: "AE",
+              sector: "CHEMICALS",
+              exposureScore: 81,
+              rationale: "CRITICAL risk tier; 44-day lead time.",
+              singleSource: true,
+              recoveryDays: 58,
+              evidenceIds: ["THREAT-001"]
+            },
+            {
+              id: "EXP-BK",
+              supplierId: "SUP-BK",
+              supplierName: "Eastern Energy Partners",
+              country: "SA",
+              sector: "ENERGY",
+              exposureScore: 60,
+              rationale: "HIGH risk tier; 43-day lead time.",
+              singleSource: false,
+              recoveryDays: 43,
+              evidenceIds: ["THREAT-001"]
+            }
+          ],
+          simulation: {
+            horizons: [
+              { days: 7, revenueAtRiskUsd: 0, marginAtRiskUsd: 0 },
+              { days: 30, revenueAtRiskUsd: 450_000, marginAtRiskUsd: 153_000 }
+            ],
+            productRunouts: [{ productId: "PROD-1", runoutDate: "2026-07-01" }],
+            survivalDays: 25,
+            generatedAt: "2026-06-13T12:00:00.000Z"
+          }
+        })}
+      />
+    );
+    // The exposure note is data-driven off singleSource (1 of 2), never the false
+    // hardcoded "none with a qualified backup".
+    expect(
+      screen.getByText(/1 of them are single-source with no qualified backup/i)
+    ).toBeInTheDocument();
+    // Per-row TTR (recoveryDays).
+    expect(screen.getAllByText(/Est\. time to restore/i).length).toBeGreaterThan(0);
+    // The survival read (TTS 25 vs worst TTR 58 -> a 33-day gap).
+    expect(screen.getByText(/Cover vs restore time/i)).toBeInTheDocument();
+    expect(screen.getByText(/33-day gap/i)).toBeInTheDocument();
+    // Margin-at-risk beside revenue.
+    expect(screen.getAllByText(/margin/i).length).toBeGreaterThan(0);
   });
 });

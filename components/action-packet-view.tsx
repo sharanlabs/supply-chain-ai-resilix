@@ -8,7 +8,13 @@ import {
   CircleSlash,
   Clock3,
   FileText,
+  GitBranch,
+  Hourglass,
+  LifeBuoy,
+  Lock,
   Mail,
+  RotateCcw,
+  Scale,
   ShieldCheck,
   Workflow
 } from "lucide-react";
@@ -18,10 +24,14 @@ import { useCountUp } from "@/lib/use-count-up";
 import { ACTION_CONFIDENCE_FLOOR } from "@/lib/agents/actionops/recommendation";
 import { HttpUrlSchema } from "@/lib/schemas";
 import type {
+  AgentMode,
+  AgentRun,
   AuditTrailEntry,
   DecisionPacketV2,
   MissingEvidence,
-  PublicSignal
+  PublicSignal,
+  Recommendation,
+  RecoveryOption
 } from "@/lib/schemas";
 import { formatCurrency } from "@/lib/utils";
 
@@ -84,6 +94,100 @@ function modeLabel(mode: DecisionPacketV2["effectiveMode"]): string {
     default:
       return "Recorded";
   }
+}
+
+// Plain-English label for ONE agent step's run mode in the deliberation trail. Reuses the
+// run-mode honesty: a recorded replay reads "Recorded", a degraded fallback "Degraded", a
+// by-design rules step "Rules", a live model call "Live AI". NEVER the raw enum on the
+// glass. The exact enum stays reachable for an auditor in the chip's title -- but via
+// agentModeTitle (a DESCRIPTIVE form), never the bare "REPLAY" string the e2e pins to the
+// single audit-footer chip.
+function agentModeLabel(mode: AgentMode): string {
+  switch (mode) {
+    case "LIVE_AI":
+      return "Live AI";
+    case "DETERMINISTIC_RULES":
+      return "Rules";
+    case "FAILED_TO_FALLBACK":
+      return "Degraded";
+    case "REPLAY":
+    default:
+      return "Recorded";
+  }
+}
+
+// The auditor's hover form -- carries the raw enum, but NEVER as the bare token, so the
+// e2e's single-match [title="REPLAY"] (the audit footer chip) is not duplicated here.
+function agentModeTitle(mode: AgentMode): string {
+  switch (mode) {
+    case "LIVE_AI":
+      return "Live AI call (LIVE_AI)";
+    case "DETERMINISTIC_RULES":
+      return "Deterministic rules (DETERMINISTIC_RULES)";
+    case "FAILED_TO_FALLBACK":
+      return "Degraded fallback (FAILED_TO_FALLBACK)";
+    case "REPLAY":
+    default:
+      return "Recorded replay (REPLAY)";
+  }
+}
+
+// The recovery action type in lead-facing words (the raw enum never reaches the glass).
+function recoveryActionLabel(actionType: RecoveryOption["actionType"]): string {
+  switch (actionType) {
+    case "EXPEDITE":
+      return "Expedite";
+    case "REALLOCATE":
+      return "Reallocate";
+    case "SUBSTITUTE":
+      return "Substitute";
+    case "SPLIT_SHIPMENT":
+      return "Split shipment";
+    case "SUPPLIER_ESCALATION":
+      return "Escalate";
+    case "LAUNCH_PRIORITIZATION":
+      return "Prioritize";
+    default:
+      return humanizeToken(actionType);
+  }
+}
+
+// Reversibility -> the GOVERNANCE read. The harder a move is to undo, the more it needs a
+// human's sign-off (the graduated-autonomy dial). Plain words, no saturated color.
+function reversibilityLabel(r: RecoveryOption["reversibility"]): string {
+  switch (r) {
+    case "HIGH":
+      return "Easily reversible";
+    case "MEDIUM":
+      return "Partly reversible";
+    case "LOW":
+    default:
+      return "Hard to reverse";
+  }
+}
+
+// The cross-family Skeptic's verdict, distilled to a single on-glass state. Returns null
+// (render nothing) when there is no Skeptic run, OR when the only Skeptic run is the
+// DETERMINISTIC affirmative placeholder (model "deterministic-rules") -- which adds no real
+// adversarial gate, so claiming "a second AI challenged this" would overclaim. When a
+// GENUINE cross-family challenge ran (a real model id, preserved through the REPLAY
+// relabel), the held-vs-on-hold read keys off the PACKET RECOMMENDATION, never the run's
+// validationStatus: a live REJECT is a HEALTHY run (validationStatus PASS) that still forces
+// NO_ACTION, so validationStatus would ship a false "it held". A broken critic (degraded) is
+// a distinct third state that never claims the finding held.
+type SkepticState = "cleared" | "held-back" | "degraded";
+
+function skepticChallengeState(
+  run: AgentRun | undefined,
+  recommendation: Recommendation
+): SkepticState | null {
+  if (!run) return null;
+  const ranLiveCrossFamily = !!run.model && run.model !== "deterministic-rules";
+  if (!ranLiveCrossFamily) return null;
+  if (run.mode === "FAILED_TO_FALLBACK" || run.validationStatus === "FAIL") {
+    return "degraded";
+  }
+  return recommendation === "NO_ACTION" ? "held-back" : "cleared";
 }
 
 // Plain-English audit labels, so the trail reads "Approved" / "Served from
@@ -332,6 +436,198 @@ function RefusalCard({ missingEvidence }: { missingEvidence: MissingEvidence[] }
   );
 }
 
+// The cross-family Skeptic's verdict, as ONE calm trust line on the glass -- the
+// human-meaningful signal (a second, independent reviewer challenged this finding) lifted
+// out of the machinery. Three honest states: it HELD (the finding cleared on an ACT plan --
+// and since a Skeptic REJECT would have forced NO_ACTION, an ACT plan with a live Skeptic
+// means it genuinely accepted), it is ON HOLD (NO_ACTION -- the reviewer ran but the copy
+// does NOT claim it was the holder, since a thin-evidence hold can co-occur with a Skeptic
+// accept; the refusal above carries the why), or the review was DEGRADED (the critic broke
+// and could not complete). Only "cleared" reads in the positive accent seal; a hold/degrade
+// reads calm-neutral, never alarm.
+function SkepticTrustLine({ state }: { state: SkepticState }) {
+  const cleared = state === "cleared";
+  return (
+    <div
+      className={`mt-4 flex items-start gap-3 rounded-lg border px-4 py-3 ${
+        cleared
+          ? "border-accent/25 bg-accent-soft shadow-[inset_0_1px_0_oklch(1_0_0/0.4)]"
+          : "border-line bg-sink"
+      }`}
+    >
+      <Scale
+        aria-hidden="true"
+        className={`mt-0.5 size-4 shrink-0 ${cleared ? "text-accent-strong" : "text-ink-muted"}`}
+      />
+      <p
+        className={`text-[0.8125rem] leading-[1.5] ${cleared ? "text-accent-strong" : "text-ink-muted"}`}
+      >
+        {state === "cleared" ? (
+          <>
+            An independent reviewer -- a different AI model -- challenged this finding, and it
+            held.
+          </>
+        ) : state === "held-back" ? (
+          // Neutral by design: a NO_ACTION packet can be held by the thin-evidence gate even
+          // when the Skeptic itself ACCEPTED (applySkepticGate only forces NO_ACTION on a
+          // non-accept). The `accepted` boolean is not on the AgentRun, and binding from the
+          // run's prose would violate the never-bind-from-prose rule -- so this states the
+          // reviewer ran and action is held, WITHOUT claiming the Skeptic was the holder. The
+          // RefusalCard's missingEvidence carries the actual reason (Skeptic-hold vs thin).
+          <>
+            An independent reviewer -- a different AI model -- reviewed this finding; outbound
+            action is on hold (see the recommendation above for why).
+          </>
+        ) : (
+          <>
+            An independent review was attempted but could not complete, so outbound action is
+            held as a precaution.
+          </>
+        )}
+      </p>
+    </div>
+  );
+}
+
+// The deliberation trajectory -- the governed multi-agent loop made VISIBLE. The ordered
+// chain of agent steps (Sentinel -> Verifier -> Atlas -> Simulator -> [Skeptic] ->
+// Strategist -> Dispatcher), each with its run mode + the machine's own one-line summary +
+// whether it validated. This is MACHINERY, so it lives behind a disclosure (off the calm
+// default glass); honest labels throughout (a recorded replay reads "Recorded", a degraded
+// fallback "Degraded"), the raw enum only in an auditor's hover. Rendered in the array's own
+// order (the producer emits execution order) -- never re-sorted, so the audit reflects what
+// actually ran. The summaries are the machine's OWN log lines, shown verbatim (this audit
+// layer, behind a disclosure, is the sanctioned home for the machine's raw record).
+function DeliberationTrail({ runs }: { runs: AgentRun[] }) {
+  return (
+    <details className="group">
+      <summary className="flex min-h-6 cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+        <span className="flex items-center gap-2 text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
+          <GitBranch className="size-4 text-accent" aria-hidden="true" />
+          How this was reasoned
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-accent-strong">
+          <span className="tnum">{runs.length} steps</span>
+          <ArrowUpRight
+            className="size-3.5 transition-transform group-open:rotate-90"
+            aria-hidden="true"
+          />
+        </span>
+      </summary>
+      <div className="border-t border-line bg-surface px-5 py-5">
+        <p className="mb-4 max-w-[64ch] text-sm leading-6 text-ink-muted">
+          Each step did one job and handed off to the next. This is the audit of how the
+          plan was built -- shown honestly, recorded steps labelled as recorded.
+        </p>
+        <ol className="divide-y divide-line">
+          {runs.map((run, index) => {
+            const failed = run.validationStatus === "FAIL";
+            return (
+              <li
+                key={run.id || `${index}-${run.agentName}`}
+                className="py-3 first:pt-0 last:pb-0"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="tnum font-mono text-[0.625rem] text-ink-faint"
+                  >
+                    {index + 1}.
+                  </span>
+                  <span className="text-[0.8125rem] font-semibold text-ink">
+                    {run.agentName}
+                  </span>
+                  <span
+                    className="rounded border border-line bg-sink px-1.5 py-0.5 font-mono text-[0.625rem] text-ink-muted"
+                    title={agentModeTitle(run.mode)}
+                  >
+                    {agentModeLabel(run.mode)}
+                  </span>
+                  {failed ? (
+                    <Badge tone="critical">Needs review</Badge>
+                  ) : (
+                    <span className="inline-flex items-center text-accent-strong">
+                      <CheckCircle2 className="size-3" aria-hidden="true" />
+                      <span className="sr-only">passed validation</span>
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 max-w-[72ch] text-xs leading-5 text-ink-muted">
+                  {run.summary}
+                </p>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </details>
+  );
+}
+
+// The scored recovery options -- the structural moves available, ranked by fit. On the glass
+// (human decision-support, not machinery): each move's cost, the days it buys back, how much
+// risk it takes off, and -- the GOVERNANCE dial -- how reversible it is (the hardest-to-undo
+// moves are the ones that most need a human's sign-off). Withheld entirely on a NO_ACTION
+// packet (the schema enforces it), so this only renders on an ACT plan.
+function RecoveryOptions({ options }: { options: RecoveryOption[] }) {
+  // Ranked by score, highest first -- the producer scores them; the order is the read. Sort a
+  // copy (never mutate the packet array).
+  const ranked = [...options].sort((a, b) => b.score - a.score);
+  return (
+    <div className="divide-y divide-line">
+      {ranked.map((opt, index) => {
+        const hardToReverse = opt.reversibility === "LOW";
+        return (
+          <article key={opt.id} className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone={index === 0 ? "accent" : "neutral"}>
+                  {recoveryActionLabel(opt.actionType)}
+                </Badge>
+                <h3 className="text-[0.9375rem] font-semibold text-ink">{opt.title}</h3>
+              </div>
+              {index === 0 ? (
+                <span className="shrink-0 text-[0.6875rem] font-semibold tracking-[0.06em] text-accent-strong uppercase">
+                  Lead option
+                </span>
+              ) : null}
+            </div>
+            <p className="max-w-[68ch] text-sm leading-6 text-ink-muted">{opt.summary}</p>
+            {/* The metrics strip -- separated by spacing alone (no decorative low-contrast
+                dots, which axe flags as color-contrast incomplete). Each label is faint,
+                each value ink (AA). Reversibility is set apart as the governance dial. */}
+            <div className="tnum flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-ink-faint">
+              <span>
+                Cost{" "}
+                <span className="font-medium text-ink">
+                  {formatCurrency(opt.estimatedCostUsd)}
+                </span>
+              </span>
+              <span>
+                Buys back <span className="font-medium text-ink">~{opt.speedGainDays} days</span>
+              </span>
+              <span>
+                Cuts risk <span className="font-medium text-ink">~{opt.riskReductionPct}%</span>
+              </span>
+              <span className="inline-flex items-center gap-1 font-medium text-ink">
+                {hardToReverse ? (
+                  <Lock className="size-3 text-ink-muted" aria-hidden="true" />
+                ) : (
+                  <RotateCcw className="size-3 text-ink-muted" aria-hidden="true" />
+                )}
+                {reversibilityLabel(opt.reversibility)}
+              </span>
+              {opt.approvalRequired ? (
+                <span className="font-medium text-accent-strong">Needs your approval</span>
+              ) : null}
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // The Action Packet -- the primary screen, read start-to-end like a war-room
 // briefing a layperson and an industry pro both follow.
@@ -415,6 +711,43 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
     if (!simulation) return 1;
     return Math.max(...simulation.horizons.map((h) => h.revenueAtRiskUsd), 1);
   }, [simulation]);
+
+  // The cross-family Skeptic run (Phase 4), if one is present. The homepage replay fixture
+  // predates the Skeptic (6 runs, no Skeptic), so this is DATA-DRIVEN: absent => no Skeptic
+  // line, no crash. skepticState collapses the run + the packet recommendation into the one
+  // honest on-glass state (see skepticChallengeState).
+  const skepticRun = useMemo(
+    () => packet.agentRuns.find((r) => r.agentName === "Skeptic"),
+    [packet.agentRuns]
+  );
+  const skepticState = skepticChallengeState(skepticRun, recommendation);
+
+  // P1 sourcing read: how many exposed suppliers are single-source (no qualified backup) --
+  // the concentration risk. Only meaningful when the rows carry the P1 singleSource field;
+  // an older fixture without it falls back to the lead-time note (hasData=false), so the
+  // shared note never asserts a backup claim it cannot prove.
+  const sourcing = useMemo(() => {
+    const rows = packet.exposureResults;
+    const hasData = rows.some((r) => r.singleSource !== undefined);
+    const singleSourceCount = rows.filter((r) => r.singleSource === true).length;
+    return { hasData, singleSourceCount, total: rows.length };
+  }, [packet.exposureResults]);
+
+  // P1 survival read (TTR/TTS framing): days of cover before the first stockout
+  // (survivalDays) vs the worst exposed lane's time-to-restore (max recoveryDays). Covered
+  // when cover >= restore; exposed by the gap when it falls short. Null unless both the TTS
+  // and at least one TTR are present (additive-optional), so older fixtures render nothing.
+  const survival = useMemo(() => {
+    if (!simulation || simulation.survivalDays == null) return null;
+    const recoveries = packet.exposureResults
+      .map((r) => r.recoveryDays)
+      .filter((d): d is number => d != null);
+    if (recoveries.length === 0) return null;
+    const tts = simulation.survivalDays;
+    const worstTtr = Math.max(...recoveries);
+    const scale = Math.max(tts, worstTtr, 1);
+    return { tts, worstTtr, scale, gap: worstTtr - tts };
+  }, [simulation, packet.exposureResults]);
 
   // The north-star figure the packet turns on: the worst-case revenue at risk.
   const peakRisk = useMemo(() => {
@@ -680,6 +1013,11 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               </p>
             </div>
 
+            {/* The cross-family Skeptic's verdict -- the human-meaningful "a second,
+                independent reviewer challenged this" signal on the glass. Renders ONLY when
+                a genuine cross-family challenge ran; absent on the 6-run replay fixture. */}
+            {skepticState ? <SkepticTrustLine state={skepticState} /> : null}
+
             {/* Source links. min-h-6 makes every source link a >=24px WCAG 2.2
                 SC 2.5.8 target (these are a link list, not a sentence, so the
                 inline exception does not apply); the wider gap-y keeps wrapped
@@ -763,14 +1101,40 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                   {packet.exposureResults.length} suppliers sit in the blast
                   radius, ranked here by how hard the disruption lands.
                 </p>
-                {/* The context EVERY exposed supplier shares, stated once -- so the
-                    per-row line carries only what varies (the risk tier + lead
-                    time), not nine repetitions of the same clause. */}
+                {/* The context EVERY exposed supplier shares, stated once. The
+                    sourcing clause is DATA-DRIVEN off the P1 singleSource field --
+                    a hardcoded "none with a qualified backup" was false against the
+                    mixed real data, so the count is read from the rows, and an older
+                    fixture without the field falls back to the lead-time note. */}
                 {packet.exposureResults.length > 0 ? (
-                  <p className="mt-1.5 max-w-[58ch] text-xs leading-5 text-ink-faint">
-                    All {packet.exposureResults.length} sit on lanes routed
-                    through the affected chokepoint, none with a qualified backup
-                    on file. Per row: the risk tier and the standard lead time.
+                  <p className="mt-1.5 max-w-[60ch] text-xs leading-5 text-ink-faint">
+                    {sourcing.hasData ? (
+                      sourcing.singleSourceCount === 0 ? (
+                        <>
+                          All {sourcing.total} sit on lanes routed through the
+                          affected chokepoint, each with a qualified backup on file.
+                          Per row: sourcing and the estimated time to restore.
+                        </>
+                      ) : sourcing.singleSourceCount === sourcing.total ? (
+                        <>
+                          All {sourcing.total} sit on lanes routed through the
+                          affected chokepoint, none with a qualified backup on file.
+                          Per row: sourcing and the estimated time to restore.
+                        </>
+                      ) : (
+                        <>
+                          All {sourcing.total} sit on lanes routed through the
+                          affected chokepoint; {sourcing.singleSourceCount} of them
+                          are single-source with no qualified backup. Per row:
+                          sourcing and the estimated time to restore.
+                        </>
+                      )
+                    ) : (
+                      <>
+                        All {sourcing.total} sit on lanes routed through the affected
+                        chokepoint. Per row: the risk tier and the standard lead time.
+                      </>
+                    )}
                   </p>
                 ) : null}
               </div>
@@ -816,6 +1180,18 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                             <div className="mt-0.5 max-w-[42ch] text-xs leading-5 text-ink-faint">
                               {result.rationale}
                             </div>
+                            {/* P1 TTR -- the estimated time to restore supply on
+                                this lane, a disruption-aware figure distinct from
+                                the standard lead time. Additive-optional: only when
+                                Atlas stamped recoveryDays. */}
+                            {result.recoveryDays !== undefined ? (
+                              <div className="tnum mt-0.5 text-[0.6875rem] leading-5 text-ink-faint">
+                                Est. time to restore{" "}
+                                <span className="font-medium text-ink-muted">
+                                  ~{result.recoveryDays} days
+                                </span>
+                              </div>
+                            ) : null}
                           </td>
                           <td className="tnum text-ink-muted">
                             {result.country}
@@ -886,6 +1262,65 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                 </p>
               </div>
             </header>
+            {/* P1 survival read (TTR/TTS): days of cover before the first stockout
+                vs the worst exposed lane's time-to-restore. The gap is the window
+                the response must bridge. Two bars on one day-scale make the overshoot
+                literal; both reuse RunwayBar so the SC 1.4.11 edge token is carried.
+                Additive-optional -- absent unless survivalDays + a recoveryDays exist. */}
+            {survival ? (
+              <div className="mb-5 rounded-lg border border-line bg-sink p-4 shadow-[inset_0_1px_2px_oklch(0.3_0.02_262/0.05)]">
+                <div className="flex items-center gap-2">
+                  <Hourglass
+                    className="size-3.5 shrink-0 text-ink-muted"
+                    aria-hidden="true"
+                  />
+                  <h3 className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
+                    Cover vs restore time
+                  </h3>
+                </div>
+                <div className="mt-3 space-y-3">
+                  <div className="grid grid-cols-[7rem_1fr_auto] items-center gap-3">
+                    <span className="text-xs text-ink-muted">Days of cover</span>
+                    <RunwayBar
+                      pct={(survival.tts / survival.scale) * 100}
+                      sev="low"
+                    />
+                    <span className="tnum w-16 text-right text-sm font-medium text-ink">
+                      {survival.tts} days
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-[7rem_1fr_auto] items-center gap-3">
+                    <span className="text-xs text-ink-muted">Time to restore</span>
+                    <RunwayBar
+                      pct={(survival.worstTtr / survival.scale) * 100}
+                      sev={survival.gap > 0 ? "high" : "low"}
+                    />
+                    <span className="tnum w-16 text-right text-sm font-medium text-ink">
+                      {survival.worstTtr} days
+                    </span>
+                  </div>
+                </div>
+                <p className="tnum mt-3 text-xs leading-5 text-ink-muted">
+                  {survival.gap > 0 ? (
+                    <>
+                      About {survival.tts} days of cover before the first stockout,
+                      but the most exposed lane needs about {survival.worstTtr} days
+                      to restore --{" "}
+                      <span className="font-medium text-sev-critical-ink">
+                        a ~{survival.gap}-day gap
+                      </span>{" "}
+                      the response must bridge.
+                    </>
+                  ) : (
+                    <>
+                      The {survival.tts} days of cover outlast the ~
+                      {survival.worstTtr}-day restore time -- no exposure gap on the
+                      worst lane.
+                    </>
+                  )}
+                </p>
+              </div>
+            ) : null}
             {simulation ? (
               <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
                 <div className="space-y-3.5">
@@ -908,9 +1343,20 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                           pct={(horizon.revenueAtRiskUsd / maxHorizon) * 100}
                           sev={severityKey(sev)}
                         />
-                        <span className="tnum w-24 text-right text-sm font-medium text-ink">
-                          {formatCurrency(horizon.revenueAtRiskUsd)}
-                        </span>
+                        {/* Revenue at risk, with the P1 margin-at-risk beneath it --
+                            finance decides on contribution, not gross revenue.
+                            Additive-optional: the margin line only when the
+                            Simulator stamped marginAtRiskUsd. */}
+                        <div className="tnum w-24 text-right">
+                          <div className="text-sm font-medium text-ink">
+                            {formatCurrency(horizon.revenueAtRiskUsd)}
+                          </div>
+                          {horizon.marginAtRiskUsd !== undefined ? (
+                            <div className="text-[0.625rem] leading-4 text-ink-faint">
+                              {formatCurrency(horizon.marginAtRiskUsd)} margin
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                     );
                   })}
@@ -968,6 +1414,38 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               </div>
             )}
           </section>
+
+          {/* --------------------------------------------------------
+              4b. WHAT WE COULD DO -- the scored recovery options (P1).
+              The structural moves available, ranked by fit, with
+              reversibility as the governance dial. On the glass (human
+              decision-support); withheld entirely on a NO_ACTION packet.
+              -------------------------------------------------------- */}
+          {recommendation !== "NO_ACTION" &&
+          packet.recoveryOptions &&
+          packet.recoveryOptions.length > 0 ? (
+            <section
+              className="reveal panel rounded-(--radius-card) p-5 sm:p-6"
+              style={{ "--d": 320 } as React.CSSProperties}
+              aria-labelledby="recovery-h"
+            >
+              <header className="flex items-center gap-2">
+                <LifeBuoy className="size-4 text-accent" aria-hidden="true" />
+                <h2
+                  id="recovery-h"
+                  className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase"
+                >
+                  What we could do
+                </h2>
+              </header>
+              <p className="mt-1 mb-4 max-w-[64ch] text-sm leading-6 text-ink-muted">
+                The structural moves on the table, ranked by fit. Reversibility is
+                the governance dial -- the hardest-to-undo moves are the ones that
+                most need your sign-off.
+              </p>
+              <RecoveryOptions options={packet.recoveryOptions} />
+            </section>
+          ) : null}
 
           {/* --------------------------------------------------------
               5. DRAFTED RESPONSE -- the prepared supplier emails. The
@@ -1206,6 +1684,22 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                   ) : null}
                 </div>
               </details>
+            </section>
+          ) : null}
+
+          {/* --------------------------------------------------------
+              DELIBERATION TRAIL -- the governed multi-agent loop made
+              visible (Phase 6). Machinery, so it lives behind a
+              disclosure as the spine's closing "receipts" section.
+              Renders nothing when no agent runs exist (the demo
+              fallback packet), so the surface never blanks or breaks.
+              -------------------------------------------------------- */}
+          {packet.agentRuns.length > 0 ? (
+            <section
+              className="reveal panel-sunken rounded-(--radius-card)"
+              style={{ "--d": 500 } as React.CSSProperties}
+            >
+              <DeliberationTrail runs={packet.agentRuns} />
             </section>
           ) : null}
         </div>
