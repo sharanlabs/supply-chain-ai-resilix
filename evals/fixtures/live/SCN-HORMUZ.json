@@ -1,22 +1,22 @@
 {
   "packetVersion": 2,
-  "id": "DP-19403375-5e51-4cef-a3b0-b7f1654c0e5a",
+  "id": "DP-a6518e30-e39a-4325-a54c-ae05a4094589",
   "threatCard": {
     "id": "THR-SCN-HORMUZ",
     "eventType": "CHOKEPOINT_CLOSURE",
-    "severity": "HIGH",
+    "severity": "CRITICAL",
     "location": {
-      "region": "Persian Gulf",
+      "region": "Middle East",
       "chokepoint": "Strait of Hormuz"
     },
-    "summary": "A maritime security incident has caused a partial closure and disruption of transit through the Strait of Hormuz, a critical global chokepoint. This has led to vessels holding or rerouting, an increase in insurance premiums, and a pause in new bookings, with expectations of significant rerouting and extended lead times for shipments from the Persian Gulf if the disruption continues.",
+    "summary": "A maritime security incident has significantly disrupted transit through the Strait of Hormuz, leading to a partial closure and the rerouting of vessels. This has caused a sharp increase in war-risk insurance premiums for cargo traversing the Gulf. A sustained disruption at this critical chokepoint, essential for global energy and chemical shipments, would result in lengthy reroutes and extended lead times for inbound cargo.",
     "evidenceUrls": [
       "https://api.gdeltproject.org/api/v2/doc/doc?query=Strait+of+Hormuz&mode=artlist&format=json",
       "https://www.eia.gov/todayinenergy/detail.php?id=hormuz",
       "https://www.reuters.com/markets/commodities/hormuz-transit-risk"
     ],
     "confidence": 0.9,
-    "createdAt": "2026-06-19T16:39:08.097Z"
+    "createdAt": "2026-06-26T00:20:11.772Z"
   },
   "publicSignals": [
     {
@@ -71,8 +71,10 @@
       "supplierName": "Abu Chemical Partners 078",
       "country": "AE",
       "sector": "CHEMICALS",
-      "exposureScore": 69,
-      "rationale": "CRITICAL risk tier; 44-day lead time.",
+      "exposureScore": 81,
+      "rationale": "CRITICAL risk tier; 44-day lead time; single-source (no qualified backup).",
+      "singleSource": true,
+      "recoveryDays": 58,
       "evidenceIds": [
         "THR-SCN-HORMUZ"
       ]
@@ -84,7 +86,23 @@
       "country": "SA",
       "sector": "ENERGY",
       "exposureScore": 68,
-      "rationale": "CRITICAL risk tier; 43-day lead time.",
+      "rationale": "CRITICAL risk tier; 43-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 43,
+      "evidenceIds": [
+        "THR-SCN-HORMUZ"
+      ]
+    },
+    {
+      "id": "EXP-SCN-HORMUZ-SUP-739c8751e1541f8e",
+      "supplierId": "SUP-739c8751e1541f8e",
+      "supplierName": "Ras Energy Systems 095",
+      "country": "QA",
+      "sector": "ENERGY",
+      "exposureScore": 68,
+      "rationale": "HIGH risk tier; 46-day lead time; single-source (no qualified backup).",
+      "singleSource": true,
+      "recoveryDays": 60,
       "evidenceIds": [
         "THR-SCN-HORMUZ"
       ]
@@ -96,19 +114,9 @@
       "country": "KW",
       "sector": "ENERGY",
       "exposureScore": 59,
-      "rationale": "HIGH risk tier; 49-day lead time.",
-      "evidenceIds": [
-        "THR-SCN-HORMUZ"
-      ]
-    },
-    {
-      "id": "EXP-SCN-HORMUZ-SUP-739c8751e1541f8e",
-      "supplierId": "SUP-739c8751e1541f8e",
-      "supplierName": "Ras Energy Systems 095",
-      "country": "QA",
-      "sector": "ENERGY",
-      "exposureScore": 56,
-      "rationale": "HIGH risk tier; 46-day lead time.",
+      "rationale": "HIGH risk tier; 49-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 49,
       "evidenceIds": [
         "THR-SCN-HORMUZ"
       ]
@@ -120,7 +128,9 @@
       "country": "SA",
       "sector": "CHEMICALS",
       "exposureScore": 54,
-      "rationale": "HIGH risk tier; 44-day lead time.",
+      "rationale": "HIGH risk tier; 44-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 44,
       "evidenceIds": [
         "THR-SCN-HORMUZ"
       ]
@@ -132,7 +142,9 @@
       "country": "SA",
       "sector": "CHEMICALS",
       "exposureScore": 40,
-      "rationale": "MEDIUM risk tier; 45-day lead time.",
+      "rationale": "MEDIUM risk tier; 45-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 45,
       "evidenceIds": [
         "THR-SCN-HORMUZ"
       ]
@@ -144,7 +156,9 @@
       "country": "AE",
       "sector": "ENERGY",
       "exposureScore": 34,
-      "rationale": "MEDIUM risk tier; 39-day lead time.",
+      "rationale": "MEDIUM risk tier; 39-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 39,
       "evidenceIds": [
         "THR-SCN-HORMUZ"
       ]
@@ -156,7 +170,9 @@
       "country": "QA",
       "sector": "CHEMICALS",
       "exposureScore": 24,
-      "rationale": "LOW risk tier; 42-day lead time.",
+      "rationale": "LOW risk tier; 42-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 42,
       "evidenceIds": [
         "THR-SCN-HORMUZ"
       ]
@@ -168,7 +184,9 @@
       "country": "AE",
       "sector": "ENERGY",
       "exposureScore": 22,
-      "rationale": "LOW risk tier; 40-day lead time.",
+      "rationale": "LOW risk tier; 40-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 40,
       "evidenceIds": [
         "THR-SCN-HORMUZ"
       ]
@@ -178,44 +196,50 @@
     "horizons": [
       {
         "days": 7,
-        "revenueAtRiskUsd": 630000
+        "revenueAtRiskUsd": 0,
+        "marginAtRiskUsd": 0
       },
       {
         "days": 30,
-        "revenueAtRiskUsd": 2700000
+        "revenueAtRiskUsd": 450000,
+        "marginAtRiskUsd": 153000
       },
       {
         "days": 90,
-        "revenueAtRiskUsd": 2700000
+        "revenueAtRiskUsd": 450000,
+        "marginAtRiskUsd": 153000
       }
     ],
     "productRunouts": [
       {
         "productId": "PROD-GULF-CHEM",
-        "runoutDate": "2026-07-14"
+        "runoutDate": "2026-07-21"
       }
     ],
-    "generatedAt": "2026-06-19T16:39:08.097Z"
+    "survivalDays": 25,
+    "generatedAt": "2026-06-26T00:20:11.772Z"
   },
   "dataTier": "SEEDED",
   "dataGaps": [],
+  "recommendation": "ACT",
+  "missingEvidence": [],
   "playbooks": [
     {
       "id": "PB-LLM-0",
-      "role": "Chief Supply Chain Officer",
-      "summary": "Guide the strategic response to potential disruptions in the Strait of Hormuz, ensuring continuity across all critical supply chains and coordinating efforts to mitigate regional risks.",
+      "role": "Strategic Operations Lead",
+      "summary": "Oversee the immediate and strategic response to potential disruptions from the Strait of Hormuz, focusing on all exposed suppliers to ensure continuity across critical supply chains.",
       "steps": [
-        "Initiate a comprehensive review of all materials and components sourced from the exposed region.",
-        "Convene cross-functional leadership to define strategic priorities for risk mitigation.",
-        "Establish a dedicated task force to monitor geopolitical developments and their supply chain implications.",
-        "Approve contingency plans for critical raw materials and finished goods affected by the regional instability.",
-        "Communicate strategic direction and progress to executive leadership and key stakeholders."
+        "Convene the crisis response team promptly to assess the overall impact.",
+        "Prioritize engagement with suppliers exhibiting elevated exposure scores across all sectors.",
+        "Initiate a comprehensive review of all affected supply lanes and their material criticality.",
+        "Develop alternative sourcing strategies for crucial inputs to mitigate risk.",
+        "Communicate proactively with internal stakeholders and external partners regarding potential impacts and mitigation efforts."
       ],
       "groundedClaimIds": [
         "EXP-SCN-HORMUZ-SUP-518e5a10996d381f",
         "EXP-SCN-HORMUZ-SUP-30c313786de0add0",
-        "EXP-SCN-HORMUZ-SUP-40d0ceb654f7ec44",
         "EXP-SCN-HORMUZ-SUP-739c8751e1541f8e",
+        "EXP-SCN-HORMUZ-SUP-40d0ceb654f7ec44",
         "EXP-SCN-HORMUZ-SUP-3fc84edef1e7aded",
         "EXP-SCN-HORMUZ-SUP-b09f39b9d9ca6ebc",
         "EXP-SCN-HORMUZ-SUP-618f1dc9c7b030d3",
@@ -225,79 +249,14 @@
     },
     {
       "id": "PB-LLM-1",
-      "role": "Head of Procurement",
-      "summary": "Secure critical materials by managing relationships with exposed suppliers and actively seeking alternative sourcing strategies to reduce dependence on vulnerable regions.",
+      "role": "Chemical Supply Chain Manager",
+      "summary": "Mitigate risks specific to chemical supply from the exposed region by focusing on high-impact suppliers and exploring alternative options.",
       "steps": [
-        "Engage directly with all suppliers identified as having high exposure scores to understand their business continuity plans.",
-        "Prioritize alternative supplier identification and qualification for essential energy and chemical inputs.",
-        "Review current contracts for flexibility clauses and potential force majeure provisions.",
-        "Explore strategic inventory buildup opportunities for key components where storage is feasible.",
-        "Develop long-term diversification plans for sourcing from geographically varied regions."
-      ],
-      "groundedClaimIds": [
-        "EXP-SCN-HORMUZ-SUP-518e5a10996d381f",
-        "EXP-SCN-HORMUZ-SUP-30c313786de0add0",
-        "EXP-SCN-HORMUZ-SUP-40d0ceb654f7ec44",
-        "EXP-SCN-HORMUZ-SUP-739c8751e1541f8e",
-        "EXP-SCN-HORMUZ-SUP-3fc84edef1e7aded",
-        "EXP-SCN-HORMUZ-SUP-b09f39b9d9ca6ebc",
-        "EXP-SCN-HORMUZ-SUP-618f1dc9c7b030d3",
-        "EXP-SCN-HORMUZ-SUP-5fd536f25142a489",
-        "EXP-SCN-HORMUZ-SUP-9fbd398ae5be35ae"
-      ]
-    },
-    {
-      "id": "PB-LLM-2",
-      "role": "Global Logistics Manager",
-      "summary": "Design and implement robust alternative transportation and distribution networks to bypass potential blockages in the Strait of Hormuz, maintaining the flow of goods.",
-      "steps": [
-        "Map all current inbound and outbound logistics routes utilizing the Strait of Hormuz.",
-        "Identify and pre-qualify alternative shipping lanes and multimodal transport options.",
-        "Assess the operational feasibility and cost implications of rerouting cargo through different regions or via different methods.",
-        "Coordinate with customs agencies and port authorities in potential alternative transit hubs to streamline processes.",
-        "Ensure robust communication channels with carriers and logistics partners to adapt to dynamic changes."
-      ],
-      "groundedClaimIds": [
-        "EXP-SCN-HORMUZ-SUP-518e5a10996d381f",
-        "EXP-SCN-HORMUZ-SUP-30c313786de0add0",
-        "EXP-SCN-HORMUZ-SUP-40d0ceb654f7ec44",
-        "EXP-SCN-HORMUZ-SUP-739c8751e1541f8e",
-        "EXP-SCN-HORMUZ-SUP-3fc84edef1e7aded",
-        "EXP-SCN-HORMUZ-SUP-b09f39b9d9ca6ebc",
-        "EXP-SCN-HORMUZ-SUP-618f1dc9c7b030d3",
-        "EXP-SCN-HORMUZ-SUP-5fd536f25142a489",
-        "EXP-SCN-HORMUZ-SUP-9fbd398ae5be35ae"
-      ]
-    },
-    {
-      "id": "PB-LLM-3",
-      "role": "Energy Sector Resilience Manager",
-      "summary": "Safeguard the continuous supply of critical energy inputs by focusing on specific strategies for energy suppliers and exploring diverse energy sources.",
-      "steps": [
-        "Conduct a deep dive into the specific risks and dependencies associated with energy suppliers in the exposed region.",
-        "Collaborate with energy providers to understand their crisis management and supply diversification plans.",
-        "Investigate immediately available alternative energy sources or energy substitutes.",
-        "Assess internal energy storage capabilities and opportunities for enhancement.",
-        "Develop a clear communication plan for internal teams regarding potential energy supply adjustments."
-      ],
-      "groundedClaimIds": [
-        "EXP-SCN-HORMUZ-SUP-30c313786de0add0",
-        "EXP-SCN-HORMUZ-SUP-40d0ceb654f7ec44",
-        "EXP-SCN-HORMUZ-SUP-739c8751e1541f8e",
-        "EXP-SCN-HORMUZ-SUP-618f1dc9c7b030d3",
-        "EXP-SCN-HORMUZ-SUP-9fbd398ae5be35ae"
-      ]
-    },
-    {
-      "id": "PB-LLM-4",
-      "role": "Chemical Sector Resilience Manager",
-      "summary": "Ensure the uninterrupted flow of essential chemical raw materials by engaging with specialized chemical suppliers and exploring alternative material solutions.",
-      "steps": [
-        "Perform a detailed assessment of all critical chemical inputs sourced from the impacted geographical area.",
-        "Engage with chemical suppliers to evaluate their ability to maintain supply through alternative means or from other facilities.",
-        "Research and identify potential alternative chemical compounds or process adjustments that reduce reliance on vulnerable inputs.",
-        "Assess the implications of switching chemical suppliers on product quality and compliance.",
-        "Work with research and development teams to explore long-term material innovation and diversification."
+        "Contact the most exposed chemical suppliers to assess current inventory levels and transit routes.",
+        "Evaluate immediate supply chain vulnerabilities for critical chemical components.",
+        "Identify and qualify alternative sources for high-risk chemical materials.",
+        "Update inventory management plans to account for potential delays and disruptions.",
+        "Collaborate with logistics to re-route shipments if necessary."
       ],
       "groundedClaimIds": [
         "EXP-SCN-HORMUZ-SUP-518e5a10996d381f",
@@ -305,6 +264,98 @@
         "EXP-SCN-HORMUZ-SUP-b09f39b9d9ca6ebc",
         "EXP-SCN-HORMUZ-SUP-5fd536f25142a489"
       ]
+    },
+    {
+      "id": "PB-LLM-2",
+      "role": "Energy Sourcing Lead",
+      "summary": "Address potential disruptions to energy supply by engaging critical suppliers and securing diversified energy sources to ensure operational continuity.",
+      "steps": [
+        "Engage with all energy suppliers identified as having exposure to the region.",
+        "Assess the direct and indirect impacts on energy commodity availability and pricing.",
+        "Develop contingency plans for energy sourcing, including alternative fuel types or suppliers.",
+        "Review and update energy consumption forecasts considering potential supply constraints.",
+        "Secure additional buffer stock of critical energy resources where feasible."
+      ],
+      "groundedClaimIds": [
+        "EXP-SCN-HORMUZ-SUP-30c313786de0add0",
+        "EXP-SCN-HORMUZ-SUP-739c8751e1541f8e",
+        "EXP-SCN-HORMUZ-SUP-40d0ceb654f7ec44",
+        "EXP-SCN-HORMUZ-SUP-618f1dc9c7b030d3",
+        "EXP-SCN-HORMUZ-SUP-9fbd398ae5be35ae"
+      ]
+    }
+  ],
+  "recoveryOptions": [
+    {
+      "id": "REC-EXPEDITE",
+      "title": "Expedite inbound on the most exposed lanes",
+      "actionType": "EXPEDITE",
+      "summary": "Move the most exposed inbound to priority/air freight to close the gap between runout and supplier recovery.",
+      "estimatedCostUsd": 67500,
+      "speedGainDays": 24,
+      "riskReductionPct": 50,
+      "confidence": "HIGH",
+      "reversibility": "HIGH",
+      "score": 67,
+      "evidenceIds": [
+        "EXP-SCN-HORMUZ-SUP-518e5a10996d381f",
+        "EXP-SCN-HORMUZ-SUP-30c313786de0add0",
+        "EXP-SCN-HORMUZ-SUP-739c8751e1541f8e"
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "REC-SUBSTITUTE",
+      "title": "Activate qualified backups for the dual-sourced lanes",
+      "actionType": "SUBSTITUTE",
+      "summary": "Switch the lanes that have a qualified backup on file to the alternate supplier while the primary lane is disrupted.",
+      "estimatedCostUsd": 45000,
+      "speedGainDays": 30,
+      "riskReductionPct": 45,
+      "confidence": "MEDIUM",
+      "reversibility": "MEDIUM",
+      "score": 55,
+      "evidenceIds": [
+        "EXP-SCN-HORMUZ-SUP-30c313786de0add0",
+        "EXP-SCN-HORMUZ-SUP-40d0ceb654f7ec44",
+        "EXP-SCN-HORMUZ-SUP-3fc84edef1e7aded"
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "REC-REALLOCATE",
+      "title": "Reallocate safety stock to the highest-revenue lines",
+      "actionType": "REALLOCATE",
+      "summary": "Shift available on-hand cover toward the highest-revenue exposed lines to extend runway past the disruption.",
+      "estimatedCostUsd": 13500,
+      "speedGainDays": 8,
+      "riskReductionPct": 35,
+      "confidence": "MEDIUM",
+      "reversibility": "HIGH",
+      "score": 48,
+      "evidenceIds": [
+        "EXP-SCN-HORMUZ-SUP-518e5a10996d381f",
+        "EXP-SCN-HORMUZ-SUP-30c313786de0add0",
+        "EXP-SCN-HORMUZ-SUP-739c8751e1541f8e"
+      ],
+      "approvalRequired": false
+    },
+    {
+      "id": "REC-ESCALATE",
+      "title": "Escalate allocation with the single-source suppliers",
+      "actionType": "SUPPLIER_ESCALATION",
+      "summary": "Escalate to secure allocation from the single-source suppliers that have no qualified alternate to switch to.",
+      "estimatedCostUsd": 22500,
+      "speedGainDays": 12,
+      "riskReductionPct": 30,
+      "confidence": "LOW",
+      "reversibility": "LOW",
+      "score": 29,
+      "evidenceIds": [
+        "EXP-SCN-HORMUZ-SUP-518e5a10996d381f",
+        "EXP-SCN-HORMUZ-SUP-739c8751e1541f8e"
+      ],
+      "approvalRequired": true
     }
   ],
   "supplierMessages": [
@@ -312,14 +363,9 @@
       "id": "MSG-SUP-518e5a10996d381f",
       "supplierId": "SUP-518e5a10996d381f",
       "channel": "email",
-      "subject": "Review Request: Abu Chemical Partners 078 - Exposure Score 69",
-      "body": "Dear Abu Chemical Partners 078 Team, We are reviewing potential supply chain impacts over the next 7 days. Your current exposure score is 69. We request your input to confirm next steps.",
+      "subject": "Request for Supply Status Update - 7-Day Window",
+      "body": "We are conducting an impact assessment for the upcoming 7 days. Please provide an urgent update on your current shipment dates, any anticipated delays, your on-hand inventory position, and your expected recovery timeline. Additionally, please inform us if you are declaring force majeure and detail any sub-tier supplier exposure. Your prompt response is crucial for our planning.",
       "claims": [
-        {
-          "value": 69,
-          "unit": "score",
-          "sourcePath": "exposureResults[0].exposureScore"
-        },
         {
           "value": 7,
           "unit": "days",
@@ -332,34 +378,9 @@
       "id": "MSG-SUP-30c313786de0add0",
       "supplierId": "SUP-30c313786de0add0",
       "channel": "email",
-      "subject": "Review Request: Eastern Energy Partners 094 - Exposure Score 68",
-      "body": "Dear Eastern Energy Partners 094 Team, We are reviewing potential supply chain impacts over the next 7 days. Your current exposure score is 68. We request your input to confirm next steps.",
+      "subject": "Request for Supply Status Update - 7-Day Window",
+      "body": "We are conducting an impact assessment for the upcoming 7 days. Please provide an urgent update on your current shipment dates, any anticipated delays, your on-hand inventory position, and your expected recovery timeline. Additionally, please inform us if you are declaring force majeure and detail any sub-tier supplier exposure. Your prompt response is crucial for our planning.",
       "claims": [
-        {
-          "value": 68,
-          "unit": "score",
-          "sourcePath": "exposureResults[1].exposureScore"
-        },
-        {
-          "value": 7,
-          "unit": "days",
-          "sourcePath": "simulation.horizons[0].days"
-        }
-      ],
-      "approvalRequired": true
-    },
-    {
-      "id": "MSG-SUP-40d0ceb654f7ec44",
-      "supplierId": "SUP-40d0ceb654f7ec44",
-      "channel": "email",
-      "subject": "Review Request: Al Energy Solutions 096 - Exposure Score 59",
-      "body": "Dear Al Energy Solutions 096 Team, We are reviewing potential supply chain impacts over the next 7 days. Your current exposure score is 59. We request your input to confirm next steps.",
-      "claims": [
-        {
-          "value": 59,
-          "unit": "score",
-          "sourcePath": "exposureResults[2].exposureScore"
-        },
         {
           "value": 7,
           "unit": "days",
@@ -372,14 +393,24 @@
       "id": "MSG-SUP-739c8751e1541f8e",
       "supplierId": "SUP-739c8751e1541f8e",
       "channel": "email",
-      "subject": "Review Request: Ras Energy Systems 095 - Exposure Score 56",
-      "body": "Dear Ras Energy Systems 095 Team, We are reviewing potential supply chain impacts over the next 7 days. Your current exposure score is 56. We request your input to confirm next steps.",
+      "subject": "Request for Supply Status Update - 7-Day Window",
+      "body": "We are conducting an impact assessment for the upcoming 7 days. Please provide an urgent update on your current shipment dates, any anticipated delays, your on-hand inventory position, and your expected recovery timeline. Additionally, please inform us if you are declaring force majeure and detail any sub-tier supplier exposure. Your prompt response is crucial for our planning.",
       "claims": [
         {
-          "value": 56,
-          "unit": "score",
-          "sourcePath": "exposureResults[3].exposureScore"
-        },
+          "value": 7,
+          "unit": "days",
+          "sourcePath": "simulation.horizons[0].days"
+        }
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "MSG-SUP-40d0ceb654f7ec44",
+      "supplierId": "SUP-40d0ceb654f7ec44",
+      "channel": "email",
+      "subject": "Request for Supply Status Update - 7-Day Window",
+      "body": "We are conducting an impact assessment for the upcoming 7 days. Please provide an urgent update on your current shipment dates, any anticipated delays, your on-hand inventory position, and your expected recovery timeline. Additionally, please inform us if you are declaring force majeure and detail any sub-tier supplier exposure. Your prompt response is crucial for our planning.",
+      "claims": [
         {
           "value": 7,
           "unit": "days",
@@ -392,14 +423,9 @@
       "id": "MSG-SUP-3fc84edef1e7aded",
       "supplierId": "SUP-3fc84edef1e7aded",
       "channel": "email",
-      "subject": "Review Request: Eastern Chemical Group 076 - Exposure Score 54",
-      "body": "Dear Eastern Chemical Group 076 Team, We are reviewing potential supply chain impacts over the next 7 days. Your current exposure score is 54. We request your input to confirm next steps.",
+      "subject": "Request for Supply Status Update - 7-Day Window",
+      "body": "We are conducting an impact assessment for the upcoming 7 days. Please provide an urgent update on your current shipment dates, any anticipated delays, your on-hand inventory position, and your expected recovery timeline. Additionally, please inform us if you are declaring force majeure and detail any sub-tier supplier exposure. Your prompt response is crucial for our planning.",
       "claims": [
-        {
-          "value": 54,
-          "unit": "score",
-          "sourcePath": "exposureResults[4].exposureScore"
-        },
         {
           "value": 7,
           "unit": "days",
@@ -428,7 +454,7 @@
     "failures": [],
     "warnings": [],
     "approvedForHumanReview": true,
-    "checkedAt": "2026-06-19T16:39:08.097Z"
+    "checkedAt": "2026-06-26T00:20:11.772Z"
   },
   "agentRuns": [
     {
@@ -436,20 +462,20 @@
       "agentName": "Sentinel",
       "model": "gemini-2.5-flash",
       "mode": "LIVE_AI",
-      "latencyMs": 6301,
-      "tokenEstimate": 219,
-      "inputTokens": 559,
-      "outputTokens": 214,
-      "totalTokens": 1722,
+      "latencyMs": 7504,
+      "tokenEstimate": 231,
+      "inputTokens": 577,
+      "outputTokens": 261,
+      "totalTokens": 1900,
       "finishReason": "stop",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
-      "costUsd": 0.0007027,
+      "pricingVersion": "2026-06-22",
+      "costUsd": 0.0008256,
       "inputHash": "4846f601",
-      "outputHash": "5431860a",
+      "outputHash": "75e5facd",
       "validationStatus": "PASS",
-      "summary": "Classified threat CHOKEPOINT_CLOSURE at HIGH severity.",
-      "createdAt": "2026-06-19T16:39:08.097Z"
+      "summary": "Classified threat CHOKEPOINT_CLOSURE at CRITICAL severity.",
+      "createdAt": "2026-06-26T00:20:11.772Z"
     },
     {
       "id": "RUN-VERIFIER",
@@ -463,13 +489,13 @@
       "totalTokens": 0,
       "finishReason": "deterministic",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
+      "pricingVersion": "2026-06-22",
       "costUsd": 0,
       "inputHash": "584709fc",
       "outputHash": "649cea51",
       "validationStatus": "PASS",
       "summary": "3 source(s); corroboration met; geo unconfirmed.",
-      "createdAt": "2026-06-19T16:39:08.097Z"
+      "createdAt": "2026-06-26T00:20:11.772Z"
     },
     {
       "id": "RUN-ATLAS",
@@ -477,19 +503,19 @@
       "model": "deterministic-rules",
       "mode": "DETERMINISTIC_RULES",
       "latencyMs": 0,
-      "tokenEstimate": 603,
+      "tokenEstimate": 754,
       "inputTokens": 0,
       "outputTokens": 0,
       "totalTokens": 0,
       "finishReason": "deterministic",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
+      "pricingVersion": "2026-06-22",
       "costUsd": 0,
       "inputHash": "70c58448",
-      "outputHash": "7ec6fd98",
+      "outputHash": "76da820d",
       "validationStatus": "PASS",
       "summary": "9 supplier(s) matched and scored on tier + lead time.",
-      "createdAt": "2026-06-19T16:39:08.097Z"
+      "createdAt": "2026-06-26T00:20:11.772Z"
     },
     {
       "id": "RUN-SIMULATOR",
@@ -497,80 +523,80 @@
       "model": "deterministic-rules",
       "mode": "DETERMINISTIC_RULES",
       "latencyMs": 0,
-      "tokenEstimate": 103,
+      "tokenEstimate": 127,
       "inputTokens": 0,
       "outputTokens": 0,
       "totalTokens": 0,
       "finishReason": "deterministic",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
+      "pricingVersion": "2026-06-22",
       "costUsd": 0,
-      "inputHash": "47d6cc33",
-      "outputHash": "1a705d4c",
+      "inputHash": "7d271af3",
+      "outputHash": "008ff556",
       "validationStatus": "PASS",
       "summary": "Projected 3 revenue horizon(s) and 1 runout(s).",
-      "createdAt": "2026-06-19T16:39:08.097Z"
+      "createdAt": "2026-06-26T00:20:11.772Z"
     },
     {
       "id": "RUN-STRATEGIST",
       "agentName": "Strategist",
       "model": "gemini-2.5-flash",
       "mode": "LIVE_AI",
-      "latencyMs": 28645,
-      "tokenEstimate": 1333,
+      "latencyMs": 12184,
+      "tokenEstimate": 695,
       "inputTokens": 959,
-      "outputTokens": 1845,
-      "totalTokens": 7128,
+      "outputTokens": 974,
+      "totalTokens": 3677,
       "finishReason": "stop",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
-      "costUsd": 0.0049002,
+      "pricingVersion": "2026-06-22",
+      "costUsd": 0.0027227,
       "inputHash": "256b1e23",
-      "outputHash": "2b88cf57",
+      "outputHash": "72b43e9b",
       "validationStatus": "PASS",
-      "summary": "5 playbook(s) grounded in 9 exposure claim(s).",
-      "createdAt": "2026-06-19T16:39:08.097Z"
+      "summary": "3 playbook(s) grounded in 9 exposure claim(s).",
+      "createdAt": "2026-06-26T00:20:11.772Z"
     },
     {
       "id": "RUN-DISPATCHER",
       "agentName": "Dispatcher",
       "model": "gemini-2.5-flash",
       "mode": "LIVE_AI",
-      "latencyMs": 11102,
-      "tokenEstimate": 752,
-      "inputTokens": 887,
-      "outputTokens": 642,
-      "totalTokens": 3429,
+      "latencyMs": 11337,
+      "tokenEstimate": 883,
+      "inputTokens": 725,
+      "outputTokens": 657,
+      "totalTokens": 3538,
       "finishReason": "stop",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
-      "costUsd": 0.0018711,
+      "pricingVersion": "2026-06-22",
+      "costUsd": 0.00186,
       "inputHash": "1dd4e10c",
-      "outputHash": "224efe95",
+      "outputHash": "5be819e4",
       "validationStatus": "PASS",
       "summary": "5 draft(s) queued for approval; 2 action item(s).",
-      "createdAt": "2026-06-19T16:39:08.097Z"
+      "createdAt": "2026-06-26T00:20:11.772Z"
     }
   ],
-  "totalCostUsd": 0.007474,
-  "pricingVersion": "2026-06-18",
+  "totalCostUsd": 0.0054083,
+  "pricingVersion": "2026-06-22",
   "requestedMode": "LIVE_AI",
   "effectiveMode": "LIVE_AI",
   "approvalStatus": "PENDING",
   "auditTrail": [
     {
-      "at": "2026-06-19T16:39:08.097Z",
+      "at": "2026-06-26T00:20:11.772Z",
       "actor": "system",
       "action": "SCENARIO_RUN",
       "detail": "Scenario Hormuz chokepoint closure executed with cached signals."
     },
     {
-      "at": "2026-06-19T16:39:08.097Z",
+      "at": "2026-06-26T00:20:11.772Z",
       "actor": "gatekeeper",
       "action": "PASS",
       "detail": "0 failures and 0 warnings."
     }
   ],
-  "createdAt": "2026-06-19T16:39:08.097Z",
-  "updatedAt": "2026-06-19T16:39:08.097Z"
+  "createdAt": "2026-06-26T00:20:11.772Z",
+  "updatedAt": "2026-06-26T00:20:11.772Z"
 }

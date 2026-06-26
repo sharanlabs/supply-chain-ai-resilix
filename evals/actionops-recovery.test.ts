@@ -91,17 +91,17 @@ describe("Recovery options -- Hormuz integration anchor (hand-pinned)", () => {
     expect(packet.recommendation ?? "ACT").toBe("ACT");
     const opts = packet.recoveryOptions ?? [];
 
-    // Hand-derived from peakRevenue 450_000, worstRecoveryDays 63 (Al Energy 49 + 14),
-    // survivalDays 25:
+    // Hand-derived from peakRevenue 450_000, worstRecoveryDays 60 (Ras Energy 095, the
+    // single-source HIGH lane: 46 + 14), survivalDays 25:
     //   EXPEDITE   score 67 (HIGH)   SUBSTITUTE score 55 (MEDIUM)
-    //   REALLOCATE score 48 (HIGH)   ESCALATE   score 30 (LOW)
+    //   REALLOCATE score 48 (HIGH)   ESCALATE   score 29 (LOW)  [speedGain round(60*0.2)=12]
     expect(opts.map((o) => o.id)).toEqual([
       "REC-EXPEDITE",
       "REC-SUBSTITUTE",
       "REC-REALLOCATE",
       "REC-ESCALATE"
     ]);
-    expect(opts.map((o) => o.score)).toEqual([67, 55, 48, 30]);
+    expect(opts.map((o) => o.score)).toEqual([67, 55, 48, 29]);
     expect(opts.map((o) => o.reversibility)).toEqual(["HIGH", "MEDIUM", "HIGH", "LOW"]);
   });
 });

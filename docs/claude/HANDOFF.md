@@ -35,15 +35,23 @@
 > reading the UI — both its findings were demo-fixture only); (2) **review + push**. Until (1), hold
 > the irreversible promotion.
 >
-> **RESIDUALS (advisor-flagged, owner-pending — full detail in `gates/agentic-rework/PHASE1-GATE.md`):**
-> (a) **the local `/` still renders the PRE-Phase-1 frozen `SCN-HORMUZ.json`** — old scores + score-citing
-> emails + zero wins; the leak is closed in the ENGINE but the rendered (local-only) surface still shows
-> it. A $0 deterministic re-capture is blocked by the replay guard (`effectiveMode==LIVE_AI` + cost>0
-> required); refreshing `/` to reflect Phase 1 needs a **live re-capture** (~$0.03, owner-gated) OR folds
-> into deploy. The $0 Phase-1-correct showcase lives in the demo FALLBACK (`makeDemoPacket`).
-> (b) **domain-credibility was maker-self-assessed** — 3 calls pending the owner's SCRM eye (or
-> guidelines-monitor): single-source direction (CRITICAL/HIGH=single-source), "0 revenue until runout",
-> TTR=lead-time proxy.
+> **DOMAIN CHECK + FIXES (2026-06-25, owner ran guidelines-monitor + chose fix-both-now):** the SCRM
+> review VINDICATED the core model (revenue-from-runout = exact Simchi-Levi TTS; threat types, margin,
+> impact-assessment email, reversibility-dial = genuine wins) and found 2 to close, **both now FIXED:**
+> (a) **single-source DIRECTION** (was VIOLATED — inverted Kraljic + collinear with tier) → DECOUPLED
+> from tier (deliberate-sole-source set ∪ no-alternate); Gulf split now 2 single-source / 7 covered, the
+> +12 penalty discriminates WITHIN a tier; (c) **TTR** → disruption-type-aware (transit ≈ lead time;
+> site-loss/bankruptcy/recall/disaster/export-control ≈ +60-day restoration band) + honest label. Tracked
+> refinements (non-blocking): $-at-stake in the exposure rank; per-line TTS for multi-line; demand-side
+> recovery lever; scrm_kb harvest.
+>
+> **Homepage re-capture — ✅ DONE 2026-06-25 (owner-greenlit, ~$0.03).** The frozen live fixtures were
+> stale (pre-Phase-1: old scores + score-citing emails + zero wins). Re-captured live with the corrected
+> engine: a clean **8/8 genuine-live** set ($0.0254 total, all `LIVE_AI` + gatekeeper PASS). `/` now
+> renders the corrected model (2 single-source / 7 covered, scores 81/68/68/59/54, survivalDays + margin,
+> 4 recovery options) and the **score leak is gone from the live emails** (verified). The remaining
+> owner-gated items are the **Codex final stamp** (first real cross-model look at the production logic;
+> retry after the weekly reset / on backup) and the **push**.
 >
 > **NEXT (after the stamp + push, or in parallel as reversible work):** Phase 2 = **Dual-LLM GDELT
 > quarantine** (formalize + a static guard proving no raw signal prose reaches any Investigator

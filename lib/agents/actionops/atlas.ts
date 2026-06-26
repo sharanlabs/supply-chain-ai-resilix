@@ -43,12 +43,40 @@ function leadComponent(standardLeadTimeDays: number): number {
 // to switch to, so the same disruption bites harder and recovery runs longer.
 //   - the exposure SCORE gains a fixed penalty (kept well under the 100 ceiling: a
 //     CRITICAL 55 + lead cap 30 + 12 = 97), and
-//   - the TTR estimate (recoveryDays) is the supplier's standard lead time -- the time to
-//     push a fresh order through -- EXTENDED when single-source, since requalifying an
-//     alternate adds weeks. Integer by construction (lead time + integer extra), so the
+//   - the recovery-time estimate (recoveryDays) is EXTENDED when single-source, since
+//     re-sourcing without a qualified alternate adds weeks. Integer by construction, so the
 //     hand-derived fixtures stay immune to float rounding.
 const SINGLE_SOURCE_SCORE_PENALTY = 12;
 const SINGLE_SOURCE_RECOVERY_EXTRA_DAYS = 14;
+
+// Disruption-type-aware restoration band (the guidelines-monitor TTR correction, 2026-06-25).
+// recoveryDays is an HONEST deterministic restore-time estimate -- NOT a measured
+// node-restoration time -- that pairs with the Simulator's survivalDays (TTS) for the
+// exposed/covered read (covered when TTS >= recoveryDays). What it should be depends on the
+// disruption:
+//   - a TRANSIT disruption (chokepoint closure / route diversion / port / tariff / weather /
+//     geopolitical / labor) recovers by getting fresh supply through the lane again -> the
+//     standard lead time is the right proxy.
+//   - a SITE-LOSS / structural disruption (plant disaster, insolvency, recall, cyber outage,
+//     material allocation, or export-control regime) keeps the supplier down for MONTHS beyond
+//     a lead time -- rebuild, requalify, re-source, or wait out a regulatory regime -- so a
+//     fixed restoration band is added. This is exactly the gap a flat lead-time TTR had: the
+//     bankruptcy/recall/disaster/export-control event types Phase 1 added are where it broke.
+const SITE_RESTORATION_DAYS = 60;
+const SITE_LOSS_EVENT_TYPES = new Set<string>([
+  "NATURAL_DISASTER",
+  "SUPPLIER_BANKRUPTCY",
+  "QUALITY_RECALL",
+  "CYBER_DISRUPTION",
+  "MATERIAL_SHORTAGE_ALLOCATION",
+  "EXPORT_CONTROL"
+]);
+
+function restorationBaseDays(eventType: string, standardLeadTimeDays: number): number {
+  return SITE_LOSS_EVENT_TYPES.has(eventType)
+    ? standardLeadTimeDays + SITE_RESTORATION_DAYS
+    : standardLeadTimeDays;
+}
 
 // The disruption's geographic AFFECTED SCOPE keyed by the threat's chokepoint -- the
 // countries whose inbound maritime trade transits it. This is the firewall's source
@@ -176,7 +204,8 @@ export function runAtlas(
       // penalty and the longer TTR.
       const singleSource = supplier.backupSupplierId == null;
       const recoveryDays =
-        supplier.standardLeadTimeDays + (singleSource ? SINGLE_SOURCE_RECOVERY_EXTRA_DAYS : 0);
+        restorationBaseDays(threatCard.eventType, supplier.standardLeadTimeDays) +
+        (singleSource ? SINGLE_SOURCE_RECOVERY_EXTRA_DAYS : 0);
       return {
         id: `EXP-${scenario.id}-${supplier.id}`,
         supplierId: supplier.id,

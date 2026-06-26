@@ -358,11 +358,14 @@ export const ExposureResultSchema = z.object({
   //                   null). A single-source supplier is the classic concentration risk:
   //                   when its lane is disrupted there is no alternate to switch to, so
   //                   recovery is slower. Atlas adds a fixed exposure penalty for it.
-  //   recoveryDays  - TTR (time-to-recover): a deterministic estimate of how many days
-  //                   this supplier needs to restore supply, proxied by its standard lead
-  //                   time and extended when single-source. Paired with the Simulator's
-  //                   survivalDays (TTS) it yields the exposed/covered read (HBR/Simchi-Levi
-  //                   TTR/TTS spine): covered when TTS >= TTR, exposed when TTS < TTR.
+  //   recoveryDays  - a deterministic restore-time estimate (an honest proxy, NOT a measured
+  //                   node-restoration time): how many days this supplier needs to restore
+  //                   supply. It is DISRUPTION-TYPE-AWARE -- a transit disruption recovers in
+  //                   ~the standard lead time, a site-loss/structural one (disaster, insolvency,
+  //                   recall, allocation, export-control) runs months longer (see atlas.ts) --
+  //                   and is extended when single-source. Paired with the Simulator's
+  //                   survivalDays (TTS) it yields the exposed/covered read (the TTR/TTS framing,
+  //                   Simchi-Levi/MIT REI): covered when TTS >= recoveryDays, exposed when below.
   singleSource: z.boolean().optional(),
   recoveryDays: z.number().nonnegative().optional(),
   evidenceIds: z.array(z.string())

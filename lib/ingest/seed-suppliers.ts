@@ -46,23 +46,43 @@ export function readSeedCsv(): string {
 // single-source and the Atlas single-source penalty becomes a constant that discriminates
 // nothing. This overlay gives the seed a realistic dual-sourced cohort to contrast against.
 //
-// Rule (deterministic, domain-grounded): a supplier is DUAL-SOURCED (gets a backup) only
-// when a STABLE alternate exists -- another seed supplier in the SAME sector, a DIFFERENT
-// country, at LOW or MEDIUM risk tier (a high-risk alternate is not a qualified backup).
-// CRITICAL/HIGH-tier suppliers are left single-source on purpose: concentration in a
-// high-risk tier is exactly the case where no qualified substitute exists -- that is WHY
-// it reads high-risk. So the most exposed suppliers are the ones with no backup, which is
-// both realistic and what makes the demo's "single-source" call land. The alternate is
-// chosen by canonical-id order, so the linkage is stable across runs.
+// DIRECTION (the guidelines-monitor correction, 2026-06-25): sourcing arrangement is an
+// INDEPENDENT observed attribute, NOT a function of risk tier -- and Kraljic practice is to
+// dual-source the high-risk/high-impact items (segment, do not blanket). So single-source is
+// decoupled from tier here: a supplier is single-source iff it is (1) DELIBERATELY sole-sourced
+// (a specialized/qualified-single-source part -- a real business decision), or (2) STRUCTURALLY
+// alone -- no qualified alternate exists in the base. Everyone else is DUAL-SOURCED, including
+// most CRITICAL suppliers (the resilient norm). The result is a realistic MIX where the +12
+// single-source penalty discriminates WITHIN a tier (a critical single-source lane outscores a
+// critical dual-sourced one), instead of moving in lockstep with the tier base. A qualified
+// alternate = another seed supplier in the SAME sector, a DIFFERENT country, at LOW or MEDIUM
+// risk tier (a high-risk alternate is not a qualified backup); chosen by canonical-id order so
+// the linkage is stable across runs. (Tracked refinement: this does not yet check a shared
+// sub-tier dependency -- the "illusion of diversification".)
 const QUALIFIED_BACKUP_TIERS = new Set<Supplier["riskTier"]>(["LOW", "MEDIUM"]);
+
+// Suppliers the firm DELIBERATELY sole-sources despite alternates existing -- a specialized
+// or single-qualified part (independent of risk tier). Keyed by the seed's stable display
+// name. Includes the demo headline (a CRITICAL Gulf chemical lane with no qualified backup)
+// plus a sole-sourced specialty energy + leading-edge semiconductor lane, so single-source
+// spans tiers/sectors rather than tracking the risk tier.
+const DELIBERATELY_SOLE_SOURCED = new Set<string>([
+  "Abu Chemical Partners 078", // CRITICAL CHEMICALS (AE) -- the headline single-source lane
+  "Ras Energy Systems 095", // HIGH ENERGY (QA) -- a sole-sourced specialty energy input
+  "Hsinchu Semiconductor Holdings 001" // CRITICAL SEMICONDUCTORS (TW) -- a sole-sourced node
+]);
 
 export function linkBackupSuppliers(suppliers: Supplier[]): Supplier[] {
   const byId = [...suppliers].sort((a, b) => a.id.localeCompare(b.id));
   return suppliers.map((s) => {
-    // CRITICAL/HIGH stay single-source; only MEDIUM/LOW can be covered.
-    if (!QUALIFIED_BACKUP_TIERS.has(s.riskTier) || s.sector == null) {
+    // Deliberately sole-sourced (or sectorless) -> single-source regardless of alternates.
+    if (DELIBERATELY_SOLE_SOURCED.has(s.name) || s.sector == null) {
       return { ...s, backupSupplierId: null };
     }
+    // Otherwise dual-sourced when a qualified alternate exists. The check is on the
+    // ALTERNATE's tier (it must be stable, LOW/MEDIUM), NOT on this supplier's tier -- so a
+    // critical supplier with a qualified alternate is dual-sourced (the norm); single-source
+    // is the deliberate or structurally-alone exception.
     const backup = byId.find(
       (o) =>
         o.id !== s.id &&

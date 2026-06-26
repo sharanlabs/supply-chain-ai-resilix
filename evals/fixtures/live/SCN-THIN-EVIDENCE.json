@@ -1,0 +1,308 @@
+{
+  "packetVersion": 2,
+  "id": "DP-678933b3-4aac-4080-948d-012b15822fd9",
+  "threatCard": {
+    "id": "THR-SCN-THIN-EVIDENCE",
+    "eventType": "PORT_DISRUPTION",
+    "severity": "MEDIUM",
+    "location": {
+      "region": "West Coast"
+    },
+    "summary": "Reports indicate a potential disruption at a significant port on the United States West Coast. These claims, originating from social media, suggest an halt to operations, but remain unconfirmed by official sources or corroborating news reports.",
+    "evidenceUrls": [
+      "https://api.gdeltproject.org/api/v2/doc/doc?query=west+coast+port+shutdown+rumor&mode=artlist&format=json"
+    ],
+    "confidence": 0.2,
+    "createdAt": "2026-06-26T00:22:49.396Z"
+  },
+  "publicSignals": [
+    {
+      "id": "SIG-THIN-EVIDENCE-GDELT",
+      "source": "GDELT DOC 2.0",
+      "sourceUrl": "https://api.gdeltproject.org/api/v2/doc/doc?query=west+coast+port+shutdown+rumor&mode=artlist&format=json",
+      "fetchedAt": "2026-06-17T12:00:00.000Z",
+      "eventType": "PORT_RUMOR",
+      "location": {
+        "region": "US West Coast",
+        "country": "US"
+      },
+      "severity": "MEDIUM",
+      "summary": "A single unconfirmed social-media post alleges a major US West Coast container port has abruptly halted all operations. There is no official Port Authority, US Coast Guard, or carrier confirmation and no corroborating wire report -- the claim is unverified and may be inaccurate.",
+      "freshnessMinutes": 0,
+      "status": "CACHED"
+    }
+  ],
+  "exposureResults": [
+    {
+      "id": "EXP-SCN-THIN-EVIDENCE-SUP-c61f604498a3b5a5",
+      "supplierId": "SUP-c61f604498a3b5a5",
+      "supplierName": "Greater Logistics Holdings 145",
+      "country": "US",
+      "sector": "LOGISTICS",
+      "exposureScore": 40,
+      "rationale": "HIGH risk tier; 7-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 7,
+      "evidenceIds": [
+        "THR-SCN-THIN-EVIDENCE"
+      ]
+    },
+    {
+      "id": "EXP-SCN-THIN-EVIDENCE-SUP-d93f84db1173d705",
+      "supplierId": "SUP-d93f84db1173d705",
+      "supplierName": "Tennessee Logistics Group 148",
+      "country": "US",
+      "sector": "LOGISTICS",
+      "exposureScore": 40,
+      "rationale": "HIGH risk tier; 10-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 10,
+      "evidenceIds": [
+        "THR-SCN-THIN-EVIDENCE"
+      ]
+    },
+    {
+      "id": "EXP-SCN-THIN-EVIDENCE-SUP-15d9c9bae48d2976",
+      "supplierId": "SUP-15d9c9bae48d2976",
+      "supplierName": "Illinois Logistics Manufacturing 149",
+      "country": "US",
+      "sector": "LOGISTICS",
+      "exposureScore": 25,
+      "rationale": "MEDIUM risk tier; 11-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 11,
+      "evidenceIds": [
+        "THR-SCN-THIN-EVIDENCE"
+      ]
+    },
+    {
+      "id": "EXP-SCN-THIN-EVIDENCE-SUP-67045cc602a058bc",
+      "supplierId": "SUP-67045cc602a058bc",
+      "supplierName": "Pacific Logistics Solutions 144",
+      "country": "US",
+      "sector": "LOGISTICS",
+      "exposureScore": 25,
+      "rationale": "MEDIUM risk tier; 6-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 6,
+      "evidenceIds": [
+        "THR-SCN-THIN-EVIDENCE"
+      ]
+    },
+    {
+      "id": "EXP-SCN-THIN-EVIDENCE-SUP-e7bb4c3f512673a1",
+      "supplierId": "SUP-e7bb4c3f512673a1",
+      "supplierName": "North Logistics Systems 143",
+      "country": "US",
+      "sector": "LOGISTICS",
+      "exposureScore": 25,
+      "rationale": "MEDIUM risk tier; 5-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 5,
+      "evidenceIds": [
+        "THR-SCN-THIN-EVIDENCE"
+      ]
+    },
+    {
+      "id": "EXP-SCN-THIN-EVIDENCE-SUP-f38606d7caf594d9",
+      "supplierId": "SUP-f38606d7caf594d9",
+      "supplierName": "Arizona Logistics Works 147",
+      "country": "US",
+      "sector": "LOGISTICS",
+      "exposureScore": 25,
+      "rationale": "MEDIUM risk tier; 9-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 9,
+      "evidenceIds": [
+        "THR-SCN-THIN-EVIDENCE"
+      ]
+    },
+    {
+      "id": "EXP-SCN-THIN-EVIDENCE-SUP-dca6e05f582f8385",
+      "supplierId": "SUP-dca6e05f582f8385",
+      "supplierName": "New Logistics Industries 146",
+      "country": "US",
+      "sector": "LOGISTICS",
+      "exposureScore": 12,
+      "rationale": "LOW risk tier; 8-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 8,
+      "evidenceIds": [
+        "THR-SCN-THIN-EVIDENCE"
+      ]
+    }
+  ],
+  "dataTier": "TIER_1",
+  "dataGaps": [
+    "Single unverified source: the disruption is reported by one uncorroborated, low-confidence signal.",
+    "Tier-1 upload: no inventory columns provided, so runway is not simulated.",
+    "NO_ACTION: outbound action is withheld pending corroboration. The exposure and runway below are shown for situational awareness only -- they are contingent on the disruption being confirmed, not an endorsed assessment."
+  ],
+  "recommendation": "NO_ACTION",
+  "missingEvidence": [
+    {
+      "requirement": "Independent corroboration",
+      "detail": "Only a single source reports this disruption. RESILIX requires a second independent source before drafting outbound supplier action, so one source cannot be wrong, stale, or injected and still move suppliers.",
+      "wouldFlipIf": "A second independent source corroborates the same disruption."
+    },
+    {
+      "requirement": "Authoritative confirmation",
+      "detail": "The available signal is low-confidence and unverified -- no official or authoritative source confirms it.",
+      "wouldFlipIf": "An official or authoritative source (a government advisory, a carrier or regulator notice) confirms the disruption."
+    }
+  ],
+  "playbooks": [],
+  "recoveryOptions": [],
+  "supplierMessages": [],
+  "actionItems": [],
+  "gatekeeper": {
+    "status": "PASS",
+    "failures": [],
+    "warnings": [],
+    "approvedForHumanReview": true,
+    "checkedAt": "2026-06-26T00:22:49.396Z"
+  },
+  "agentRuns": [
+    {
+      "id": "RUN-SENTINEL",
+      "agentName": "Sentinel",
+      "model": "gemini-2.5-flash",
+      "mode": "LIVE_AI",
+      "latencyMs": 4026,
+      "tokenEstimate": 152,
+      "inputTokens": 389,
+      "outputTokens": 161,
+      "totalTokens": 1274,
+      "finishReason": "stop",
+      "errorClass": null,
+      "pricingVersion": "2026-06-22",
+      "costUsd": 0.0005192,
+      "inputHash": "2e2ddb77",
+      "outputHash": "0e75632a",
+      "validationStatus": "PASS",
+      "summary": "Classified threat PORT_DISRUPTION at MEDIUM severity.",
+      "createdAt": "2026-06-26T00:22:49.396Z"
+    },
+    {
+      "id": "RUN-VERIFIER",
+      "agentName": "Verifier",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 32,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-22",
+      "costUsd": 0,
+      "inputHash": "7ea23822",
+      "outputHash": "625b9b42",
+      "validationStatus": "PASS",
+      "summary": "1 source(s); corroboration single-source; geo unconfirmed.",
+      "createdAt": "2026-06-26T00:22:49.396Z"
+    },
+    {
+      "id": "RUN-ATLAS",
+      "agentName": "Atlas",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 620,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-22",
+      "costUsd": 0,
+      "inputHash": "20ad5ae0",
+      "outputHash": "1797df1e",
+      "validationStatus": "PASS",
+      "summary": "7 supplier(s) matched and scored on tier + lead time.",
+      "createdAt": "2026-06-26T00:22:49.396Z"
+    },
+    {
+      "id": "RUN-SIMULATOR",
+      "agentName": "Simulator",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 10,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-22",
+      "costUsd": 0,
+      "inputHash": "0f3fc070",
+      "outputHash": "0d410f55",
+      "validationStatus": "PASS",
+      "summary": "Tier-1 scenario: no inventory data, runway not simulated.",
+      "createdAt": "2026-06-26T00:22:49.396Z"
+    },
+    {
+      "id": "RUN-STRATEGIST",
+      "agentName": "Strategist",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 13,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-22",
+      "costUsd": 0,
+      "inputHash": "529ee07b",
+      "outputHash": "3da6dbeb",
+      "validationStatus": "PASS",
+      "summary": "Withheld: NO_ACTION -- no playbook drafted until the disruption is corroborated.",
+      "createdAt": "2026-06-26T00:22:49.396Z"
+    },
+    {
+      "id": "RUN-DISPATCHER",
+      "agentName": "Dispatcher",
+      "model": "deterministic-rules",
+      "mode": "DETERMINISTIC_RULES",
+      "latencyMs": 0,
+      "tokenEstimate": 13,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "totalTokens": 0,
+      "finishReason": "deterministic",
+      "errorClass": null,
+      "pricingVersion": "2026-06-22",
+      "costUsd": 0,
+      "inputHash": "529ee07b",
+      "outputHash": "3da6dbeb",
+      "validationStatus": "PASS",
+      "summary": "Withheld: NO_ACTION -- no outbound supplier message drafted until the disruption is corroborated.",
+      "createdAt": "2026-06-26T00:22:49.396Z"
+    }
+  ],
+  "totalCostUsd": 0.0005192,
+  "pricingVersion": "2026-06-22",
+  "requestedMode": "LIVE_AI",
+  "effectiveMode": "LIVE_AI",
+  "approvalStatus": "PENDING",
+  "auditTrail": [
+    {
+      "at": "2026-06-26T00:22:49.396Z",
+      "actor": "system",
+      "action": "SCENARIO_RUN",
+      "detail": "Scenario Thin-evidence refusal control (single unverified source) executed with cached signals."
+    },
+    {
+      "at": "2026-06-26T00:22:49.396Z",
+      "actor": "gatekeeper",
+      "action": "PASS",
+      "detail": "0 failures and 0 warnings."
+    }
+  ],
+  "createdAt": "2026-06-26T00:22:49.396Z",
+  "updatedAt": "2026-06-26T00:22:49.396Z"
+}

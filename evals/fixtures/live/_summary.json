@@ -4,9 +4,9 @@
     "eventType": "CHOKEPOINT_CLOSURE",
     "effectiveMode": "LIVE_AI",
     "exposures": 9,
-    "playbooks": 5,
+    "playbooks": 3,
     "drafts": 5,
-    "costUsd": 0.007474,
+    "costUsd": 0.0054083,
     "gatekeeper": "PASS",
     "modes": "SENTINEL=LIVE_AI,STRATEGIST=LIVE_AI,DISPATCHER=LIVE_AI"
   },
@@ -15,9 +15,9 @@
     "eventType": "TARIFF_DEADLINE",
     "effectiveMode": "LIVE_AI",
     "exposures": 7,
-    "playbooks": 2,
+    "playbooks": 4,
     "drafts": 5,
-    "costUsd": 0.0035700000000000003,
+    "costUsd": 0.005891799999999999,
     "gatekeeper": "PASS",
     "modes": "SENTINEL=LIVE_AI,STRATEGIST=LIVE_AI,DISPATCHER=LIVE_AI"
   },
@@ -26,9 +26,9 @@
     "eventType": "ROUTE_DIVERSION",
     "effectiveMode": "LIVE_AI",
     "exposures": 5,
-    "playbooks": 4,
+    "playbooks": 3,
     "drafts": 5,
-    "costUsd": 0.005804800000000001,
+    "costUsd": 0.0052216,
     "gatekeeper": "PASS",
     "modes": "SENTINEL=LIVE_AI,STRATEGIST=LIVE_AI,DISPATCHER=LIVE_AI"
   },
@@ -37,9 +37,9 @@
     "eventType": "SEVERE_WEATHER",
     "effectiveMode": "LIVE_AI",
     "exposures": 1,
-    "playbooks": 3,
+    "playbooks": 4,
     "drafts": 1,
-    "costUsd": 0.0021082,
+    "costUsd": 0.0025519,
     "gatekeeper": "PASS",
     "modes": "SENTINEL=LIVE_AI,STRATEGIST=LIVE_AI,DISPATCHER=LIVE_AI"
   },
@@ -50,7 +50,7 @@
     "exposures": 1,
     "playbooks": 3,
     "drafts": 1,
-    "costUsd": 0.0018545,
+    "costUsd": 0.0020907,
     "gatekeeper": "PASS",
     "modes": "SENTINEL=LIVE_AI,STRATEGIST=LIVE_AI,DISPATCHER=LIVE_AI"
   },
@@ -61,7 +61,7 @@
     "exposures": 0,
     "playbooks": 0,
     "drafts": 0,
-    "costUsd": 0.0004079,
+    "costUsd": 0.0003858,
     "gatekeeper": "PASS",
     "modes": "SENTINEL=LIVE_AI,STRATEGIST=DETERMINISTIC_RULES,DISPATCHER=DETERMINISTIC_RULES"
   },
@@ -70,10 +70,21 @@
     "eventType": "OTHER_UNMAPPED",
     "effectiveMode": "LIVE_AI",
     "exposures": 6,
-    "playbooks": 3,
+    "playbooks": 2,
     "drafts": 5,
-    "costUsd": 0.0044165,
+    "costUsd": 0.0032908,
     "gatekeeper": "PASS",
     "modes": "SENTINEL=LIVE_AI,STRATEGIST=LIVE_AI,DISPATCHER=LIVE_AI"
+  },
+  {
+    "id": "SCN-THIN-EVIDENCE",
+    "eventType": "PORT_DISRUPTION",
+    "effectiveMode": "LIVE_AI",
+    "exposures": 7,
+    "playbooks": 0,
+    "drafts": 0,
+    "costUsd": 0.0005192,
+    "gatekeeper": "PASS",
+    "modes": "SENTINEL=LIVE_AI,STRATEGIST=DETERMINISTIC_RULES,DISPATCHER=DETERMINISTIC_RULES"
   }
 ]

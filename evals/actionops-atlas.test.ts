@@ -28,39 +28,40 @@ function hormuzContext(): ActionOpsContext {
 }
 
 // score = RISK_TIER_BASE[tier] + clamp(leadDays - 30, 0, 30) + (singleSource ? 12 : 0);
-// base CRITICAL 55 / HIGH 40 / MEDIUM 25 / LOW 12. P1 single-source: a CRITICAL/HIGH-tier
-// Gulf supplier has no qualified backup (the seed backup-linkage overlay leaves
-// CRITICAL/HIGH single-source), so it carries the +12 penalty; the MEDIUM/LOW Gulf
-// suppliers have a qualified backup (a LOW/MEDIUM same-sector alternate in another
-// country) so they do NOT. Worked: Abu Chemical Partners 078 = CRITICAL(55) +
-// clamp(44-30)=14 + single-source(12) = 81. (tier/lead from data/seed/us-suppliers.seed.csv;
-// backup status from linkBackupSuppliers in lib/ingest/seed-suppliers.ts.)
+// base CRITICAL 55 / HIGH 40 / MEDIUM 25 / LOW 12. P1 single-source is DECOUPLED from tier
+// (the guidelines-monitor Kraljic correction): single-source = deliberately-sole-sourced
+// (Abu Chemical 078, Ras Energy 095) OR no-qualified-alternate; everyone else is dual-sourced
+// (incl. CRITICAL Eastern Energy 094 -- the resilient norm). So the +12 penalty now
+// discriminates WITHIN a tier: single-source 078 (81) outscores dual-sourced critical 094
+// (68), and single-source 095 (68) outscores dual-sourced high 096 (59). Worked: Abu Chemical
+// Partners 078 = CRITICAL(55) + clamp(44-30)=14 + single-source(12) = 81. (tier/lead from
+// data/seed/us-suppliers.seed.csv; backup status from linkBackupSuppliers.)
 const EXPECTED_SCORES: Record<string, number> = {
   "Abu Chemical Partners 078": 81, // AE CRITICAL 44 single-source -> 55 + 14 + 12
-  "Eastern Energy Partners 094": 80, // SA CRITICAL 43 single-source -> 55 + 13 + 12
-  "Al Energy Solutions 096": 71, // KW HIGH 49 single-source -> 40 + 19 + 12
+  "Eastern Energy Partners 094": 68, // SA CRITICAL 43 dual-sourced -> 55 + 13 + 0
   "Ras Energy Systems 095": 68, // QA HIGH 46 single-source -> 40 + 16 + 12
-  "Eastern Chemical Group 076": 66, // SA HIGH 44 single-source -> 40 + 14 + 12
-  "Jubail Chemical Manufacturing 077": 40, // SA MEDIUM 45 backup -> 25 + 15 + 0
-  "Jebel Energy Group 092": 34, // AE MEDIUM 39 backup -> 25 + 9 + 0
-  "Ras Chemical Systems 079": 24, // QA LOW 42 backup -> 12 + 12 + 0
-  "Abu Energy Manufacturing 093": 22 // AE LOW 40 backup -> 12 + 10 + 0
+  "Al Energy Solutions 096": 59, // KW HIGH 49 dual-sourced -> 40 + 19 + 0
+  "Eastern Chemical Group 076": 54, // SA HIGH 44 dual-sourced -> 40 + 14 + 0
+  "Jubail Chemical Manufacturing 077": 40, // SA MEDIUM 45 dual-sourced -> 25 + 15 + 0
+  "Jebel Energy Group 092": 34, // AE MEDIUM 39 dual-sourced -> 25 + 9 + 0
+  "Ras Chemical Systems 079": 24, // QA LOW 42 dual-sourced -> 12 + 12 + 0
+  "Abu Energy Manufacturing 093": 22 // AE LOW 40 dual-sourced -> 12 + 10 + 0
 };
 
-// P1 single-source + TTR (recoveryDays) per Gulf supplier. singleSource is true for the
-// CRITICAL/HIGH-tier suppliers (no qualified backup), false for MEDIUM/LOW (backup on
-// file). recoveryDays = standardLeadTimeDays + (singleSource ? 14 : 0). Hand-derived,
-// independent of the producer.
+// P1 single-source + recoveryDays per Gulf supplier. singleSource is true ONLY for the two
+// deliberately-sole-sourced lanes (078, 095) -- decoupled from tier. Hormuz is a
+// CHOKEPOINT_CLOSURE (a TRANSIT disruption), so recoveryDays = standardLeadTimeDays +
+// (singleSource ? 14 : 0) -- no site-restoration band. Hand-derived, independent of the producer.
 const EXPECTED_SINGLE_SOURCE: Record<string, { singleSource: boolean; recoveryDays: number }> = {
   "Abu Chemical Partners 078": { singleSource: true, recoveryDays: 58 }, // 44 + 14
-  "Eastern Energy Partners 094": { singleSource: true, recoveryDays: 57 }, // 43 + 14
-  "Al Energy Solutions 096": { singleSource: true, recoveryDays: 63 }, // 49 + 14
   "Ras Energy Systems 095": { singleSource: true, recoveryDays: 60 }, // 46 + 14
-  "Eastern Chemical Group 076": { singleSource: true, recoveryDays: 58 }, // 44 + 14
-  "Jubail Chemical Manufacturing 077": { singleSource: false, recoveryDays: 45 }, // backup
-  "Jebel Energy Group 092": { singleSource: false, recoveryDays: 39 }, // backup
-  "Ras Chemical Systems 079": { singleSource: false, recoveryDays: 42 }, // backup
-  "Abu Energy Manufacturing 093": { singleSource: false, recoveryDays: 40 } // backup
+  "Eastern Energy Partners 094": { singleSource: false, recoveryDays: 43 }, // dual-sourced
+  "Al Energy Solutions 096": { singleSource: false, recoveryDays: 49 }, // dual-sourced
+  "Eastern Chemical Group 076": { singleSource: false, recoveryDays: 44 }, // dual-sourced
+  "Jubail Chemical Manufacturing 077": { singleSource: false, recoveryDays: 45 }, // dual-sourced
+  "Jebel Energy Group 092": { singleSource: false, recoveryDays: 39 }, // dual-sourced
+  "Ras Chemical Systems 079": { singleSource: false, recoveryDays: 42 }, // dual-sourced
+  "Abu Energy Manufacturing 093": { singleSource: false, recoveryDays: 40 } // dual-sourced
 };
 
 describe("Atlas exposure model (D.2, deterministic, key-OFF)", () => {
@@ -113,12 +114,43 @@ describe("Atlas exposure model (D.2, deterministic, key-OFF)", () => {
       );
     }
 
-    // The penalty DISCRIMINATES: the seed yields a real mix (the advisor's #1 -- a uniform
-    // null would make it a constant). Both cohorts are non-empty within the matched set.
+    // The penalty DISCRIMINATES WITHIN a tier (the guidelines-monitor fix -- single-source is
+    // decoupled from tier, so it is not collinear with the base). 2 single-source / 7 covered.
     const single = exposureResults.filter((e) => e.singleSource);
     const covered = exposureResults.filter((e) => !e.singleSource);
-    expect(single.length).toBe(5);
-    expect(covered.length).toBe(4);
+    expect(single.length).toBe(2);
+    expect(covered.length).toBe(7);
+
+    const byName = new Map(exposureResults.map((e) => [e.supplierName, e]));
+    // Two CRITICAL suppliers, one single-source one not -> the penalty SEPARATES them (it
+    // would be collinear/invisible if single-source tracked the tier).
+    const critSingle = byName.get("Abu Chemical Partners 078")!; // CRITICAL, single-source
+    const critDual = byName.get("Eastern Energy Partners 094")!; // CRITICAL, dual-sourced
+    expect(critSingle.singleSource).toBe(true);
+    expect(critDual.singleSource).toBe(false);
+    expect(critSingle.exposureScore).toBeGreaterThan(critDual.exposureScore); // 81 > 68
+    // And a single-source HIGH supplier can reach a dual-sourced CRITICAL's exposure.
+    expect(byName.get("Ras Energy Systems 095")!.exposureScore).toBe(critDual.exposureScore); // 68 == 68
+  });
+
+  it("makes recoveryDays disruption-type-aware: a SITE-LOSS event adds a restoration band", () => {
+    const ctx = hormuzContext();
+    const { threatCard } = runSentinel(ctx);
+    // Same Gulf match + Hormuz chokepoint scope, but reclassify the event as a SITE-LOSS type
+    // (a supplier insolvency): recovery now runs MONTHS longer than a transit lead time -- the
+    // gap a flat lead-time TTR had (the guidelines-monitor finding). +60 restoration band.
+    const bankruptcy = { ...threatCard, eventType: "SUPPLIER_BANKRUPTCY" };
+    const byName = new Map(
+      runAtlas(ctx, bankruptcy).exposureResults.map((e) => [e.supplierName, e])
+    );
+    expect(byName.get("Abu Chemical Partners 078")!.recoveryDays).toBe(118); // 44 + 60 + single 14
+    expect(byName.get("Eastern Energy Partners 094")!.recoveryDays).toBe(103); // 43 + 60, dual-sourced
+
+    // Control: the TRANSIT Hormuz event (CHOKEPOINT_CLOSURE) carries NO restoration band.
+    const transit = new Map(
+      runAtlas(ctx, threatCard).exposureResults.map((e) => [e.supplierName, e])
+    );
+    expect(transit.get("Abu Chemical Partners 078")!.recoveryDays).toBe(58); // 44 + 14 only
   });
 
   it("passes the handoff when the matched set fits the threat scope (Hormuz)", () => {

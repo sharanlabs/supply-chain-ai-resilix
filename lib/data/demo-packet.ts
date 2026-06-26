@@ -120,11 +120,11 @@ export const demoExposure: DecisionPacketV2["exposureResults"] = [
     supplierName: "Eastern Energy Partners 094",
     country: "SA",
     sector: "ENERGY",
-    exposureScore: 69,
+    exposureScore: 68,
     rationale:
-      "CRITICAL-tier Eastern Province energy supplier; a long lead time leaves little buffer against an extended closure; single-source (no qualified backup).",
-    singleSource: true,
-    recoveryDays: 57,
+      "CRITICAL-tier Eastern Province energy supplier; a long lead time leaves little buffer against an extended closure; qualified backup on file (dual-sourced -- the resilient norm even for a critical lane).",
+    singleSource: false,
+    recoveryDays: 43,
     evidenceIds: ["THREAT-HORMUZ-001"]
   },
   {
@@ -133,11 +133,11 @@ export const demoExposure: DecisionPacketV2["exposureResults"] = [
     supplierName: "Al Energy Solutions 096",
     country: "KW",
     sector: "ENERGY",
-    exposureScore: 63,
+    exposureScore: 59,
     rationale:
-      "Al Ahmadi origin with the longest lead time in the Gulf subset; secondary exposure via shared routing; single-source (no qualified backup).",
-    singleSource: true,
-    recoveryDays: 63,
+      "Al Ahmadi origin with the longest lead time in the Gulf subset; secondary exposure via shared routing; qualified backup on file (dual-sourced).",
+    singleSource: false,
+    recoveryDays: 49,
     evidenceIds: ["THREAT-HORMUZ-001"]
   }
 ];

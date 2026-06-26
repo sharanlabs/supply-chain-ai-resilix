@@ -1,19 +1,19 @@
 {
   "packetVersion": 2,
-  "id": "DP-cb81dff0-45ea-422b-a0d4-794bf51674c2",
+  "id": "DP-bfb87894-e2ff-4858-9986-7605c1dc3173",
   "threatCard": {
     "id": "THR-SCN-ZERO-EXPOSURE",
     "eventType": "LABOR_DISRUPTION",
-    "severity": "CRITICAL",
+    "severity": "HIGH",
     "location": {
       "region": "South America"
     },
-    "summary": "A labor action at the Callao port in Peru has brought container handling to a standstill.",
+    "summary": "A labor dispute involving port workers at Callao, Peru, has caused a complete halt to container operations at the terminal. This action is significantly disrupting the flow of goods through the port.",
     "evidenceUrls": [
       "https://api.gdeltproject.org/api/v2/doc/doc?query=Callao+port+strike&mode=artlist&format=json"
     ],
     "confidence": 0.9,
-    "createdAt": "2026-06-19T16:41:26.754Z"
+    "createdAt": "2026-06-26T00:22:14.442Z"
   },
   "publicSignals": [
     {
@@ -39,7 +39,10 @@
     "No direct exposure: the event location and lanes match no supplier in the current dataset.",
     "Tier-1 upload: no inventory columns provided, so runway is not simulated."
   ],
+  "recommendation": "ACT",
+  "missingEvidence": [],
   "playbooks": [],
+  "recoveryOptions": [],
   "supplierMessages": [],
   "actionItems": [],
   "gatekeeper": {
@@ -47,7 +50,7 @@
     "failures": [],
     "warnings": [],
     "approvedForHumanReview": true,
-    "checkedAt": "2026-06-19T16:41:26.754Z"
+    "checkedAt": "2026-06-26T00:22:14.442Z"
   },
   "agentRuns": [
     {
@@ -55,20 +58,20 @@
       "agentName": "Sentinel",
       "model": "gemini-2.5-flash",
       "mode": "LIVE_AI",
-      "latencyMs": 3334,
-      "tokenEstimate": 111,
-      "inputTokens": 343,
-      "outputTokens": 122,
-      "totalTokens": 866,
+      "latencyMs": 4267,
+      "tokenEstimate": 138,
+      "inputTokens": 361,
+      "outputTokens": 111,
+      "totalTokens": 1163,
       "finishReason": "stop",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
-      "costUsd": 0.0004079,
+      "pricingVersion": "2026-06-22",
+      "costUsd": 0.0003858,
       "inputHash": "70c42cb8",
-      "outputHash": "4e61ec90",
+      "outputHash": "00c4fa9e",
       "validationStatus": "PASS",
-      "summary": "Classified threat LABOR_DISRUPTION at CRITICAL severity.",
-      "createdAt": "2026-06-19T16:41:26.754Z"
+      "summary": "Classified threat LABOR_DISRUPTION at HIGH severity.",
+      "createdAt": "2026-06-26T00:22:14.442Z"
     },
     {
       "id": "RUN-VERIFIER",
@@ -82,13 +85,13 @@
       "totalTokens": 0,
       "finishReason": "deterministic",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
+      "pricingVersion": "2026-06-22",
       "costUsd": 0,
       "inputHash": "43a2d49d",
       "outputHash": "625b9b42",
       "validationStatus": "PASS",
       "summary": "1 source(s); corroboration single-source; geo unconfirmed.",
-      "createdAt": "2026-06-19T16:41:26.754Z"
+      "createdAt": "2026-06-26T00:22:14.442Z"
     },
     {
       "id": "RUN-ATLAS",
@@ -102,13 +105,13 @@
       "totalTokens": 0,
       "finishReason": "deterministic",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
+      "pricingVersion": "2026-06-22",
       "costUsd": 0,
       "inputHash": "6fd42fe1",
       "outputHash": "00000b62",
       "validationStatus": "PASS",
       "summary": "0 supplier(s) matched the disruption.",
-      "createdAt": "2026-06-19T16:41:26.754Z"
+      "createdAt": "2026-06-26T00:22:14.442Z"
     },
     {
       "id": "RUN-SIMULATOR",
@@ -122,13 +125,13 @@
       "totalTokens": 0,
       "finishReason": "deterministic",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
+      "pricingVersion": "2026-06-22",
       "costUsd": 0,
       "inputHash": "0f3fc070",
       "outputHash": "0d410f55",
       "validationStatus": "PASS",
       "summary": "Tier-1 scenario: no inventory data, runway not simulated.",
-      "createdAt": "2026-06-19T16:41:26.754Z"
+      "createdAt": "2026-06-26T00:22:14.442Z"
     },
     {
       "id": "RUN-STRATEGIST",
@@ -142,13 +145,13 @@
       "totalTokens": 0,
       "finishReason": "deterministic",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
+      "pricingVersion": "2026-06-22",
       "costUsd": 0,
       "inputHash": "256b1f3a",
       "outputHash": "00000b62",
       "validationStatus": "PASS",
       "summary": "0 playbook(s) grounded in 0 exposure claim(s).",
-      "createdAt": "2026-06-19T16:41:26.754Z"
+      "createdAt": "2026-06-26T00:22:14.442Z"
     },
     {
       "id": "RUN-DISPATCHER",
@@ -162,34 +165,34 @@
       "totalTokens": 0,
       "finishReason": "deterministic",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
+      "pricingVersion": "2026-06-22",
       "costUsd": 0,
       "inputHash": "581e12da",
       "outputHash": "18b5bf78",
       "validationStatus": "PASS",
       "summary": "0 draft(s) queued for approval; 0 action item(s).",
-      "createdAt": "2026-06-19T16:41:26.754Z"
+      "createdAt": "2026-06-26T00:22:14.442Z"
     }
   ],
-  "totalCostUsd": 0.0004079,
-  "pricingVersion": "2026-06-18",
+  "totalCostUsd": 0.0003858,
+  "pricingVersion": "2026-06-22",
   "requestedMode": "LIVE_AI",
   "effectiveMode": "LIVE_AI",
   "approvalStatus": "PENDING",
   "auditTrail": [
     {
-      "at": "2026-06-19T16:41:26.754Z",
+      "at": "2026-06-26T00:22:14.442Z",
       "actor": "system",
       "action": "SCENARIO_RUN",
       "detail": "Scenario Zero-exposure control (valid taxonomy, no match) executed with cached signals."
     },
     {
-      "at": "2026-06-19T16:41:26.754Z",
+      "at": "2026-06-26T00:22:14.442Z",
       "actor": "gatekeeper",
       "action": "PASS",
       "detail": "0 failures and 0 warnings."
     }
   ],
-  "createdAt": "2026-06-19T16:41:26.754Z",
-  "updatedAt": "2026-06-19T16:41:26.754Z"
+  "createdAt": "2026-06-26T00:22:14.442Z",
+  "updatedAt": "2026-06-26T00:22:14.442Z"
 }

@@ -1,6 +1,6 @@
 {
   "packetVersion": 2,
-  "id": "DP-be734ccf-99b4-44ad-840f-8f9998bd8a0f",
+  "id": "DP-a2ac6894-388c-48db-96dd-ed981fa9f38c",
   "threatCard": {
     "id": "THR-SCN-BANKRUPTCY",
     "eventType": "SUPPLIER_BANKRUPTCY",
@@ -8,12 +8,12 @@
     "location": {
       "region": "Maharashtra"
     },
-    "summary": "A crucial pharmaceutical supplier located in India has commenced liquidation, creating an immediate and significant risk to the supply continuity for affected buyers.",
+    "summary": "A crucial pharmaceutical supplier in India has initiated liquidation processes. This creates an immediate risk to the ongoing provision of supplies for buyers who rely on this supplier, and they should verify their pending orders.",
     "evidenceUrls": [
       "https://api.gdeltproject.org/api/v2/doc/doc?query=supplier+liquidation+insolvency&mode=artlist&format=json"
     ],
     "confidence": 0.9,
-    "createdAt": "2026-06-19T16:41:11.893Z"
+    "createdAt": "2026-06-26T00:21:56.790Z"
   },
   "publicSignals": [
     {
@@ -40,7 +40,9 @@
       "country": "IN",
       "sector": "PHARMACEUTICALS",
       "exposureScore": 75,
-      "rationale": "CRITICAL risk tier; 50-day lead time.",
+      "rationale": "CRITICAL risk tier; 50-day lead time; qualified backup on file.",
+      "singleSource": false,
+      "recoveryDays": 110,
       "evidenceIds": [
         "THR-SCN-BANKRUPTCY"
       ]
@@ -51,17 +53,19 @@
     "Tier-1 upload: no inventory columns provided, so runway is not simulated.",
     "Tier-1 upload: no inventory columns provided, so runway is not simulated."
   ],
+  "recommendation": "ACT",
+  "missingEvidence": [],
   "playbooks": [
     {
       "id": "PB-LLM-0",
-      "role": "Risk Analyst",
-      "summary": "To assess the immediate and potential long-term impacts of a key supplier's elevated bankruptcy risk on the supply chain.",
+      "role": "Supply Chain Operations Lead",
+      "summary": "Prioritize understanding the operational impact of a critical supplier's potential bankruptcy and securing continuity of supply.",
       "steps": [
-        "Initiate a detailed risk assessment for the identified supplier.",
-        "Evaluate the criticality of materials or services provided by the supplier.",
-        "Determine the current inventory levels of critical components from this supplier.",
-        "Project the potential disruption impact across all dependent products and services.",
-        "Report findings to the war room leadership promptly."
+        "Initiate immediate inventory assessment for affected components and finished goods from the identified supplier.",
+        "Identify all products and internal processes reliant on the potentially bankrupt supplier.",
+        "Begin preliminary identification of alternative suppliers and sourcing strategies.",
+        "Estimate the potential impact on production schedules and customer commitments.",
+        "Formulate contingency plans to mitigate supply disruption."
       ],
       "groundedClaimIds": [
         "EXP-SCN-BANKRUPTCY-SUP-7def2bc3320bcedf"
@@ -70,13 +74,13 @@
     {
       "id": "PB-LLM-1",
       "role": "Procurement Lead",
-      "summary": "To ensure continuity of supply by identifying and engaging alternative sources for critical materials affected by supplier bankruptcy risk.",
+      "summary": "Focus on securing immediate and long-term alternative supply sources and managing contractual implications with the affected supplier.",
       "steps": [
-        "Identify all critical products and components sourced from the at-risk supplier.",
-        "Initiate outreach to pre-approved alternative suppliers.",
-        "Expedite qualification processes for new potential suppliers.",
-        "Negotiate terms for contingency supply agreements.",
-        "Monitor alternative supplier capacity and readiness to scale."
+        "Contact the identified supplier to ascertain the status of their operations and future capabilities.",
+        "Expedite engagement with pre-qualified alternative suppliers for affected materials.",
+        "Initiate negotiations for alternative supply agreements to ensure continuity.",
+        "Review current purchase orders and contracts with the affected supplier for potential termination clauses or remedies.",
+        "Collaborate with Legal to understand implications of supplier non-performance."
       ],
       "groundedClaimIds": [
         "EXP-SCN-BANKRUPTCY-SUP-7def2bc3320bcedf"
@@ -84,18 +88,52 @@
     },
     {
       "id": "PB-LLM-2",
-      "role": "Legal Counsel",
-      "summary": "To review contractual agreements and potential legal implications associated with a supplier's high bankruptcy risk.",
+      "role": "Risk Analyst / Intelligence Lead",
+      "summary": "Provide a comprehensive impact assessment of the supplier bankruptcy and monitor market conditions.",
       "steps": [
-        "Examine existing contracts with the flagged supplier for relevant clauses regarding insolvency or material adverse change.",
-        "Assess potential liabilities and obligations in the event of supplier default.",
-        "Advise on legal strategies for mitigating exposure.",
-        "Prepare for potential contract termination or renegotiation processes.",
-        "Liaise with procurement regarding any legal constraints with alternative supplier onboarding."
+        "Conduct a deep dive into the financial health and operational stability of the identified supplier.",
+        "Assess the broader market impact of a major pharmaceutical supplier experiencing distress in its region.",
+        "Identify any interconnected risks with other suppliers or parts of the supply chain.",
+        "Provide regular updates on the evolving situation and potential cascading effects.",
+        "Recommend specific data points for ongoing monitoring to the crisis team."
       ],
       "groundedClaimIds": [
         "EXP-SCN-BANKRUPTCY-SUP-7def2bc3320bcedf"
       ]
+    }
+  ],
+  "recoveryOptions": [
+    {
+      "id": "REC-EXPEDITE",
+      "title": "Expedite inbound on the most exposed lanes",
+      "actionType": "EXPEDITE",
+      "summary": "Move the most exposed inbound to priority/air freight to close the gap between runout and supplier recovery.",
+      "estimatedCostUsd": 7500,
+      "speedGainDays": 44,
+      "riskReductionPct": 50,
+      "confidence": "HIGH",
+      "reversibility": "HIGH",
+      "score": 50,
+      "evidenceIds": [
+        "EXP-SCN-BANKRUPTCY-SUP-7def2bc3320bcedf"
+      ],
+      "approvalRequired": true
+    },
+    {
+      "id": "REC-SUBSTITUTE",
+      "title": "Activate qualified backups for the dual-sourced lanes",
+      "actionType": "SUBSTITUTE",
+      "summary": "Switch the lanes that have a qualified backup on file to the alternate supplier while the primary lane is disrupted.",
+      "estimatedCostUsd": 5000,
+      "speedGainDays": 55,
+      "riskReductionPct": 45,
+      "confidence": "MEDIUM",
+      "reversibility": "MEDIUM",
+      "score": 37,
+      "evidenceIds": [
+        "EXP-SCN-BANKRUPTCY-SUP-7def2bc3320bcedf"
+      ],
+      "approvalRequired": true
     }
   ],
   "supplierMessages": [
@@ -103,15 +141,9 @@
       "id": "MSG-SUP-7def2bc3320bcedf",
       "supplierId": "SUP-7def2bc3320bcedf",
       "channel": "email",
-      "subject": "Supply Chain Review - SUP-7def2bc3320bcedf",
-      "body": "We are reviewing current supply chain impacts. Our records indicate an exposure score of 75 for your operations. We will confirm next steps. Your input is requested.",
-      "claims": [
-        {
-          "value": 75,
-          "unit": "score",
-          "sourcePath": "exposureResults[0].exposureScore"
-        }
-      ],
+      "subject": "Request for Operational Status and Impact Assessment",
+      "body": "We are initiating an impact assessment and kindly request your input. Please provide details on your current shipment schedule and any potential adjustments. We also ask for an update on your on-hand inventory position and an estimated timeline for recovery. Additionally, please inform us if you are considering or declaring force majeure and share any insights regarding sub-tier supplier exposure. Your prompt response is appreciated as we evaluate next steps.",
+      "claims": [],
       "approvalRequired": true
     }
   ],
@@ -134,7 +166,7 @@
     "failures": [],
     "warnings": [],
     "approvedForHumanReview": true,
-    "checkedAt": "2026-06-19T16:41:11.893Z"
+    "checkedAt": "2026-06-26T00:21:56.790Z"
   },
   "agentRuns": [
     {
@@ -142,20 +174,20 @@
       "agentName": "Sentinel",
       "model": "gemini-2.5-flash",
       "mode": "LIVE_AI",
-      "latencyMs": 4159,
-      "tokenEstimate": 131,
-      "inputTokens": 350,
-      "outputTokens": 102,
-      "totalTokens": 1058,
+      "latencyMs": 4088,
+      "tokenEstimate": 147,
+      "inputTokens": 368,
+      "outputTokens": 155,
+      "totalTokens": 1220,
       "finishReason": "stop",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
-      "costUsd": 0.00036,
+      "pricingVersion": "2026-06-22",
+      "costUsd": 0.0004979,
       "inputHash": "5d5ffe6d",
-      "outputHash": "4d0976ce",
+      "outputHash": "600d5666",
       "validationStatus": "PASS",
       "summary": "Classified threat SUPPLIER_BANKRUPTCY at HIGH severity.",
-      "createdAt": "2026-06-19T16:41:11.893Z"
+      "createdAt": "2026-06-26T00:21:56.790Z"
     },
     {
       "id": "RUN-VERIFIER",
@@ -169,13 +201,13 @@
       "totalTokens": 0,
       "finishReason": "deterministic",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
+      "pricingVersion": "2026-06-22",
       "costUsd": 0,
       "inputHash": "23d93be8",
       "outputHash": "625b9b42",
       "validationStatus": "PASS",
       "summary": "1 source(s); corroboration single-source; geo unconfirmed.",
-      "createdAt": "2026-06-19T16:41:11.893Z"
+      "createdAt": "2026-06-26T00:21:56.790Z"
     },
     {
       "id": "RUN-ATLAS",
@@ -183,19 +215,19 @@
       "model": "deterministic-rules",
       "mode": "DETERMINISTIC_RULES",
       "latencyMs": 0,
-      "tokenEstimate": 99,
+      "tokenEstimate": 115,
       "inputTokens": 0,
       "outputTokens": 0,
       "totalTokens": 0,
       "finishReason": "deterministic",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
+      "pricingVersion": "2026-06-22",
       "costUsd": 0,
       "inputHash": "70f6f09d",
-      "outputHash": "51aa068e",
+      "outputHash": "3b47c82e",
       "validationStatus": "PASS",
       "summary": "1 supplier(s) matched and scored on tier + lead time.",
-      "createdAt": "2026-06-19T16:41:11.893Z"
+      "createdAt": "2026-06-26T00:21:56.790Z"
     },
     {
       "id": "RUN-SIMULATOR",
@@ -209,74 +241,74 @@
       "totalTokens": 0,
       "finishReason": "deterministic",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
+      "pricingVersion": "2026-06-22",
       "costUsd": 0,
       "inputHash": "0f3fc070",
       "outputHash": "0d410f55",
       "validationStatus": "PASS",
       "summary": "Tier-1 scenario: no inventory data, runway not simulated.",
-      "createdAt": "2026-06-19T16:41:11.893Z"
+      "createdAt": "2026-06-26T00:21:56.790Z"
     },
     {
       "id": "RUN-STRATEGIST",
       "agentName": "Strategist",
       "model": "gemini-2.5-flash",
       "mode": "LIVE_AI",
-      "latencyMs": 6574,
-      "tokenEstimate": 476,
+      "latencyMs": 7537,
+      "tokenEstimate": 542,
       "inputTokens": 331,
-      "outputTokens": 388,
-      "totalTokens": 1688,
+      "outputTokens": 396,
+      "totalTokens": 2013,
       "finishReason": "stop",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
-      "costUsd": 0.0010693,
+      "pricingVersion": "2026-06-22",
+      "costUsd": 0.0010893,
       "inputHash": "256b1f1b",
-      "outputHash": "4ecbec38",
+      "outputHash": "7b274741",
       "validationStatus": "PASS",
       "summary": "3 playbook(s) grounded in 1 exposure claim(s).",
-      "createdAt": "2026-06-19T16:41:11.893Z"
+      "createdAt": "2026-06-26T00:21:56.790Z"
     },
     {
       "id": "RUN-DISPATCHER",
       "agentName": "Dispatcher",
       "model": "gemini-2.5-flash",
       "mode": "LIVE_AI",
-      "latencyMs": 4009,
-      "tokenEstimate": 189,
-      "inputTokens": 484,
-      "outputTokens": 112,
-      "totalTokens": 1222,
+      "latencyMs": 5910,
+      "tokenEstimate": 247,
+      "inputTokens": 470,
+      "outputTokens": 145,
+      "totalTokens": 1646,
       "finishReason": "stop",
       "errorClass": null,
-      "pricingVersion": "2026-06-18",
-      "costUsd": 0.0004252,
+      "pricingVersion": "2026-06-22",
+      "costUsd": 0.0005034999999999999,
       "inputHash": "5c1c83fb",
-      "outputHash": "4337ff9c",
+      "outputHash": "29f52e0a",
       "validationStatus": "PASS",
       "summary": "1 draft(s) queued for approval; 2 action item(s).",
-      "createdAt": "2026-06-19T16:41:11.893Z"
+      "createdAt": "2026-06-26T00:21:56.790Z"
     }
   ],
-  "totalCostUsd": 0.0018545,
-  "pricingVersion": "2026-06-18",
+  "totalCostUsd": 0.0020907,
+  "pricingVersion": "2026-06-22",
   "requestedMode": "LIVE_AI",
   "effectiveMode": "LIVE_AI",
   "approvalStatus": "PENDING",
   "auditTrail": [
     {
-      "at": "2026-06-19T16:41:11.893Z",
+      "at": "2026-06-26T00:21:56.790Z",
       "actor": "system",
       "action": "SCENARIO_RUN",
       "detail": "Scenario Supplier bankruptcy with sudden liquidation executed with cached signals."
     },
     {
-      "at": "2026-06-19T16:41:11.893Z",
+      "at": "2026-06-26T00:21:56.790Z",
       "actor": "gatekeeper",
       "action": "PASS",
       "detail": "0 failures and 0 warnings."
     }
   ],
-  "createdAt": "2026-06-19T16:41:11.893Z",
-  "updatedAt": "2026-06-19T16:41:11.893Z"
+  "createdAt": "2026-06-26T00:21:56.790Z",
+  "updatedAt": "2026-06-26T00:21:56.790Z"
 }
