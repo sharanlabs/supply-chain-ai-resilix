@@ -4,12 +4,19 @@
 > ## CURRENT RESUME (2026-06-26) — READ THIS FIRST; supersedes every block below
 > ============================================================================
 >
-> **Stage: AGENTIC REWORK — Phases 1, 2, 4, 5 DONE + committed locally (push HELD, range
-> `3385d0f..a73add7`). NEXT: Phase 6 (war-room deliberation UI), then P7 → P3 per the reorder.**
+> **Stage: AGENTIC REWORK — Phases 1, 2, 4, 5, 6 DONE + committed locally (push HELD, range
+> `3385d0f..5185414`). NEXT: Phase 7 (agentic evals + adaptive injection red-team), then P3
+> (Investigator loop, LAST, gated) per the reorder.**
 > P5 = governed action execution (transactional outbox, code-owned reversibility moat, NoopTransport
 > default, human-gated outward, auth-gated execute route, `executed_actions` table); security-reviewed
-> safe-to-proceed + [Med] digest-sanitization fixed; verify GREEN 587/24 + gated PG-17 11. Gate doc
-> `docs/claude/gates/agentic-rework/PHASE5-GATE.md`.
+> safe-to-proceed + [Med] digest-sanitization fixed; gate doc `PHASE5-GATE.md`.
+> P6 = war-room deliberation UI (agent trajectory + Skeptic verdict + the P1 fields, all data-driven
+> from `packet.agentRuns` so the $0 REPLAY holds; storytelling-arc extended, WCAG 2.2 AA); verify:full
+> GREEN 596/24 + 20 e2e.
+> P7 (in flight, evals-specialist): adaptive indirect-injection red-team (GDELT-shaped, full-pipeline,
+> zero-leak + zero-laundering) + the trajectory-eval HARNESS (P3's promotion gate, baseline = the
+> deterministic waterfall) + the NO_ACTION/corroboration regression. Then P3 = the Investigator loop
+> behind ENABLE_AGENT_LOOP, promoted to default ONLY if its trajectory evals beat the waterfall.
 >
 > **OWNER DIRECTIVE (2026-06-26): complete ALL remaining phases in this session; auto-resume on
 > usage-limit reset (a `/schedule` cloud routine + a durable local cron drive the autopilot from
