@@ -32,6 +32,7 @@ import {
   type InvestigatorTools,
   makeInvestigatorTools
 } from "@/lib/agents/actionops/tools";
+import { agentLoopEnabled } from "@/lib/server/env-flags";
 import type { ActionItem, AgentRun, Playbook, RecoveryOption, SupplierMessageDraft } from "@/lib/schemas";
 import type { ActionOpsContext, ActionOpsResult } from "@/lib/agents/actionops/types";
 
@@ -166,6 +167,22 @@ export async function runInvestigatorLoop(
   // model is present (production live handle, or an injected test mock) -- so a deterministic
   // test (live:false, mock model) drives the loop while the sub-agents run deterministically.
   const live = ctx.live === true && liveAiEnabled();
+
+  // ENTRY GUARD (Codex independent-gate High). runInvestigatorLoop is EXPORTED (the orchestrator +
+  // tests import it), so a direct caller outside tests could bypass the NODE_ENV seam guards at the
+  // higher layers and bill. OUTSIDE the test env the loop runs ONLY via the production route --
+  // `agentLoopEnabled() && live` -- and the injected `model` seam is NOT honored at all (it is
+  // test-only, exactly like the higher-layer investigator seam; production never legitimately
+  // supplies one -- runActionOpsAgents rejects deps.investigator outside tests, so this entry gets
+  // model:undefined on the real route). So reject if a model is injected OR the orchestrator
+  // precondition is unmet. (Tests run under NODE_ENV=test and are exempt.)
+  if (process.env.NODE_ENV !== "test" && (deps.model || !(agentLoopEnabled() && live))) {
+    throw new Error(
+      "runInvestigatorLoop: outside tests the loop runs ONLY via the orchestrator " +
+        "(agentLoopEnabled() && live); an injected model is test-only and is rejected here."
+    );
+  }
+
   const modelId = resolvedGeminiModel();
   const model = deps.model ?? geminiLanguageModel(modelId);
 
@@ -317,6 +334,16 @@ export async function runInvestigatorLoop(
     degraded = true;
     degradeReason =
       err instanceof Error ? err.message : "Investigator loop ended on an unexpected error.";
+    // Reconcile a MID-STEP throw (Codex independent-gate Med): if generateText threw AFTER
+    // prepareStep reserved this step's estimate but BEFORE onStepFinish replaced it, the
+    // reservation would otherwise LEAK as phantom spend into the post-loop budget checks
+    // (Strategist / Dispatcher / the Skeptic completion), falsely degrading them. Clear it so the
+    // running total carries no un-reconciled reservation. (A budget breach throws at the assert
+    // BEFORE the reserve line, so reservedStepUsd is 0 there; this only fires on a model/tool
+    // throw mid-step, whose tiny actual cost we drop on an already-degrading run -- the cap is
+    // still defended by every downstream agent's own hard-stop.)
+    spentUsd -= reservedStepUsd;
+    reservedStepUsd = 0;
   }
 
   // --- POST-LOOP: complete the finding in CODE (live-aware Skeptic), then decide -----------

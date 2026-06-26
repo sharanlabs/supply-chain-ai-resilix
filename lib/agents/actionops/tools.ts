@@ -82,6 +82,12 @@ export type InvestigationState = {
   // "has a simulation object".
   simulation?: { simulation?: Simulation; dataGaps: string[]; run: AgentRun };
   skeptic?: { verdict: SkepticVerdict; run: AgentRun };
+  // The in-flight Skeptic call, memoized so DUPLICATE same-step challengeFinding tool calls do not
+  // RACE (ai@5.x runs a step's tool calls with Promise.all; two concurrent calls would both pass
+  // the `!state.skeptic` guard and bill the cross-family critic TWICE). The first call sets this
+  // synchronously before awaiting; a concurrent second call awaits the SAME promise -> ONE billed
+  // call, cost folded + state set EXACTLY once.
+  skepticInFlight?: Promise<{ verdict: SkepticVerdict; run: AgentRun }>;
 };
 
 // What the tools need from the loop: whether the run is live (the Skeptic challenge routes to its
@@ -274,24 +280,31 @@ export function makeInvestigatorTools(
           };
         }
         if (!state.skeptic) {
-          // Route to the cross-family LIVE critic ONLY when the run is live OR a generate is
-          // injected -- the EXACT `runSkepticLive = live || generate` gating the waterfall uses.
-          // A NON-live run with no injected generate uses the deterministic runSkeptic, so it makes
-          // NO Groq call even if an ambient GROQ_API_KEY happens to be set (the no-network/no-spend
-          // seam). challengeFindingLive then self-gates on its own Groq key INTERNALLY (a live run
-          // with no Groq key short-circuits to the affirmative pass -- never a Gemini cross-family
-          // call). A test drives the live critic with an injected generate.
-          const runLive = deps.live || deps.skeptic?.generate != null;
-          const { verdict, agentRun } = runLive
-            ? await challengeFindingLive(ctx, state.threatCard, state.verifier.checks, state.exposure.results, {
-                budget: deps.budgetForNext(),
-                retry: deps.retry,
-                enabled: deps.skeptic?.enabled,
-                generate: deps.skeptic?.generate
-              })
-            : runSkeptic(ctx, state.threatCard, state.verifier.checks, state.exposure.results);
-          deps.foldCost(agentRun);
-          state.skeptic = { verdict, run: agentRun };
+          // Capture the now-guaranteed slices so the async memo closure does not depend on later
+          // narrowing of the mutable `state`.
+          const verifier = state.verifier;
+          const exposure = state.exposure;
+          // MEMOIZE the in-flight Skeptic so duplicate same-step calls await ONE billed call (the
+          // race fix). `??=` assigns synchronously BEFORE the first await, so a concurrent second
+          // execute sees the same promise. Route to the cross-family LIVE critic ONLY when live OR
+          // a generate is injected (the EXACT `runSkepticLive = live || generate` waterfall gating);
+          // a NON-live run with no injected generate uses the deterministic runSkeptic -- NO Groq
+          // call even with an ambient GROQ_API_KEY. challengeFindingLive self-gates on its own Groq
+          // key INTERNALLY. Cost is folded + the verdict captured EXACTLY once (inside the memo).
+          state.skepticInFlight ??= (async () => {
+            const runLive = deps.live || deps.skeptic?.generate != null;
+            const { verdict, agentRun } = runLive
+              ? await challengeFindingLive(ctx, state.threatCard, verifier.checks, exposure.results, {
+                  budget: deps.budgetForNext(),
+                  retry: deps.retry,
+                  enabled: deps.skeptic?.enabled,
+                  generate: deps.skeptic?.generate
+                })
+              : runSkeptic(ctx, state.threatCard, verifier.checks, exposure.results);
+            deps.foldCost(agentRun);
+            return { verdict, run: agentRun };
+          })();
+          state.skeptic = await state.skepticInFlight;
         }
         return { accepted: state.skeptic.verdict.accepted, errored: state.skeptic.verdict.errored };
       }

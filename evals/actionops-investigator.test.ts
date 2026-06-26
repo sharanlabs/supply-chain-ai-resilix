@@ -9,6 +9,9 @@ import {
   type InvestigationState
 } from "@/lib/agents/actionops/tools";
 import { runSentinel } from "@/lib/agents/actionops/sentinel";
+import { runVerifier } from "@/lib/agents/actionops/verifier";
+import { runAtlas } from "@/lib/agents/actionops/atlas";
+import { resolvedSkepticModel } from "@/lib/agents/actionops/skeptic";
 import { buildDecisionPacket } from "@/lib/pipeline/build-packet";
 import { getActionOpsScenario, type ActionOpsScenario } from "@/lib/data/actionops-scenarios";
 import { ingestSeed } from "@/lib/ingest/seed-suppliers";
@@ -329,6 +332,115 @@ describe("(B4) a non-live injected run makes no Groq call even with an ambient G
       if (prior === undefined) delete process.env.GROQ_API_KEY;
       else process.env.GROQ_API_KEY = prior;
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// (B5) SAME-STEP DUPLICATE-CALL RACE -- ai@5.x runs a step's tool calls with Promise.all, so two
+// concurrent challengeFinding calls in one step must NOT both bill the cross-family critic. The
+// in-flight memo collapses them to ONE billed call. Proven by two concurrent execute() calls.
+// ---------------------------------------------------------------------------
+describe("(B5) duplicate concurrent challengeFinding calls bill the Skeptic exactly once", () => {
+  it("two concurrent executes await one in-flight call (one bill, one verdict)", async () => {
+    const ctx = buildCtx(getActionOpsScenario("SCN-HORMUZ"));
+    const threatCard = runSentinel(ctx).threatCard;
+    const { checks, agentRun: vRun } = runVerifier(ctx, threatCard);
+    const { exposureResults, agentRun: aRun } = runAtlas(ctx, threatCard);
+    const state: InvestigationState = {
+      threatCard,
+      verifier: { checks, run: vRun },
+      exposure: { results: exposureResults, dataGaps: [], run: aRun }
+    };
+    let generateCalls = 0;
+    const tools = makeInvestigatorTools(ctx, state, {
+      live: false,
+      budgetForNext: () => ({ spentUsd: 0, estimatedNextUsd: 0 }),
+      foldCost: () => {},
+      skeptic: {
+        generate: async () => {
+          generateCalls += 1;
+          return { object: { accepted: true, reason: "one billed verdict" } };
+        }
+      }
+    });
+
+    // The Promise.all race the AI SDK creates for same-step tool calls.
+    const [a, b] = await Promise.all([
+      tools.challengeFinding.execute!({}, TOOL_OPTS) as Promise<unknown>,
+      tools.challengeFinding.execute!({}, TOOL_OPTS) as Promise<unknown>
+    ]);
+    expect(generateCalls).toBe(1); // memoized -> ONE billed cross-family call, not two
+    expect(a).toEqual(b); // both concurrent calls got the SAME verdict
+    expect(state.skeptic).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// (B6) DIRECT-CALL ENTRY GUARD -- runInvestigatorLoop is exported; a direct non-live call with no
+// injected model outside tests must FAIL CLOSED (it would otherwise default to a real Gemini handle
+// and bill, bypassing the higher-layer NODE_ENV guards).
+// ---------------------------------------------------------------------------
+describe("(B6) a direct non-orchestrated loop call outside tests is rejected (no bill)", () => {
+  it("runInvestigatorLoop throws on a non-orchestrated call outside tests -- even with an injected model", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      const ctx = buildCtx(getActionOpsScenario("SCN-HORMUZ")); // live: false, no flag
+      // No injected model: would default to a real Gemini handle and bill -> rejected.
+      await expect(runInvestigatorLoop(ctx, {})).rejects.toThrow(/orchestrator|test-only|rejected/i);
+      // WITH an injected model: the model seam is itself test-only -> still rejected before any
+      // model invocation (the seam is not a production escape hatch).
+      const { model } = makeMockModel(FULL_INVESTIGATION);
+      await expect(runInvestigatorLoop(ctx, { model })).rejects.toThrow(/orchestrator|test-only|rejected/i);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// (B7) MID-STEP THROW -- no PHANTOM RESERVATION. If generateText throws after prepareStep reserves
+// the step estimate but before onStepFinish replaces it, the catch must clear the reservation so it
+// does not leak into the post-loop budget checks. Proven: with spentUsd seeded so a LEAKED
+// reservation would tip the post-loop Skeptic over the cap, the Skeptic instead runs clean.
+// ---------------------------------------------------------------------------
+describe("(B7) a mid-step throw leaves no phantom reservation in the running budget", () => {
+  it("the post-loop Skeptic sees the reconciled (not inflated) spend", async () => {
+    const R = estimateLiveCallCostUsd(resolvedGeminiModel());
+    const S = estimateLiveCallCostUsd(resolvedSkepticModel());
+    const ctx = buildCtx(getActionOpsScenario("SCN-HORMUZ"));
+    // A model whose first step reserves R, then THROWS mid-step (before onStepFinish).
+    const throwingModel: LanguageModelV2 = {
+      specificationVersion: "v2",
+      provider: "mock",
+      modelId: "throwing",
+      supportedUrls: {},
+      doGenerate: async () => {
+        throw new Error("simulated mid-step provider error");
+      },
+      doStream: async () => {
+        throw new Error("mock doStream unused");
+      }
+    };
+    // Seed so: prepareStep passes (reserves R), and the post-loop Skeptic passes ONLY if the
+    // reservation was cleared -- a leaked R would push it over the cap. cap - max(R,S) satisfies
+    // both regardless of which estimate is larger.
+    let skepticGenerateCalled = false;
+    const result = await runInvestigatorLoop(ctx, {
+      model: throwingModel,
+      initialSpentUsd: DEFAULT_BUDGET_CAP_USD - Math.max(R, S),
+      skeptic: {
+        generate: async () => {
+          skepticGenerateCalled = true;
+          return { object: { accepted: true, reason: "ran clean -- no phantom reservation" } };
+        }
+      }
+    });
+
+    // No phantom: the completion-run Skeptic budget-checked clean and ACCEPTED -> ACT.
+    expect(skepticGenerateCalled).toBe(true);
+    const skepticRun = result.agentRuns.find((r) => r.agentName === "Skeptic");
+    expect(skepticRun?.errorClass).not.toBe("BUDGET_EXCEEDED");
+    expect(result.recommendation).toBe("ACT");
   });
 });
 
