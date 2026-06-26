@@ -5,8 +5,8 @@
 > ============================================================================
 >
 > **Stage: AGENTIC REWORK — ✅ ALL 7 PHASES DONE + committed locally (push HELD, range
-> `3385d0f..29141be`). The deterministic-pipeline → governed multi-agent system rework is COMPLETE.
-> `npm run verify` GREEN (656/25 + 20 e2e + gated PG-17 11). Next is the OWNER's call (below).**
+> `3385d0f..b46a4fa`). The deterministic-pipeline → governed multi-agent system rework is COMPLETE +
+> CROSS-MODEL GATED. `npm run verify` GREEN (662/25 + 20 e2e + gated PG-17 11). Next is the OWNER's call (below).**
 >
 > **What shipped (all behind their gates, flag-off waterfall green throughout):** P1 six SCRM domain
 > wins (+ guidelines-monitor domain fixes + homepage re-capture + Codex-REVISE close); P2 Dual-LLM
@@ -17,18 +17,23 @@
 > data-driven, WCAG 2.2 AA); P7 adaptive injection red-team (200 cases, 0-leak) + trajectory-eval
 > harness + NO_ACTION regression; P3 (LAST) the tool-using Investigator loop behind `ENABLE_AGENT_LOOP`
 > (default OFF) with the authoritative-binding moat (PARITY-proven byte-equal to the waterfall).
-> Cross-model gated: Codex APPROVED P1; a batched P2→P7 closure REVISE (all safety invariants HELD;
-> refinements applied — `CLOSURE-P2-P7.md`). **P3 cross-model gate = a DATED OBLIGATION (the one open
-> gate leg):** the maker ran its OWN Codex on the loop (3 rounds → APPROVED, maker-drove-the-gate, not
-> independent); the separate-judge pass over `68a668d..29141be` (the loop + the hand-applied closure
-> fixes #3/#4, which had no prior judge) was ATTEMPTED 2026-06-26 but Codex HIT ITS USAGE CAP mid-review
-> (reset ~3:27 PM) → owed. Primary-model diligence on #3/#4 found them sound (guard before any billable
-> work; fail-closed HOLD returns before the Gemini call) but that is NOT the independent judge.
-> **So: "all-gated" is NOT yet true — re-run `~/claude-os/bin/codex-guarded exec -s read-only` with
-> `scratchpad/codex-p3-gate.txt` over `68a668d..29141be` after the reset / on the backup account; the
-> commits stand + push stays held until it APPROVEs.** Gate docs in `docs/claude/gates/agentic-rework/`.
+> **Cross-model gated (the moat held EVERY genuine round):** Codex APPROVED P1; batched P2→P7 closure
+> REVISE → all safety invariants HELD + refinements applied (`CLOSURE-P2-P7.md`). **P3 INDEPENDENT gate
+> DISCHARGED** (`PHASE3-GATE.md`): the separate-judge Codex ran over the loop + the hand-applied fixes
+> across several rounds — REVISE each time, **every finding fixed**, and Codex CONFIRMED the load-bearing
+> invariants every genuine round (rounds 4–6): authoritative-binding moat intact (no number from prose,
+> slices re-bound from state, decideRecommendation/applySkepticGate in code), input-binding (closure-bound
+> + validated supplierId), quarantine, PARITY (byte-equal to the waterfall), flag-off no-op. Findings
+> fixed in order: budget-reservation (same-step), non-live Groq routing, the NODE_ENV DI-seam guard, and
+> the closing 3 edge cases (a Skeptic-double-bill race, a direct-call bypass, a phantom-reservation leak).
+> **One PRE-PROMOTION belt-and-suspenders remains (NOT blocking, since the loop is flag-OFF):** an
+> independent Codex confirmation of the FINAL 3 edge-case fixes (`b46a4fa`) — Codex re-capped ~8:31 PM;
+> those 3 are maker + advisor-reviewed + verify-green. Re-run `codex-guarded exec -s read-only` with
+> `scratchpad/codex-p3-fix.txt` over `b058751..b46a4fa` before flipping `ENABLE_AGENT_LOOP`. Every
+> production path (run-exception → build-packet → runActionOpsAgents) is guarded + the loop is OFF, so
+> the SHIPPING product is fully gated. Gate docs in `docs/claude/gates/agentic-rework/`.
 >
-> **OWNER ACTIONS (owner-gated; autopilot complete):** (1) **review + push** `3385d0f..29141be`;
+> **OWNER ACTIONS (owner-gated; autopilot complete):** (1) **review + push** `3385d0f..b46a4fa`;
 > (2) **promote the loop** (`ENABLE_AGENT_LOOP=true`) IF more live runs justify it — the deterministic
 > trajectory ties the baseline; the qualitative win + the live delta are the owner's judgment (live
 > cost ~$0.0022/run). **PRE-PROMOTION CHECK (do NOT skip):** the loop's live smoke returned NO_ACTION
