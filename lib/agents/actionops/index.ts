@@ -6,6 +6,12 @@ import { decideRecommendation } from "@/lib/agents/actionops/recommendation";
 import { buildRecoveryOptions } from "@/lib/agents/actionops/recovery";
 import { classifyThreatLive, runSentinel } from "@/lib/agents/actionops/sentinel";
 import { runSimulator } from "@/lib/agents/actionops/simulator";
+import {
+  applySkepticGate,
+  challengeFindingLive,
+  runSkeptic,
+  type SkepticInjection
+} from "@/lib/agents/actionops/skeptic";
 import { classifyPlaybooksLive, runStrategist } from "@/lib/agents/actionops/strategist";
 import { runVerifier } from "@/lib/agents/actionops/verifier";
 import { DEFAULT_BUDGET_CAP_USD } from "@/lib/agents/budget";
@@ -20,12 +26,16 @@ import type { ActionItem, AgentRun, Playbook, RecoveryOption, SupplierMessageDra
 import type { ActionOpsContext, ActionOpsResult } from "@/lib/agents/actionops/types";
 
 export type { ActionOpsContext, ActionOpsResult } from "@/lib/agents/actionops/types";
+export type { SkepticInjection } from "@/lib/agents/actionops/skeptic";
 
-// The ActionOps 6-agent pipeline (PLAN Phases 4-7). Canonical order: Sentinel
-// (threat) -> Verifier (corroboration) -> Atlas (exposure) -> Simulator (runway) ->
-// Strategist (playbooks) -> Dispatcher (drafts); the gatekeeper validates the
-// assembled output last. Each agent is its own module -- the SEAM that let D.2-D.7
-// each replace ONE agent body with no change to this orchestration.
+// The ActionOps pipeline (PLAN Phases 4-7 + the Phase-4 agentic-rework Skeptic). Canonical order:
+// Sentinel (threat) -> Verifier (corroboration) -> Atlas (exposure) -> Simulator (runway) ->
+// Skeptic (cross-family adversarial challenge) -> [decideRecommendation gate] -> Strategist
+// (playbooks) -> Dispatcher (drafts); the gatekeeper validates the assembled output last. Each
+// agent is its own module -- the SEAM that let D.2-D.7 each replace ONE agent body, and that let
+// the Skeptic slot in BEFORE the act/refuse gate with no change to the others. Seven agent runs
+// are emitted (the six original + the Skeptic), so the audit trail carries the cross-family
+// challenge.
 //
 // D.9 wires the live path: Sentinel / Strategist / Dispatcher each have a SYNC
 // deterministic body (run*) AND an ASYNC live LLM body (classify*Live, budget-guarded,
@@ -38,7 +48,14 @@ export type { ActionOpsContext, ActionOpsResult } from "@/lib/agents/actionops/t
 // configured (liveAiEnabled() -- flag + key). The page render passes live:false, so a
 // homepage load NEVER fires a billable call even when ENABLE_LIVE_AI is globally on;
 // the only path that can bill is the explicit, auth-gated /api/run-exception POST.
-export async function runActionOpsAgents(ctx: ActionOpsContext): Promise<ActionOpsResult> {
+export async function runActionOpsAgents(
+  ctx: ActionOpsContext,
+  // Optional injection seam for the cross-family Skeptic (the test/DI path -- never billed).
+  // Production passes nothing; the Skeptic then runs its live body only on the billable `live`
+  // path and gates on its OWN Groq key. Threading it here is what lets a test drive the gate
+  // end-to-end with a controlled verdict and NO network.
+  deps: { skeptic?: SkepticInjection } = {}
+): Promise<ActionOpsResult> {
   const { signals, baseDateIso } = ctx;
 
   const live = ctx.live === true && liveAiEnabled();
@@ -78,15 +95,40 @@ export async function runActionOpsAgents(ctx: ActionOpsContext): Promise<ActionO
   // (Tier-1 no-inventory note). The packet's dataGaps is the union.
   const dataGaps = [...atlasDataGaps, ...simulatorDataGaps];
 
+  // Skeptic (Phase 4: the cross-family critic). AFTER the deterministic findings and BEFORE the
+  // act/refuse gate, an INDEPENDENT non-Gemini model adversarially challenges the finding. Its
+  // verdict is a boolean GATE: a non-accept HOLDS the finding (the recommendation is forced to
+  // NO_ACTION below). Live body when live (or when a test injects a generate); the deterministic
+  // affirmative pass otherwise. It runs on its OWN Groq key (skepticEnabled), so a Gemini-only live
+  // run short-circuits to the affirmative pass with NO network -- never a 4th billed Gemini call and
+  // never depleting the 3-call reserve. The Skeptic is fed ONLY the structured finding (quarantine):
+  // never threatCard.summary or any signal/exposure prose.
+  const runSkepticLive = live || deps.skeptic?.generate != null;
+  const { verdict: skepticVerdict, agentRun: skepticRun } = runSkepticLive
+    ? await challengeFindingLive(ctx, threatCard, verifierChecks, exposureResults, {
+        budget: budgetForNext(),
+        retry: retryReserve,
+        enabled: deps.skeptic?.enabled,
+        generate: deps.skeptic?.generate
+      })
+    : runSkeptic(ctx, threatCard, verifierChecks, exposureResults);
+  spentUsd += skepticRun.costUsd ?? 0;
+
   // The act / refuse gate (deterministic). NO_ACTION = refuse to draft outbound action
   // on a lone uncorroborated, low-confidence source -- the refusal itself is the output,
   // not an error. Drives off the Verifier's corroboration, the threat's own confidence,
   // and whether a real-sector exposure exists (decideRecommendation owns the rule).
-  const { recommendation, missingEvidence } = decideRecommendation({
+  //
+  // The Skeptic gate is layered ON TOP: a Skeptic non-accept (a live REJECT or a fail-closed HOLD)
+  // forces NO_ACTION regardless of the deterministic verdict, appending a templated, numeral-free
+  // Skeptic-hold missingEvidence item (authoritative-binding -- nothing numeric is bound from the
+  // critic's prose). A Skeptic ACCEPT lets decideRecommendation stand as today.
+  const baseDecision = decideRecommendation({
     corroborated: verifierChecks.corroborated,
     confidence: threatCard.confidence,
     exposureResults
   });
+  const { recommendation, missingEvidence } = applySkepticGate(baseDecision, skepticVerdict);
 
   // The outbound agents (Strategist -> playbooks, Dispatcher -> drafts) are the action.
   // ACT runs them; NO_ACTION WITHHOLDS them. On a withhold the exposure + runway already
@@ -167,7 +209,16 @@ export async function runActionOpsAgents(ctx: ActionOpsContext): Promise<ActionO
   // Assemble the runs BEFORE the gatekeeper so it can fail closed on any agent that
   // reported a validation failure (e.g. an Atlas-rejected misclassified handoff, or a
   // live agent that degraded to FAILED_TO_FALLBACK).
-  const agentRuns = [sentinelRun, verifierRun, atlasRun, simulatorRun, strategistRun, dispatcherRun];
+  // The Skeptic run sits in canonical order right after the Simulator (the order it executed in).
+  const agentRuns = [
+    sentinelRun,
+    verifierRun,
+    atlasRun,
+    simulatorRun,
+    skepticRun,
+    strategistRun,
+    dispatcherRun
+  ];
 
   const gatekeeper = runActionOpsGatekeeper({
     suppliers: ctx.suppliers,

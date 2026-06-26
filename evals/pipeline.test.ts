@@ -42,8 +42,9 @@ describe("exception pipeline (V2 cutover)", () => {
     expectV2(packet);
     expect(DecisionPacketV2Schema.safeParse(packet).success).toBe(true);
     expect(packet.gatekeeper.status).not.toBe("BLOCKED");
-    // The six ActionOps agents ran and produced the briefing payload.
-    expect(packet.agentRuns).toHaveLength(6);
+    // The seven ActionOps agents ran (the six original + the Phase-4 Skeptic) and produced the
+    // briefing payload. The Skeptic key-OFF is a deterministic affirmative pass.
+    expect(packet.agentRuns).toHaveLength(7);
     expect(packet.exposureResults.length).toBeGreaterThan(0);
     expect(packet.supplierMessages.length).toBeGreaterThan(0);
 

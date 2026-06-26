@@ -115,16 +115,26 @@ type UsageShape = {
 };
 
 describe("D.9 live pipeline wiring (mocked SDK, no spend)", () => {
+  // The runner's own GROQ_API_KEY (the owner keeps one for judge calibration) would otherwise make
+  // the cross-family Skeptic fire a 4th call through the SAME mocked generateObject -- breaking the
+  // "exactly 3 Gemini calls" + budget assertions below. Neutralize it for this suite so the Skeptic
+  // deterministically short-circuits to its affirmative pass (no Groq key -> no network), making
+  // these Gemini-only wiring assertions independent of the runner's environment.
+  const savedGroqKey = process.env.GROQ_API_KEY;
+
   beforeEach(() => {
     generateObjectMock.mockReset();
     process.env.ENABLE_LIVE_AI = "true";
     process.env.GEMINI_API_KEY = "test-key-not-real";
     delete process.env.GEMINI_MODEL; // resolve to the GA default the pricing table prices
+    delete process.env.GROQ_API_KEY; // keep the cross-family Skeptic off this Gemini-only path
   });
 
   afterEach(() => {
     delete process.env.ENABLE_LIVE_AI;
     delete process.env.GEMINI_API_KEY;
+    if (savedGroqKey === undefined) delete process.env.GROQ_API_KEY;
+    else process.env.GROQ_API_KEY = savedGroqKey;
   });
 
   it("live:true routes the 3 LLM agents to LIVE_AI and threads the real per-call cost", async () => {

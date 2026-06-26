@@ -82,7 +82,21 @@ describe.skipIf(!LIVE)("D.9 live Gemini pass -- all scenarios (BILLS, gated)", (
         const det = await buildDecisionPacket({ scenarioId: scenario.id, live: false });
 
         const startedAt = Date.now();
-        const live = await buildDecisionPacket({ scenarioId: scenario.id, live: true });
+        // The cross-family Skeptic's REAL verdict quality is proven separately in
+        // actionops-skeptic-calibration (gated). THIS suite is the GEMINI live pass: it needs a
+        // Groq key for the judge below, which would also make the live Skeptic fire and could
+        // stochastically HOLD a sound finding -- flaking the Sentinel/Strategist/Dispatcher LIVE_AI
+        // and effectiveMode assertions. So we inject an in-pipeline ACCEPT to decouple this suite
+        // from the Skeptic's stochastic verdict (the judge still runs on the real Groq key).
+        const live = await buildDecisionPacket({
+          scenarioId: scenario.id,
+          live: true,
+          skeptic: {
+            generate: async () => ({
+              object: { accepted: true, reason: "in-pipeline accept (Gemini live pass)" }
+            })
+          }
+        });
         const wallClockMs = Date.now() - startedAt;
 
         const sentinel = runById(live, "RUN-SENTINEL");

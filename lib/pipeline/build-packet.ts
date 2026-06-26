@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { runActionOpsAgents } from "@/lib/agents/actionops";
+import { runActionOpsAgents, type SkepticInjection } from "@/lib/agents/actionops";
 import {
   assertConfiguredModelAvailable,
   computeEffectiveMode,
@@ -21,6 +21,11 @@ export type BuildPacketOptions = {
   // from useLiveSignals (which only governs live vs cached signal FETCHING, never the
   // LLM). The page render leaves this false; only the authenticated POST sets it true.
   live?: boolean;
+  // Optional injection seam for the cross-family Skeptic critic (test/DI only -- never billed).
+  // Production leaves this unset; the Skeptic then gates on its own Groq key on the `live` path.
+  // Threaded so a test can drive the Skeptic gate through the FULL assemble+validate path (proving
+  // the NO_ACTION withhold and the schema superRefine hold end-to-end) with NO network.
+  skeptic?: SkepticInjection;
 };
 
 // Assemble a DecisionPacketV2 from the ActionOps agents -- PURE: no persistence,
@@ -32,7 +37,7 @@ export type BuildPacketOptions = {
 export async function buildDecisionPacket(
   options: BuildPacketOptions = {}
 ): Promise<DecisionPacketV2> {
-  const { scenarioId, useLiveSignals = false, live = false } = options;
+  const { scenarioId, useLiveSignals = false, live = false, skeptic } = options;
   const scenario = getActionOpsScenario(scenarioId);
   const now = new Date().toISOString();
 
@@ -57,7 +62,10 @@ export async function buildDecisionPacket(
     enabled: () => live && liveAiEnabled()
   });
 
-  const result = await runActionOpsAgents({ scenario, signals, suppliers, baseDateIso: now, live });
+  const result = await runActionOpsAgents(
+    { scenario, signals, suppliers, baseDateIso: now, live },
+    { skeptic }
+  );
 
   // requested = what the run intended; effective = what actually happened across the
   // agent runs (R4-8). requestedMode reflects THIS invocation's real intent: a live

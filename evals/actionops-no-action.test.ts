@@ -139,10 +139,11 @@ describe("NO_ACTION pipeline (deterministic, SCN-THIN-EVIDENCE)", () => {
     expect(packet.exposureResults.length).toBeGreaterThan(0);
     expect(packet.dataGaps.join(" ")).toMatch(/contingent on the disruption being confirmed/i);
 
-    // The six-run audit trail stays complete -- Strategist + Dispatcher record a $0
+    // The seven-run audit trail stays complete -- Strategist + Dispatcher record a $0
     // withheld run rather than vanishing, so the packet is auditable and never reads
-    // as a degraded/failed run.
-    expect(packet.agentRuns).toHaveLength(6);
+    // as a degraded/failed run. (Seven = the six original + the Phase-4 Skeptic, which
+    // key-OFF is a deterministic affirmative pass, not a withheld run.)
+    expect(packet.agentRuns).toHaveLength(7);
     const withheld = packet.agentRuns.filter((r) => /Withheld: NO_ACTION/.test(r.summary));
     expect(withheld.map((r) => r.agentName).sort()).toEqual(["Dispatcher", "Strategist"]);
     expect(withheld.every((r) => (r.costUsd ?? 0) === 0)).toBe(true);

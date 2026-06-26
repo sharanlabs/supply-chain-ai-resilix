@@ -20,7 +20,19 @@ describe.skipIf(!RECORD)("record live packets per scenario (BILLS, gated)", () =
       mkdirSync(OUT_DIR, { recursive: true });
       const summary: Record<string, unknown>[] = [];
       for (const scenario of ACTIONOPS_SCENARIOS) {
-        const packet = await buildDecisionPacket({ scenarioId: scenario.id, live: true });
+        // Inject an in-pipeline Skeptic ACCEPT so the frozen fixtures are REPRODUCIBLE (a real
+        // cross-family verdict is stochastic and could flip a scenario to NO_ACTION). The Skeptic's
+        // real verdict quality is covered by actionops-skeptic-calibration; replay fixtures only
+        // need a stable, valid Skeptic run.
+        const packet = await buildDecisionPacket({
+          scenarioId: scenario.id,
+          live: true,
+          skeptic: {
+            generate: async () => ({
+              object: { accepted: true, reason: "in-pipeline accept (recorded replay fixture)" }
+            })
+          }
+        });
         writeFileSync(`${OUT_DIR}/${scenario.id}.json`, `${JSON.stringify(packet, null, 2)}\n`);
         const row = {
           id: scenario.id,

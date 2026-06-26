@@ -23,8 +23,10 @@ describe("D.1 -- ActionOps pipeline emits a valid V2 packet (key-OFF, determinis
 
     expect(DecisionPacketV2Schema.safeParse(packet).success).toBe(true);
     expect(packet.packetVersion).toBe(2);
-    // Six ActionOps agents ran, all deterministic -> never mislabeled live.
-    expect(packet.agentRuns).toHaveLength(6);
+    // Seven ActionOps agents ran (the six original + the Phase-4 Skeptic), all deterministic
+    // key-OFF -> never mislabeled live. The Skeptic key-OFF is an affirmative DETERMINISTIC_RULES
+    // pass (no Groq key), so it adds a run without changing the deterministic mode invariant.
+    expect(packet.agentRuns).toHaveLength(7);
     expect(packet.effectiveMode).toBe("DETERMINISTIC_RULES");
     expect(packet.agentRuns.every((r) => r.mode === "DETERMINISTIC_RULES")).toBe(true);
     // Hormuz matches exactly the nine Gulf-origin seed suppliers.

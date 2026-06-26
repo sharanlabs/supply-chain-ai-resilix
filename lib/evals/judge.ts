@@ -1,5 +1,3 @@
-import { createGroq } from "@ai-sdk/groq";
-import { generateObject } from "ai";
 import { z } from "zod";
 import type { AgentRunUsage } from "@/lib/agents/actionops/agent-run";
 import {
@@ -9,6 +7,12 @@ import {
   liveGenerateObject,
   resolvedGeminiModel
 } from "@/lib/agents/run";
+import {
+  GROQ_DEFAULT_MODEL,
+  groqApiKey,
+  groqAvailable,
+  makeGroqGenerate
+} from "@/lib/agents/cross-family";
 
 // The ONE LLM-as-judge (Success_Criteria: "one ... judge is used for exactly one check --
 // no-unsupported-claims prose; everything else is code"). The deterministic graders are the hard
@@ -31,9 +35,11 @@ import {
 // fail-closed + secondary (deterministic graders + human approval are primary). JUDGE_PROVIDER unset
 // (or =gemini) keeps the same-family judge for environments without a Groq key.
 
-// Default Groq judge model: a Meta Llama-4 instruct model -- a different family from Gemini, with
-// Groq json_schema structured-output support. Override with JUDGE_MODEL.
-const GROQ_DEFAULT_JUDGE_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+// Default Groq judge model: the shared cross-family Meta Llama-4 instruct model (lib/agents/
+// cross-family.ts) -- a different family from Gemini, with Groq json_schema structured-output
+// support. Override with JUDGE_MODEL. Single-sourced so the judge + the Phase-4 Skeptic never
+// drift on the cross-family model id.
+const GROQ_DEFAULT_JUDGE_MODEL = GROQ_DEFAULT_MODEL;
 
 // Which provider backs the judge. "groq" (cross-family, recommended) when JUDGE_PROVIDER=groq;
 // otherwise "gemini" (same-family fallback for environments with no Groq key).
@@ -55,35 +61,9 @@ export function resolvedJudgeModel(): string {
 // live path is enabled. (An injected generate in tests bypasses this -- see below.)
 export function judgeEnabled(): boolean {
   if (resolvedJudgeProvider() === "groq") {
-    return Boolean(process.env.GROQ_API_KEY?.trim());
+    return groqAvailable();
   }
   return liveAiEnabled();
-}
-
-// The Groq-bound generate path (cross-family). Same {object, usage} shape liveGenerateObject's
-// default Gemini generate returns, so its budget hard-stop + fail-closed flow are reused unchanged --
-// only the provider differs. Output is bounded (the verdict is tiny; the headroom covers a reasoning
-// model's scratch tokens). Groq is priced at its PUBLISHED rates (pricing.ts GROQ_PRICING) so the
-// budget/ledger stay honest on any key; the per-call estimate is a fraction of a cent, far under cap.
-function makeGroqGenerate(apiKey: string) {
-  const groq = createGroq({ apiKey });
-  return async (a: { model: string; schema: z.ZodTypeAny; prompt: string }) => {
-    const result = await generateObject({
-      model: groq(a.model),
-      schema: a.schema,
-      prompt: a.prompt,
-      maxOutputTokens: 4_000
-    });
-    return {
-      object: result.object,
-      usage: {
-        inputTokens: result.usage?.inputTokens,
-        outputTokens: result.usage?.outputTokens,
-        totalTokens: result.usage?.totalTokens,
-        finishReason: result.finishReason ?? null
-      } satisfies AgentRunUsage
-    };
-  };
 }
 
 // The judge's structured verdict. `supported` = every factual claim in the prose is backed by
@@ -142,7 +122,7 @@ export async function judgeNoUnsupportedClaims(args: {
   // liveGenerateObject falls back to its default Gemini generate.
   let generate = args.generate;
   if (!generate && resolvedJudgeProvider() === "groq") {
-    const key = process.env.GROQ_API_KEY?.trim();
+    const key = groqApiKey();
     if (key) {
       generate = makeGroqGenerate(key);
     }
