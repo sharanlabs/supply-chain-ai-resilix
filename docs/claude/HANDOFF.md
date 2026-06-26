@@ -17,14 +17,25 @@
 > data-driven, WCAG 2.2 AA); P7 adaptive injection red-team (200 cases, 0-leak) + trajectory-eval
 > harness + NO_ACTION regression; P3 (LAST) the tool-using Investigator loop behind `ENABLE_AGENT_LOOP`
 > (default OFF) with the authoritative-binding moat (PARITY-proven byte-equal to the waterfall).
-> Cross-model gated throughout: Codex APPROVED P1; a batched P2→P7 closure REVISE (all safety invariants
-> HELD; refinements applied — `CLOSURE-P2-P7.md`); P3's own Codex gate APPROVED (3 rounds). Gate docs in
-> `docs/claude/gates/agentic-rework/`.
+> Cross-model gated: Codex APPROVED P1; a batched P2→P7 closure REVISE (all safety invariants HELD;
+> refinements applied — `CLOSURE-P2-P7.md`). **P3 cross-model gate = a DATED OBLIGATION (the one open
+> gate leg):** the maker ran its OWN Codex on the loop (3 rounds → APPROVED, maker-drove-the-gate, not
+> independent); the separate-judge pass over `68a668d..29141be` (the loop + the hand-applied closure
+> fixes #3/#4, which had no prior judge) was ATTEMPTED 2026-06-26 but Codex HIT ITS USAGE CAP mid-review
+> (reset ~3:27 PM) → owed. Primary-model diligence on #3/#4 found them sound (guard before any billable
+> work; fail-closed HOLD returns before the Gemini call) but that is NOT the independent judge.
+> **So: "all-gated" is NOT yet true — re-run `~/claude-os/bin/codex-guarded exec -s read-only` with
+> `scratchpad/codex-p3-gate.txt` over `68a668d..29141be` after the reset / on the backup account; the
+> commits stand + push stays held until it APPROVEs.** Gate docs in `docs/claude/gates/agentic-rework/`.
 >
 > **OWNER ACTIONS (owner-gated; autopilot complete):** (1) **review + push** `3385d0f..29141be`;
 > (2) **promote the loop** (`ENABLE_AGENT_LOOP=true`) IF more live runs justify it — the deterministic
 > trajectory ties the baseline; the qualitative win + the live delta are the owner's judgment (live
-> cost ~$0.0022/run); (3) **wire a real transport** (Slack/SES/n8n) — a deliberate step gated by the
+> cost ~$0.0022/run). **PRE-PROMOTION CHECK (do NOT skip):** the loop's live smoke returned NO_ACTION
+> on HORMUZ — the flagship the waterfall ACTs on. That is NOT a clean success: it is equally consistent
+> with the live cross-family Skeptic OVER-REJECTING a corroborated finding (the S3 failure mode P4
+> flagged + the still-unrun calibration would catch). Run the Skeptic calibration (owner action 4)
+> BEFORE promoting, and confirm the loop ACTs on a genuinely corroborated flagship; (3) **wire a real transport** (Slack/SES/n8n) — a deliberate step gated by the
 > typed seam + the `PHASE5-GATE.md` forward-guardrails (esp. the outbox crash-recovery lease/reconcile);
 > (4) **run the gated live calibrations** once on a Groq key — the Skeptic TPR/TNR
 > (`RUN_LIVE_AI_TESTS=true GROQ_API_KEY=… node --env-file=.env node_modules/vitest/vitest.mjs run
