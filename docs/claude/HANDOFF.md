@@ -4,8 +4,12 @@
 > ## CURRENT RESUME (2026-06-26) — READ THIS FIRST; supersedes every block below
 > ============================================================================
 >
-> **Stage: AGENTIC REWORK — Phases 1, 2, 4 DONE + committed locally (push HELD). NEXT: Phase 5
-> (governed action execution), then P6 → P7 → P3 per the reorder.**
+> **Stage: AGENTIC REWORK — Phases 1, 2, 4, 5 DONE + committed locally (push HELD, range
+> `3385d0f..a73add7`). NEXT: Phase 6 (war-room deliberation UI), then P7 → P3 per the reorder.**
+> P5 = governed action execution (transactional outbox, code-owned reversibility moat, NoopTransport
+> default, human-gated outward, auth-gated execute route, `executed_actions` table); security-reviewed
+> safe-to-proceed + [Med] digest-sanitization fixed; verify GREEN 587/24 + gated PG-17 11. Gate doc
+> `docs/claude/gates/agentic-rework/PHASE5-GATE.md`.
 >
 > **OWNER DIRECTIVE (2026-06-26): complete ALL remaining phases in this session; auto-resume on
 > usage-limit reset (a `/schedule` cloud routine + a durable local cron drive the autopilot from
