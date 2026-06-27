@@ -150,5 +150,28 @@ Calibration on the strengthened 14-case set: **TPR 100% (6/6) AND TNR 100% (8/8)
 spaced runs. The mid-iteration regression (U6 off-taxonomy over-trigger briefly accepted) was caught by
 re-measuring and fixed by the EMPTY-`topSectors` clarification — both properties now hold. `npm run verify`
 GREEN (662/26). The single-authoritative differentiator is restored AND the Skeptic still catches every
-over-trigger / misclassification / thin-low-confidence case. **Now cross-model gated + committed (see git
-log + the batched Codex closure for this diff).**
+over-trigger / misclassification / thin-low-confidence case.
+
+## CODEX CROSS-MODEL CLOSURE (2026-06-27) — VERDICT REVISE → resolved; the moat HELD
+Codex (read-only) reviewed the fix diff `9aabf9d`. It **explicitly cleared** the load-bearing wiring:
+`ENABLE_SKEPTIC` is default-on / explicit opt-out / AND-gated with `groqAvailable()`; authoritative-binding
+intact (the sanitized reason lives only in the run record; the gate is a boolean + templated missing-evidence).
+Three findings on EVAL RIGOR, disposed primary-model-final (refute-with-evidence / fix-what-holds):
+- **F1 [Med] gray band untested / "auto-accepts above ~0.5".** PARTLY held. A fresh boundary probe
+  (single-source 0.60 / 0.68 / 0.75) shows the Skeptic ACCEPTS them (boundary ~0.55–0.60), so the premise of
+  an *unsafe* auto-accept is wrong — this is exactly `decideRecommendation`'s existing 0.45-floor policy, and
+  the Skeptic aligning to it (not re-litigating the confidence axis) IS the fix. Adopted the coverage point:
+  added **S9** (single-source, uncorroborated, 0.70 → ACCEPT) to document + lock the gray band.
+- **F2 [Med] one false-accept still passes at TPR 5/6.** HELD — valid, and the same hole the mid-build U6
+  regression exposed. **Fixed:** the gate is now ASYMMETRIC — the UNSOUND side has ZERO tolerance (`fn === 0`;
+  EACH unsound control must individually reject), the SOUND side keeps the aggregate `TNR >= 0.8` (a rare
+  stochastic sound-reject is safe-direction).
+- **F3 [Low] U4 misclassification confounded.** HELD — and a probe confirmed the Skeptic ACCEPTS a *pure*
+  misclassification (incoherent type but corroborated + a real sector). That is correct **by design**: pure
+  structural misclassification is caught UPSTREAM by Atlas's deterministic Sentinel→Atlas firewall, not the
+  Skeptic (whose residual mandate is over-trigger / geo-disagreement / thin-low-confidence). U4 recommented to
+  say what it actually tests; the upstream ownership documented.
+
+Re-measured after the closure: **TPR 100% (6/6, each unsound individually rejected) AND TNR 100% (9/9, incl.
+the gray-band S9)**; `npm run verify` GREEN. The differentiator is restored, the unsound side now has per-case
+teeth, and the gray band + misclassification ownership are documented. **Fully cross-model gated.**

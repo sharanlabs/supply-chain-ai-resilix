@@ -98,12 +98,17 @@ const LABELED: FindingSpec[] = [
   // regression teeth (gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md).
   { id: "S7", accepted: true, eventType: "NATURAL_DISASTER", severity: "HIGH", location: { country: "US" }, confidence: 0.88, sourceCount: 1, corroborated: false, geoAgrees: true, sectors: ["ELECTRONICS"] }, // official NWS hurricane warning: single AUTHORITATIVE source acts
   { id: "S8", accepted: true, eventType: "QUALITY_RECALL", severity: "HIGH", location: { country: "US" }, confidence: 0.82, sourceCount: 1, corroborated: false, geoAgrees: true, sectors: ["AGRICULTURE_FOOD"] }, // confirmed official recall: single AUTHORITATIVE source acts
+  // Gray-band single source (Codex closure F1): a single, UNCORROBORATED, MEDIUM-confidence finding with a
+  // real exposure. decideRecommendation ACTs on this (confidence >= the 0.45 floor), so the Skeptic must NOT
+  // be MORE conservative than the deterministic policy here -- aligning to that floor, not re-litigating the
+  // confidence axis, is the whole point of the fix. Measured boundary ~0.55-0.60; 0.70 sits clearly above it.
+  { id: "S9", accepted: true, eventType: "SUPPLIER_BANKRUPTCY", severity: "HIGH", location: { country: "DE" }, confidence: 0.7, sourceCount: 1, corroborated: false, geoAgrees: true, sectors: ["AUTOMOTIVE"] }, // gray-band single source -- consistent with decideRecommendation's floor
 
   // --- UNSOUND (reject) ---
   { id: "U1", accepted: false, eventType: "CHOKEPOINT_CLOSURE", severity: "CRITICAL", location: { country: "OM", chokepoint: "Strait of Hormuz" }, confidence: 0.85, sourceCount: 3, corroborated: true, geoAgrees: true, sectors: [] }, // over-trigger: NO actionable exposure
   { id: "U2", accepted: false, eventType: "PORT_DISRUPTION", severity: "MEDIUM", location: { country: "US" }, confidence: 0.18, sourceCount: 1, corroborated: false, geoAgrees: false, sectors: ["LOGISTICS"] }, // thin evidence: lone, uncorroborated, low-confidence
   { id: "U3", accepted: false, eventType: "NATURAL_DISASTER", severity: "HIGH", location: { country: "JP" }, confidence: 0.3, sourceCount: 1, corroborated: false, geoAgrees: false, sectors: ["ELECTRONICS"] }, // geo disagreement + thin
-  { id: "U4", accepted: false, eventType: "CHOKEPOINT_CLOSURE", severity: "HIGH", location: {}, confidence: 0.7, sourceCount: 2, corroborated: true, geoAgrees: false, sectors: [] }, // misclassification: a chokepoint closure with no chokepoint and no exposure
+  { id: "U4", accepted: false, eventType: "CHOKEPOINT_CLOSURE", severity: "HIGH", location: {}, confidence: 0.7, sourceCount: 2, corroborated: true, geoAgrees: false, sectors: [] }, // OVER-TRIGGER (empty topSectors) + geo-disagree -- the signals the Skeptic actually rejects on. NOTE (Codex closure F3): a PURE misclassification (incoherent type but otherwise corroborated + a real actionable sector) is NOT the Skeptic's job -- it is caught upstream by Atlas's deterministic Sentinel->Atlas firewall (fail-closed); measured, the Skeptic ACCEPTS such a finding by design. The Skeptic's residual mandate is over-trigger / geo-disagreement / thin-low-confidence.
   { id: "U5", accepted: false, eventType: "GEOPOLITICAL_CONFLICT", severity: "HIGH", location: { country: "BR" }, confidence: 0.22, sourceCount: 1, corroborated: false, geoAgrees: true, sectors: ["AGRICULTURE_FOOD"] }, // thin evidence
   { id: "U6", accepted: false, eventType: "QUALITY_RECALL", severity: "MEDIUM", location: { country: "US" }, confidence: 0.8, sourceCount: 2, corroborated: true, geoAgrees: true, sectors: ["OTHER_UNMAPPED"] } // over-trigger: only off-taxonomy exposure (no recognized sector)
 ];
@@ -187,10 +192,16 @@ describe.skipIf(!LIVE)("Skeptic calibration: live cross-family pass (BILLS Groq 
       if (misses.length) console.log("misses:\n  " + misses.join("\n  "));
       console.log("=========================================\n");
 
-      // Calibrated bar: reject >=80% of unsound findings AND keep sound-finding false-rejects low
-      // (>=80% TNR). Below this the Skeptic is not trustworthy as a gate input -> step the model up
-      // (SKEPTIC_MODEL=a stronger Groq model) or sharpen the prompt before relying on it.
-      expect(tpr, `TPR ${(tpr * 100).toFixed(1)}% below bar`).toBeGreaterThanOrEqual(0.8);
+      // Calibrated bar -- ASYMMETRIC by risk direction (Codex closure F2):
+      //  - UNSOUND side = ZERO tolerance. EACH unsound control must be individually rejected; a single false
+      //    ACCEPT (an unsound finding drafted to suppliers) is the DANGEROUS direction and must NOT hide
+      //    behind an 80% aggregate -- the exact hole that let a mid-build over-trigger regression pass at 5/6.
+      //  - SOUND side = an aggregate >=80% TNR. A rare stochastic sound-REJECT is safe-direction (NO_ACTION,
+      //    held for a human), so it is tolerated; a categorical sound-reject (the original over-rejection bug)
+      //    still trips the bar.
+      // Below either, the Skeptic is not trustworthy as a gate input -> step SKEPTIC_MODEL up or sharpen the
+      // prompt before relying on it. (tpr is logged above for visibility; the hard gate is fn === 0.)
+      expect(fn, `unsound finding(s) wrongly ACCEPTED -- false-accept is the dangerous direction: ${misses.filter((m) => m.startsWith("FN")).join("; ")}`).toBe(0);
       expect(tnr, `TNR ${(tnr * 100).toFixed(1)}% below bar`).toBeGreaterThanOrEqual(0.8);
     },
     600_000

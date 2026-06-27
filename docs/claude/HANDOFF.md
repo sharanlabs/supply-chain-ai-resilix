@@ -1,4 +1,40 @@
-# HANDOFF — resume pointer (updated 2026-06-26)
+# HANDOFF — resume pointer (updated 2026-06-27)
+
+> ============================================================================
+> ## SESSION 2026-06-27 — FULL-PERMISSION run: Skeptic reconciled + 5 frontend samples; at the Codex+push gate
+> ============================================================================
+>
+> **Read FIRST. Owner granted FULL PERMISSION ("complete all tests, fixes, reconciliations, improvements,
+> everything end to end … take full permission") + asked for 5 frontend samples as the final work, + set a
+> durable auto-resume cron for the 3:40 AM EDT limit reset. State now:**
+>
+> - **A) Skeptic single-authoritative reconciliation — ✅ DONE + committed (`9aabf9d`).** The gate-2 finding
+>   (the live Skeptic categorically over-rejected single-source findings, breaking the "single AUTHORITATIVE
+>   source acts" differentiator) is FIXED: A1 prompt rewrite (confidence=authoritativeness; don't reject on
+>   corroborated=false alone; thin-evidence needs all three; over-trigger keys on empty topSectors) + B the
+>   `ENABLE_SKEPTIC` flag. Re-measured **TPR 100% / TNR 100%, robust across 3 spaced runs**; the boundary
+>   probe confirmed single-authoritative ACCEPT restored, thin/over-trigger still REJECT. `verify:full` GREEN
+>   (662 unit / 26 skip + 21 e2e incl. flake-guard + WCAG 2.2 AA + build + secrets). Full record:
+>   `docs/claude/gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md` (RESOLUTION section).
+> - **B) 5 frontend samples — ✅ DONE (`samples/2026/`).** index + 01 command-console, 02 intelligence-brief,
+>   03 conversational, 04 control-tower-map (SVG), 05 runway-timeline. Modern-2026, white/cool grounds, ONE
+>   steel accent, red-intensity+slate severity (NO pink/green/cream/orange), Geist (NO serif). Grounded in
+>   LIVE 2026 + SCRM research (`samples/2026/README.md`), real Hormuz packet. **Visually verified** first-hand
+>   via headless-Chromium screenshots. NOTE: `samples/` is gitignored by the project ("not for public ship")
+>   → these are LOCAL review artifacts to pick from, NOT committed/pushed. Once a direction is chosen it gets
+>   built into the shipped app. (Will offer to commit them if the owner wants them tracked.)
+> - **C) Codex cross-model gate on `9aabf9d` — ✅ DONE (REVISE → closed; moat HELD).** Codex explicitly cleared
+>   the `ENABLE_SKEPTIC` wiring + authoritative-binding. 3 EVAL-rigor findings, disposed primary-model-final:
+>   F1 gray-band (refuted the "unsafe auto-accept" premise with a fresh boundary probe; added the documented
+>   S9 gray-band case); F2 per-case unsound rejection (the real fix — gate now asymmetric `fn===0` unsound +
+>   `TNR>=0.8` sound); F3 pure-misclassification is Atlas's upstream firewall, not the Skeptic (documented).
+>   Re-measured TPR 100% (6/6 per-case) / TNR 100% (9/9); `npm run verify` GREEN (662/25). Closure = eval-only,
+>   no prod-logic change. Gate doc: PHASE4-SKEPTIC-CALIBRATION.md (CODEX CLOSURE section).
+> - **D) Push — ⏳ authorized, READY.** Range = local commits on `origin/main..HEAD` (the whole held agentic
+>   rework + this session's Skeptic fix + closure); push the CODE range, state it plainly (samples stay local
+>   per `.gitignore`). verify:full GREEN (662 + 21 e2e); the closure is eval-only so e2e is unaffected.
+>
+> ----- the (later-3) block below is now EXECUTED (the decision it flagged was implemented under full permission) -----
 
 > ============================================================================
 > ## SESSION 2026-06-26 (later-3) — GATE-2 SKEPTIC CALIBRATION DONE → significant finding; OWNER DECISION owed
