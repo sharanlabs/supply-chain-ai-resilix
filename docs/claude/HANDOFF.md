@@ -26,12 +26,13 @@
 > + validated supplierId), quarantine, PARITY (byte-equal to the waterfall), flag-off no-op. Findings
 > fixed in order: budget-reservation (same-step), non-live Groq routing, the NODE_ENV DI-seam guard, and
 > the closing 3 edge cases (a Skeptic-double-bill race, a direct-call bypass, a phantom-reservation leak).
-> **One PRE-PROMOTION belt-and-suspenders remains (NOT blocking, since the loop is flag-OFF):** an
-> independent Codex confirmation of the FINAL 3 edge-case fixes (`b46a4fa`) — Codex re-capped ~8:31 PM;
-> those 3 are maker + advisor-reviewed + verify-green. Re-run `codex-guarded exec -s read-only` with
-> `scratchpad/codex-p3-fix.txt` over `b058751..b46a4fa` before flipping `ENABLE_AGENT_LOOP`. Every
-> production path (run-exception → build-packet → runActionOpsAgents) is guarded + the loop is OFF, so
-> the SHIPPING product is fully gated. Gate docs in `docs/claude/gates/agentic-rework/`.
+> **✅ The FINAL 3 edge-case fixes (`b058751..b46a4fa`) were independently Codex-CONFIRMED 2026-06-26
+> (8:33 PM): VERDICT APPROVE, ZERO findings** — all 3 hold against `ai@5.0.204` (the `??=` Skeptic memo
+> is synchronous-before-await, the `runInvestigatorLoop` entry guard runs before any Gemini construction,
+> the catch subtracts only the outstanding reservation — no double-clear), and the MOAT / parity / flag-off
+> no-op all still hold. **So there are NO open gate legs: the ENTIRE rework — incl. the flag-OFF
+> Investigator loop — is FULLY independently cross-model gated.** Gate docs in
+> `docs/claude/gates/agentic-rework/`.
 >
 > **OWNER ACTIONS (owner-gated; autopilot complete):** (1) **review + push** `3385d0f..b46a4fa`;
 > (2) **promote the loop** (`ENABLE_AGENT_LOOP=true`) IF more live runs justify it — the deterministic
