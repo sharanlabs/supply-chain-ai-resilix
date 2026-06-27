@@ -89,17 +89,23 @@ function axeTargets(nodes: AxeNode[]): string[] {
 // One clean-check used by EVERY axe scan. It asserts `violations` is empty and
 // triages `incomplete` per node -- NOT by a blind rule-id allow-list (which
 // would let a real, uncovered node pass). `incomplete` means "axe could not
-// DECIDE": here the only legitimate cause is text over a CSS gradient (the
-// approve-rail glow), which axe cannot composite to a single bg color. So:
+// DECIDE": here the only legitimate cause is text over a background axe cannot
+// composite to a single solid color. There are TWO such backgrounds on this
+// surface, so a color-contrast incomplete is forgiven ONLY on one of them, and
+// only after its REAL WCAG ratio is measured by ground truth:
+//   (1) the approve-rail CSS gradient (text inside .bg-gradient-to-b) -- measured
+//       against the gradient's darkest effective stop (accent-soft/60 over surface);
+//   (2) the translucent, blurred sticky masthead (text under .backdrop-blur-xl) --
+//       it paints var(--color-ground) at 80% alpha and the page behind it (at the
+//       scanned page-top -- none of the layer-1 scans scroll) is also
+//       var(--color-ground), so the composite is exactly ground; measured against it.
+// So:
 //   - any incomplete rule OTHER than color-contrast is a genuine undecided gap
 //     -> fail loud;
-//   - each residual color-contrast incomplete MUST be text inside the known
-//     approve-rail CSS gradient (the only background axe cannot composite here)
-//     AND must clear its WCAG threshold by GROUND TRUTH against that gradient's
-//     darkest effective stop (accent-soft/60 over the surface). A contrast
-//     incomplete NOT on the rail gradient -- or that fails the ratio -- fails
-//     loud. This runs INSIDE every scan, so no tab/state's incomplete is left
-//     unmeasured, and the background is verified per node, never assumed.
+//   - a color-contrast incomplete on NEITHER known background -- or that fails its
+//     ratio -- fails loud (never a blanket pass). This runs INSIDE every scan, so
+//     no state's incomplete is left unmeasured, and the background is verified per
+//     node, never assumed.
 // Contrast axe CAN resolve lands in `violations` and is asserted above.
 async function assertAxeClean(
   page: Page,
@@ -133,12 +139,16 @@ async function assertAxeClean(
     results.incomplete.find((r) => r.id === "color-contrast")?.nodes ?? [];
   if (ccNodes.length === 0) return;
 
-  // The rail gradient's darkest effective bg = accent-soft at 60% over surface.
+  // Resolve each known uncompositable background to a ground-truth solid we can
+  // measure against. (1) The rail gradient's darkest effective bg = accent-soft at
+  // 60% over surface. (2) The masthead paints var(--color-ground) at 80% over the
+  // page, whose background is also var(--color-ground) at the scanned page-top, so
+  // the composite is exactly ground (ground is also the darker of {ground, surface},
+  // so this is the conservative case if a lighter surface ever sat behind the band).
   const accentSoft = await resolveSrgb(page, "var(--color-accent-soft)");
   const surface = await resolveSrgb(page, "var(--color-surface)");
-  const darkestBg = accentSoft.map((c, i) =>
-    Math.round(0.6 * c + 0.4 * surface[i])
-  );
+  const railBg = accentSoft.map((c, i) => Math.round(0.6 * c + 0.4 * surface[i]));
+  const mastheadBg = await resolveSrgb(page, "var(--color-ground)");
 
   for (const node of ccNodes) {
     const selector = node.target[node.target.length - 1] as string;
@@ -151,21 +161,32 @@ async function assertAxeClean(
           color: s.color,
           fontPx: parseFloat(s.fontSize),
           weight: parseInt(s.fontWeight, 10) || 400,
-          onRailGradient: el.closest(".bg-gradient-to-b") !== null
+          onRailGradient: el.closest(".bg-gradient-to-b") !== null,
+          onMasthead: el.closest(".backdrop-blur-xl") !== null
         };
       });
+    // Every incomplete node MUST sit on one of the two known uncompositable
+    // backgrounds; anything else is a genuine uncovered gap -> fail loud.
+    const knownBg = info.onRailGradient
+      ? railBg
+      : info.onMasthead
+        ? mastheadBg
+        : null;
     expect(
-      info.onRailGradient,
-      `[${label}] color-contrast incomplete "${selector}" is NOT inside the known rail gradient -- it needs a real fix or its own dedicated coverage, not a blanket pass`
-    ).toBe(true);
+      knownBg,
+      `[${label}] color-contrast incomplete "${selector}" is on neither known uncompositable background (approve-rail gradient or translucent masthead) -- it needs a real fix or its own dedicated coverage, not a blanket pass`
+    ).not.toBeNull();
     // WCAG large-text threshold: >=24px, or >=18.66px bold -> 3:1, else 4.5:1.
     const large =
       info.fontPx >= 24 || (info.fontPx >= 18.66 && info.weight >= 700);
     const need = large ? 3 : 4.5;
-    const ratio = contrastRatio(await resolveSrgb(page, info.color), darkestBg);
+    const ratio = contrastRatio(
+      await resolveSrgb(page, info.color),
+      knownBg as number[]
+    );
     expect(
       ratio,
-      `[${label}] incomplete "${selector}" (${info.fontPx}px) vs darkest rail stop = ${ratio.toFixed(2)}:1 < ${need}`
+      `[${label}] incomplete "${selector}" (${info.fontPx}px) vs its known background = ${ratio.toFixed(2)}:1 < ${need}`
     ).toBeGreaterThanOrEqual(need);
   }
 }
@@ -298,6 +319,54 @@ test.describe("a11y / layer 1 -- axe WCAG 2.2 AA", () => {
       .withTags([...WCAG_AA_TAGS])
       .analyze();
     await assertAxeClean(page, results, "approved state");
+  });
+
+  // Regression guard for the masthead color-contrast flake (E2E-A11Y-FLAKE.md).
+  // Under parallel CPU load axe intermittently returns the faint masthead span
+  // (the unique `.hidden`, text-ink-faint over the translucent bg-ground/80
+  // backdrop-blur band) as `color-contrast incomplete`. assertAxeClean must
+  // MEASURE that node against the masthead's ground-truth background and PASS it
+  // (it is 5.39:1, >= 4.5:1 AA) -- not blanket-fail it. This forces the exact
+  // incomplete condition DETERMINISTICALLY (no timing race), so the fix is proven
+  // every run, not only under load -- and a real contrast regression is caught.
+  test("a masthead color-contrast `incomplete` is measured + passes, not blanket-failed (flake guard)", async ({
+    page
+  }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("actionops-packet")).toBeVisible();
+    await settle(page);
+
+    // The exact axe verdict the flake produces: the masthead span reported as an
+    // undecided color-contrast node. Must NOT throw -- it is measured vs ground.
+    const mastheadIncomplete = {
+      violations: [],
+      incomplete: [{ id: "color-contrast", nodes: [{ target: [".hidden"] }] }]
+    } as unknown as AxeResult;
+    await assertAxeClean(page, mastheadIncomplete, "flake-guard masthead");
+
+    // Negative control: an incomplete node on NEITHER known background (the main
+    // briefing container -- not the rail gradient, not under the blur) must STILL
+    // fail loud, proving the fix did not become a blanket pass.
+    const uncoveredIncomplete = {
+      violations: [],
+      incomplete: [
+        {
+          id: "color-contrast",
+          nodes: [{ target: ['[data-testid="actionops-packet"]'] }]
+        }
+      ]
+    } as unknown as AxeResult;
+    let threw = false;
+    try {
+      await assertAxeClean(page, uncoveredIncomplete, "flake-guard control");
+    } catch (e) {
+      threw = true;
+      expect(String(e)).toContain("neither known uncompositable background");
+    }
+    expect(
+      threw,
+      "an incomplete node on neither known background must fail loud (not a blanket pass)"
+    ).toBe(true);
   });
 });
 

@@ -1,7 +1,45 @@
 # e2e a11y flake — diagnosis + fix direction (2026-06-26)
 
-**Status: DIAGNOSED, not yet fixed. Owner chose "fix the flake first" — apply in the fresh
-re-eval session. Tree is clean (this was a read-only investigation; no code changed).**
+**Status: ✅ FIXED 2026-06-26 (fresh re-eval session). Test-side fix applied to
+`evals/e2e/a11y.spec.ts` (Option B — see "Resolution" below). Proven by a red baseline
+(reproduced) → deterministic guard test → robust green-under-load. Cross-model checkpoint +
+local commit pending.**
+
+> ## Resolution (2026-06-26) — Option B, advisor-gated
+>
+> **Fix (the minimal-diff "second known background", chosen over the general DOM-walk):**
+> `assertAxeClean` now classifies each `color-contrast` incomplete node by which KNOWN
+> uncompositable background it sits on — the approve-rail gradient (`.bg-gradient-to-b`) OR
+> the translucent masthead (`.backdrop-blur-xl`) — measures its REAL WCAG ratio against that
+> ground-truth background, and still **fails loud** for a node on neither (no blanket pass).
+> The masthead bg = `var(--color-ground)` (the band's 80% tint over the page-top ground; none
+> of the 3 layer-1 scans scroll, so the composite is exactly ground). The masthead span then
+> measures 5.39:1 ≥ 4.5:1 and passes deterministically. The rationale comment was corrected to
+> describe both backgrounds.
+>
+> **Why Option B not the general walk (advisor):** the rail gradient is a `background-image`,
+> so a `backgroundColor` DOM-walk reads it as transparent and would silently measure rail text
+> against `surface` — a false-pass regression in the one case already handled. B leaves that
+> path untouched.
+>
+> **Proof (all three, per the advisor's done-criteria):**
+> 1. **Red baseline reproduced** — calibrated CPU-saturated stress (4 burners + 120 masthead
+>    scans, 30s timeout) produced the genuine signature `masthead-incomplete-RED=2`,
+>    `axe-violations=0` (confirms the failure is ALWAYS the incomplete blanket-fail path, never
+>    a `violations` entry — so the fix targets the real failure).
+> 2. **Deterministic guard test** (new, timing-independent) — injects the exact axe verdict the
+>    flake produces (masthead `.hidden` as a color-contrast incomplete) and asserts it is
+>    measured-and-PASSED, plus a negative control (a node on neither known bg) that still fails
+>    loud. Proven every run, not only under load.
+> 3. **Robust green-under-load** — 6/6 full `test:e2e` runs under mild added load:
+>    `suite-failures=0/6  masthead-RED=0  timeouts=0` (0 timeouts ⇒ tests reached their
+>    assertions ⇒ the zero reds are real, not timeout-masked). e2e count 20 → **21** (the guard).
+>
+> **Process note now closed:** the original "verify:full GREEN · 20 e2e" was a good-run
+> snapshot. The new deterministic guard converts the previously load-only-checked masthead
+> contrast into a path verified on EVERY run, so this class of flake can't silently return.
+
+----- original diagnosis (2026-06-26, pre-fix) below — retained as the record -----
 
 ## Symptom
 
