@@ -1,6 +1,37 @@
 # HANDOFF — resume pointer (updated 2026-06-26)
 
 > ============================================================================
+> ## SESSION 2026-06-26 (later) — e2e flake found + diagnosed; FRESH RE-EVAL next
+> ============================================================================
+>
+> **Owner plan: a FRESH session does a full re-run + evaluation — blindspots, fixes,
+> improvements, tweaks, polish. This block + `tasks/todo.md` are the starting state.**
+>
+> **What this session did (read-only verification of the "shippable" claim):**
+> - Re-confirmed first-hand: `npm run test` = **662 passed / 25 skipped / 0 failed**; typecheck,
+>   lint, `next build`, secret-scan all clean. The rework LOGIC is solid + fully cross-model gated
+>   (unchanged from the block below). No product/test code changed — the only working-tree changes
+>   are these two handoff docs (this block + the diagnosis doc), left uncommitted for owner review.
+> - **Found a real flake the records missed:** `npm run test:e2e` (NOT part of `verify`) intermittently
+>   fails the approved-state WCAG axe scan under parallel load (`19/20`, then `20/20` on re-run; `4/4`
+>   isolated). The recorded "verify:full GREEN · 20 e2e" was a good-run snapshot, not robust.
+> - **Diagnosed it fully → `docs/claude/gates/agentic-rework/E2E-A11Y-FLAKE.md`.** Root cause: axe can't
+>   composite the faint masthead span (`actionops-dashboard.tsx:56`, `text-ink-faint`, the unique
+>   `.hidden` node) over the translucent `bg-ground/80 backdrop-blur-xl` masthead → intermittent
+>   `color-contrast incomplete`; the test only forgives incompletes on the rail gradient, so it
+>   blanket-fails. **NOT a product a11y bug** — the text is **5.39:1 (≥ 4.5:1 AA small-text), proven by
+>   exact OKLCH→sRGB computation.** Fix is TEST-side: generalize `assertAxeClean` to measure true
+>   contrast of ANY incomplete node, not just rail-gradient ones (settle-hardening is the WRONG fix —
+>   no animation involved). Full fix direction + verification recipe in the diagnosis doc.
+>
+> **NEXT (fresh session):** (1) apply the test-side flake fix per the diagnosis doc + verify the flake
+> is gone under parallel-load stress; (2) the broader re-eval the owner wants (blindspots/polish);
+> (3) THEN the still-pending owner gates below (review + push the 20 unpushed commits `40a71e1..a3a7c70`;
+> the gated Skeptic calibration; loop promotion; real transport). Push remains HELD.
+>
+> ----- the rework-complete status below is CURRENT + valid; only the e2e-robustness asterisk is new -----
+
+> ============================================================================
 > ## CURRENT RESUME (2026-06-26) — READ THIS FIRST; supersedes every block below
 > ============================================================================
 >
