@@ -1,6 +1,63 @@
 # HANDOFF — resume pointer (updated 2026-06-26)
 
 > ============================================================================
+> ## SESSION 2026-06-26 (later-2) — e2e FLAKE FIXED + moat re-verified; AT THE OWNER'S DOOR
+> ============================================================================
+>
+> **Read this FIRST (supersedes the FRESH-RE-EVAL block below — that is now discharged). The fresh
+> re-eval's bounded empirical sweep is DONE + GREEN; the autonomous runway ENDS here — what remains is
+> OWNER-GATED. Push still HELD (`origin/main..HEAD` = **26 commits** through this handoff commit).**
+>
+> **What this session did (all first-hand, not re-asserted snapshots):**
+> - **FIXED the e2e a11y masthead flake** (commit `b05d2e3`, local, push held). Test-side, Option B:
+>   `assertAxeClean` now measures EVERY color-contrast `incomplete` against the known uncompositable
+>   background it sits on — rail gradient (`.bg-gradient-to-b`) OR the translucent masthead
+>   (`.backdrop-blur-xl` = `var(--color-ground)`) — and still **fails loud** for a node on neither (no
+>   blanket pass). + a **DETERMINISTIC guard test** that injects the exact incomplete verdict the flake
+>   produces and proves it is measured-and-passed (negative control fails loud) → the masthead contrast
+>   path is now verified on EVERY run, not only under load. **e2e 20 → 21.** Proof (advisor done-criteria):
+>   red baseline reproduced under CPU saturation (`masthead-RED=2`, `axe-violations=0` → the failure is
+>   ALWAYS the incomplete path, so the fix targets it); guard green; **6/6 full `test:e2e` runs green
+>   under load (0 reds, 0 timeouts)**. Full record: `gates/agentic-rework/E2E-A11Y-FLAKE.md`.
+> - **Re-verified the rework's load-bearing claims first-hand** (the ones standing on single good runs —
+>   the next flake-shaped risk): `npm run verify` GREEN (**662 passed / 25 skipped** + build + secrets,
+>   exit 0); the **MOAT** suites GREEN (`actionops-investigator` + `action-taxonomy` = **36 passed**) —
+>   **PARITY byte-equal to the waterfall** (ACT-Hormuz + NO_ACTION-thin-evidence slices), the input-side
+>   moat (off-context supplierId rejected), the flag-OFF no-op routing. Moat intact.
+> - **NO product/rework code changed** — the only code change is the test-side flake fix. The
+>   deterministic-pipeline → governed multi-agent rework (P1–P7) remains COMPLETE + cross-model gated.
+>   (The test-only change is sub-threshold: it rides to push WITHOUT a separate cross-model leg, by
+>   deliberate proportionality — same as prior banked sub-threshold changes; not gated on a future Codex run.)
+>
+> **PROCESS GAP surfaced (fix recommended, owner/infra-scoped — NOT silently dropped):** `npm run verify`
+> does NOT run `test:e2e` (only `verify:full` does), yet the records habitually cited "verify GREEN" as if
+> it covered e2e — which is how this flake hid — and e2e was only ever run on a good run, not under load.
+> The new deterministic guard structurally closes THIS flake class; the SYSTEMIC fix (make the gate that
+> blocks ship/push run e2e, ideally a stressed pass) is a recommended tracked follow-up. [[verify-claims-are-good-run-snapshots]]
+>
+> **OWNER GATES — the autonomous runway ENDS here; do NOT auto-proceed past these (key-gated / irreversible):**
+>   1. **Review + push** `origin/main..HEAD` (**26 commits** through this handoff commit; flake fix = `b05d2e3`).
+>   2. **Skeptic calibration (key-gated, UNMEASURED — the HIGHEST residual risk).** The loop's live smoke
+>      returned **NO_ACTION on HORMUZ** (the flagship the waterfall ACTs on). NOT a clean success — equally
+>      consistent with the live cross-family Skeptic OVER-REJECTING a corroborated finding (the S3 failure
+>      mode P4 flagged). Run the TPR/TNR calibration on a Groq key (`RUN_LIVE_AI_TESTS=true GROQ_API_KEY=…
+>      node --env-file=.env node_modules/vitest/vitest.mjs run evals/actionops-skeptic-calibration.test.ts`)
+>      and confirm the loop ACTs on a genuinely corroborated flagship BEFORE promoting.
+>   3. **Promote the loop** (`ENABLE_AGENT_LOOP=true`) only if live runs justify it (gate 2 first).
+>   4. **Wire a real transport** (Slack/SES/n8n) — typed seam + `PHASE5-GATE.md` forward-guardrails (esp.
+>      the outbox crash-recovery lease/reconcile).
+>   5. Optional: re-capture the homepage fixture incl. the Skeptic run.
+>
+> **RESUME (fresh session recommended — this context is full of stress-run logs; per session-hygiene a
+> clean window is the right place for further work):** the empirical sweep is done + green. If the owner
+> wants more autonomous work before the gates, the only bounded scope left is a RUNTIME-risk sweep (run
+> the live-gated proofs once a key is provided; the outbox crash-recovery reconcile). Do NOT open an
+> open-ended 7-phase code-polish hunt — the rework is already gated-to-APPROVE, so re-reading gated code
+> is the wrong tool; the residual risk is runtime + the owner gates above.
+>
+> ----- the FRESH-RE-EVAL block below is DISCHARGED (flake now fixed); kept for the diagnosis trail -----
+
+> ============================================================================
 > ## SESSION 2026-06-26 (later) — e2e flake found + diagnosed; FRESH RE-EVAL next
 > ============================================================================
 >
@@ -37,7 +94,7 @@
 >
 > **Stage: AGENTIC REWORK — ✅ ALL 7 PHASES DONE + committed locally (push HELD, range
 > `3385d0f..b46a4fa`). The deterministic-pipeline → governed multi-agent system rework is COMPLETE +
-> CROSS-MODEL GATED. `npm run verify` GREEN (662/25 + 20 e2e + gated PG-17 11). Next is the OWNER's call (below).**
+> CROSS-MODEL GATED. `npm run verify` GREEN (662/25 + build + secrets); `verify:full` adds 21 e2e (was 20 pre-flake-fix) + gated PG-17 11. Next is the OWNER's call (below).**
 >
 > **What shipped (all behind their gates, flag-off waterfall green throughout):** P1 six SCRM domain
 > wins (+ guidelines-monitor domain fixes + homepage re-capture + Codex-REVISE close); P2 Dual-LLM

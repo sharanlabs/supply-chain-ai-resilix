@@ -35,6 +35,9 @@ Sequenced per advisor (low-risk green progress first, coupled spine in the middl
 - [x] **Batched Codex closure P2→P7** ✅ 2026-06-26 (`5f9a03a`+`29141be`). REVISE; all load-bearing safety invariants HELD; 3 Med + 4 Low refinements applied (#1 done by P3; #3/#4 hardened; #6/#7 comments; #2 outbox-crash tracked). `CLOSURE-P2-P7.md`.
 
 ## ✅ AGENTIC REWORK COMPLETE (all 7 phases, `3385d0f..29141be`, push HELD)
+
+**2026-06-26 (later-2) — fresh re-eval, bounded empirical sweep DONE + GREEN:** FIXED the e2e a11y masthead flake (test-side, Option B + a deterministic guard; commit `b05d2e3`; **e2e 20 → 21**; proof = red baseline reproduced under CPU saturation + 6/6 `test:e2e` green under load, 0 reds/0 timeouts). Re-verified first-hand: `npm run verify` GREEN (662/25 + build + secrets); MOAT suites GREEN (36 passed — PARITY byte-equal ACT+NO_ACTION, input-moat, flag-off no-op). NO product/rework code touched. Unpushed `origin/main..HEAD` = 26 commits through this handoff commit (flake fix = `b05d2e3`), push HELD. **Process gap recorded:** `verify` ≠ `verify:full` (only the latter runs e2e) → recommend the ship/push gate run e2e (ideally stressed). The owner-gated steps below are UNCHANGED + remain the autonomous stop-line. Full record: `docs/claude/HANDOFF.md` (top block) + `gates/agentic-rework/E2E-A11Y-FLAKE.md`.
+
 **Owner-gated next steps (autopilot done):** (1) review + push; (2) promote the loop (`ENABLE_AGENT_LOOP`) if live runs justify; (3) wire a real transport (typed seam + PHASE5 forward-guardrails); (4) run the gated live calibrations (Skeptic TPR/TNR + loop smoke) on a Groq key; (5) optional homepage re-capture incl. the Skeptic run.
 
 **Design calls (locked, senior-default within the plan):** TTR = scenario `supplierRecoveryDays`; recovery options in a NEW live producer; email numeral-free; margin via `marginPct`. **Authoritative-binding invariant** holds (all numbers deterministic; no LLM authority — trivially true in Phase 1, no loop).
