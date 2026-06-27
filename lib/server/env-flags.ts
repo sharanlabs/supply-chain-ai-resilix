@@ -17,6 +17,19 @@ export function liveAiEnabled(): boolean {
   return envBool("ENABLE_LIVE_AI") && Boolean(process.env.GEMINI_API_KEY?.trim());
 }
 
+// Phase 4 (the cross-family Skeptic critic): whether the live adversarial Skeptic GATE is active.
+// The Skeptic shares the Groq key with the no-unsupported-claims judge (cross-family.ts); this flag
+// DECOUPLES the gate's activation from the mere presence of that key, so a judge-only deployment does
+// not silently gain an outbound-action gate it never opted into. DEFAULT ON (Phase 4 is a core rework
+// feature and its behavior is corroboration-scoped, not over-rejecting single authoritative sources);
+// the caller still AND-gates on a Groq key being present. Set ENABLE_SKEPTIC=false to run the
+// deterministic affirmative pass instead (the pre-Phase-4 waterfall gate).
+export function skepticGateEnabled(): boolean {
+  // Explicit opt-OUT wins; absent/empty -> on. (Symmetric with envBool's truthy set.)
+  const v = process.env.ENABLE_SKEPTIC?.trim().toLowerCase();
+  return !(v === "false" || v === "0" || v === "no" || v === "off");
+}
+
 // Phase 3 (the agentic rework capstone): route the run through the tool-using Investigator
 // LOOP instead of the deterministic waterfall. DEFAULT OFF -- the loop ships dark and is
 // promoted to default-on only by the owner once the P7 trajectory evals show it beats the

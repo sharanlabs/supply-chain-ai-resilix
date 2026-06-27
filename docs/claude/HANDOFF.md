@@ -1,6 +1,55 @@
 # HANDOFF — resume pointer (updated 2026-06-26)
 
 > ============================================================================
+> ## SESSION 2026-06-26 (later-3) — GATE-2 SKEPTIC CALIBRATION DONE → significant finding; OWNER DECISION owed
+> ============================================================================
+>
+> **Read this FIRST. The owner provided the Groq key ("groq key is already added") and asked to continue
+> in-session, plus: "auto resume once claude limits hit. It resets at 3:40 am EDT, Saturday 27th." A DURABLE
+> one-shot cron is set for ~3:47 AM EDT 2026-06-27 to resume after the reset (`.claude/scheduled_tasks.json`).**
+>
+> **Gate 2 (the live cross-family Skeptic TPR/TNR calibration — the HANDOFF's highest open correctness risk)
+> is DISCHARGED, with a finding that CHANGES the promotion recommendation.** Full record:
+> `docs/claude/gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md`. First-hand, this session:
+> - **Calibration nominally PASSES** — TPR 100% (6/6), TNR 83.3% (5/6), **robust across 3 spaced clean runs**
+>   (the first "pass then fail" was MY rate-limit artifact from double-running; 85s spacing fixed it).
+> - **The original narrow fear is REFUTED:** the corroborated Hormuz flagship (S1) is ACCEPTED every run. The
+>   live Skeptic does NOT over-reject a corroborated finding.
+> - **BUT a boundary probe (7 single-source findings across confidence 0.40–0.90) shows the live Skeptic
+>   REJECTS EVERY single-source/uncorroborated finding regardless of confidence, accepting only when
+>   corroborated.** Confidence is ignored; the gate collapses to "corroborated or not." The 83.3% PASS is a
+>   test-composition artifact (the labelled set probes the single-authoritative class exactly once = S3).
+> - **Impact:** the design's stated differentiator — "unverified, not raw source count; a single AUTHORITATIVE
+>   source acts" (NWS hurricane, confirmed bankruptcy, official recall) — is **categorically broken whenever
+>   the live Skeptic is active.** It is SAFE-direction (TPR 100%, never a wrong action) but is the war-room
+>   "feels useless when it refuses a confirmed NWS warning" failure mode.
+> - **SCOPE = the LIVE WATERFALL, not only the loop** (`index.ts:140` `runSkepticLive = live || generate`;
+>   `skepticEnabled = groqAvailable`). A Groq key has been in `.env` since 2026-06-22 (the judge), so any
+>   live-AI run now flips single-authoritative scenarios from the waterfall's correct ACT to NO_ACTION. The
+>   DEFAULT public demo is key-OFF (deterministic affirmative pass) → unaffected.
+>
+> **OWNER DECISION OWED (the new gate — a design/policy call, NOT mine to make; presented + asked this
+> session):** how to reconcile the Skeptic vs the single-authoritative differentiator —
+>   (A) **scope the gate** so the Skeptic does not re-litigate corroboration (that is `decideRecommendation`'s
+>       job via the 0.45 confidence floor); keep the Skeptic for over-trigger / misclassification (RECOMMENDED);
+>   (B) **decouple Skeptic activation from the judge key** (explicit `ENABLE_SKEPTIC`, default OFF) so a live
+>       run does not silently over-reject (RECOMMENDED alongside A; restores correct-by-default);
+>   (C) accept corroboration-required + soften the "single-authoritative acts" claim (safe but degrades the
+>       war-room value); (D) step up `SKEPTIC_MODEL` and re-measure (uncertain — the corroboration prior is strong).
+> **Promotion (gate 3, `ENABLE_AGENT_LOOP`) is NOT justified until A–D is resolved.** No code changed this
+> session (maker≠judge + owner-gated design call); the only working-tree change is the new gate doc.
+>
+> **Still OPEN (unchanged):** the original loop-smoke NO_ACTION on Hormuz is still unattributed at the
+> per-gate level (Skeptic-reject vs upstream `decideRecommendation`); the loop smoke was NOT persisted, so
+> closing it needs a fresh `ENABLE_AGENT_LOOP` + `GEMINI_API_KEY` (Gemini-billable) trace — owner-gated.
+>
+> **Standing OWNER GATES (unchanged, autonomous runway still ends here):** (1) review + push the **26 commits**
+> `origin/main..HEAD` (`verify:full`-stressed first); (2) the Skeptic-policy decision above (was gate 2's open
+> tail); (3) loop promotion (blocked on the decision); (4) real transport (Slack/SES/n8n). Push HELD.
+>
+> ----- the (later-2) block below is DISCHARGED (e2e flake fixed; that runway ended at the owner gates) -----
+
+> ============================================================================
 > ## SESSION 2026-06-26 (later-2) — e2e FLAKE FIXED + moat re-verified; AT THE OWNER'S DOOR
 > ============================================================================
 >

@@ -90,6 +90,14 @@ const LABELED: FindingSpec[] = [
   { id: "S4", accepted: true, eventType: "TARIFF_DEADLINE", severity: "MEDIUM", location: { country: "CN" }, confidence: 0.74, sourceCount: 3, corroborated: true, geoAgrees: true, sectors: ["TEXTILES_APPAREL"] },
   { id: "S5", accepted: true, eventType: "MATERIAL_SHORTAGE_ALLOCATION", severity: "HIGH", location: { country: "TW" }, confidence: 0.76, sourceCount: 2, corroborated: true, geoAgrees: true, sectors: ["SEMICONDUCTORS"] },
   { id: "S6", accepted: true, eventType: "ROUTE_DIVERSION", severity: "MEDIUM", location: { country: "EG" }, confidence: 0.71, sourceCount: 2, corroborated: true, geoAgrees: true, sectors: ["LOGISTICS"] },
+  // Single-AUTHORITATIVE high-confidence cases (sourceCount 1, corroborated=false). The design's stated
+  // differentiator -- "unverified, not raw source count; a single AUTHORITATIVE source acts" (an official
+  // NWS warning, a confirmed recall). decideRecommendation ACTs on these (confidence >= 0.45); the Skeptic
+  // MUST NOT over-reject them on corroboration alone. Probing this class ONCE (S3) hid a categorical
+  // over-rejection behind an 83% PASS, so the set deliberately carries THREE now (S3/S7/S8) as the
+  // regression teeth (gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md).
+  { id: "S7", accepted: true, eventType: "NATURAL_DISASTER", severity: "HIGH", location: { country: "US" }, confidence: 0.88, sourceCount: 1, corroborated: false, geoAgrees: true, sectors: ["ELECTRONICS"] }, // official NWS hurricane warning: single AUTHORITATIVE source acts
+  { id: "S8", accepted: true, eventType: "QUALITY_RECALL", severity: "HIGH", location: { country: "US" }, confidence: 0.82, sourceCount: 1, corroborated: false, geoAgrees: true, sectors: ["AGRICULTURE_FOOD"] }, // confirmed official recall: single AUTHORITATIVE source acts
 
   // --- UNSOUND (reject) ---
   { id: "U1", accepted: false, eventType: "CHOKEPOINT_CLOSURE", severity: "CRITICAL", location: { country: "OM", chokepoint: "Strait of Hormuz" }, confidence: 0.85, sourceCount: 3, corroborated: true, geoAgrees: true, sectors: [] }, // over-trigger: NO actionable exposure
@@ -148,6 +156,11 @@ describe.skipIf(!LIVE)("Skeptic calibration: live cross-family pass (BILLS Groq 
           }
         });
         spentUsd += estimateLiveCallCostUsd(model);
+        // Space the calls under the Groq free-tier TPM window: the few-shot prompt x N findings exceeds
+        // ~30K tokens/min if fired back-to-back, and a throttled call fails CLOSED to a HOLD that reads
+        // as a false REJECT -- the artifact that made an unspaced double-run report a bogus TNR collapse.
+        // This is a gated, rarely-run calibration, so the delay is cheap insurance for a clean measurement.
+        await new Promise((r) => setTimeout(r, 4000));
         const flagged = verdict.accepted === false; // includes fail-closed errors
 
         if (!spec.accepted) {

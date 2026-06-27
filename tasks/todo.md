@@ -9,6 +9,25 @@ A new owner-locked initiative is underway, **ADDITIVE** on the shipped ActionOps
 
 **Owner steer (2026-06-25, mid-Phase-1):** align the tech stack to the project GOAL — free-first is the default, NOT a ceiling; paid/enterprise/low-cost-to-showcase tools are on the table where they serve the goal. Binds at P4/P5/P6 + model tier, NOT Phase 1 (pure deterministic domain, zero new deps). Memory `resilix-tech-stack-alignment`.
 
+## ⚡ NEW OWNER DIRECTIVE (2026-06-27) — FULL PERMISSION, complete everything end-to-end + 5 frontend samples
+
+Owner: "complete all the tests, fixes, reconciliations, improvements, everything end to end. take full permission … Give 5 sample of frontend … modern professional new form of ui of 2026 … white background (no pink, no green, no cream, no orange). No serif fonts … use all frontend capabilities and claude design and latest plugins … this final work once all the major work done." Plus: "auto resume once claude limits hit. It resets at 3:40 am EDT, Sat 27th" (durable cron set).
+
+**Sequence (advisor-shaped):** Skeptic reconciliation → verify:full(stressed) → Codex gate → commit → 5 frontend samples (live-researched, NOT training memory) → push (final). Backlog beyond the load-bearing fix = tracked, NOT ground ahead of the frontend.
+
+### A) Skeptic single-authoritative reconciliation — ⏳ IN PROGRESS (the gate-2 finding)
+The live cross-family Skeptic was categorically over-rejecting ALL single-source findings regardless of confidence → broke the "single AUTHORITATIVE source acts" differentiator whenever live (waterfall + loop). Full evidence: `docs/claude/gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md`.
+- [x] **A1 prompt fix** (`skeptic.ts buildSkepticPrompt`): reframe `confidence`=authoritativeness; DON'T reject on `corroborated=false` alone; THIN-EVIDENCE requires single+uncorroborated+low-conf (all three); over-trigger keys on EMPTY `topSectors` regardless of corroboration; +worked single-authoritative ACCEPT example. **Boundary probe: single-authoritative HIGH-conf (0.80–0.90) now ACCEPT, low-conf (0.40) still REJECT, corroborated ACCEPT.** Calibration **TPR 100% / TNR 100%** on the strengthened set.
+- [x] **`ENABLE_SKEPTIC` flag** (`env-flags.ts skepticGateEnabled`, default ON, explicit opt-OUT) — decouples the gate from the shared judge Groq key so it isn't silently active. `skepticEnabled = groqAvailable() && skepticGateEnabled()`.
+- [x] **Calibration strengthened** — +S7/S8 single-authoritative SOUND cases (now 3 = S3/S7/S8, fixing the "probed once" artifact) + 4s inter-call spacing (kills the Groq TPM rate-limit artifact).
+- [ ] **Robustness confirm** (2 spaced runs in flight) + `npm run verify` green (in flight) + verify:full stressed.
+- [ ] **Codex cross-model gate** on the Skeptic diff → fix/refute → commit.
+
+### B) 5 frontend samples — modern professional 2026 war-room UI — ⏳ PENDING (final, after A)
+Live research (WebSearch/WebFetch) the 2026 UI patterns + the SCRM war-room domain content arc — NOT training memory. White bg, NO pink/green/cream/orange, NO serif. 5 genuinely DIFFERENT static mockups (the `samples/` pattern). Use the design plugins + frontend skills IN the main thread (frontend-specialist has no web/plugin tools).
+
+### C) Push — ⏳ FINAL (authorized) — after all gated: verify:full-stressed + diff-range review, then push the range plainly.
+
 ## ▶ AGENTIC REWORK — Phase 1 (P1 domain wins) — IN PROGRESS (autopilot, 2026-06-25)
 
 **Stage: execution, Phase 1 of 7.** Pure deterministic-waterfall domain-credibility wins (NO tool layer / NO LLM loop — that is the P3 cluster, built last). `ENABLE_AGENT_LOOP` not introduced here. Flag-off waterfall stays green throughout. Each increment: maker → `npm run verify` green → (acceptance-gate / 360° as warranted). **Codex cross-model BATCHED once at the Phase-1 checkpoint** (owner efficiency doctrine, not per-increment). Push HELD (owner-gated).
