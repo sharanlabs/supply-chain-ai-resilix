@@ -26,11 +26,34 @@
 > hold on the real finding):** **(C) RECOMMENDED** — scope the Skeptic gate so it ANNOTATES but cannot HARD-veto
 > a corroborated + high-confidence + real-exposure finding (preserves the critic, fixes the flagship; needs its
 > own gated build + live re-calibration against the REAL finding). **(B) stopgap** — `ENABLE_SKEPTIC=false`
-> (loop ACTs today, but DROPS the live critic). (D) accept the refusal + soften the claim. **Promotion waits on
-> the pick.** Then: flip `ENABLE_AGENT_LOOP` default-on (mirror `skepticGateEnabled`), reconcile the
-> "default OFF / ships dark" docs (env-flags.ts, trajectory.ts:5, PHASE3-GATE, README, Success_Criteria,
-> PHASE0 docs), run the FULL suite (a live-DI test setting ENABLE_LIVE_AI+key without ENABLE_AGENT_LOOP could
-> route into the loop once default-on), Codex the promotion diff, `verify:full`, commit.
+> (loop ACTs today, but DROPS the live critic). (D) accept the refusal + soften the claim.
+>
+> **✅ OWNER PICKED (C) (2026-06-28, via AskUserQuestion) — scope the gate. NEXT BUILD (recommended: a FRESH
+> session — it is a SAFETY-component semantic change + multi-scenario live re-calibration, not a session-end
+> bolt-on per the advisor; the decision is settled so a fresh session starts clean).**
+>
+> **C IMPLEMENTATION PLAN (turnkey):**
+> 1. **Code, not prompt** (the 6/27 prompt reframe already failed to hold → fix it in CODE, per "moat in code"):
+>    have the Skeptic emit a STRUCTURED reason CATEGORY (e.g. `over_trigger` | `geo_disagreement` |
+>    `misclassification` | `thin_low_confidence` | `low_confidence_judgment`) on its verdict, not just
+>    `accepted:boolean` (extend `SkepticVerdict` + the Skeptic prompt/output schema in `skeptic.ts`).
+> 2. **Gate logic** (`applySkepticGate`, `skeptic.ts:455`): take the finding-strength signal
+>    (`corroborated && confidence >= ACTION_CONFIDENCE_FLOOR && hasActionableExposure`). If the finding is
+>    STRONG and the Skeptic's category is a CONFIDENCE re-litigation (not a structural objection), DOWNGRADE the
+>    veto to an ANNOTATION (keep decideRecommendation's ACT; append a "Skeptic caution" note, NOT
+>    `SKEPTIC_HOLD_EVIDENCE`). Honor the HARD veto (force NO_ACTION) only for STRUCTURAL categories
+>    (over-trigger / geo / misclassification) OR a non-strong finding. Thread the strength signal from both call
+>    sites (`index.ts:165`, `investigator.ts:430`). Keep authoritative-binding (boolean/enum gate, no prose).
+> 3. **Unit tests:** the gate hard-vetoes a structural over-trigger; ANNOTATES (ACT stands) a strong-clean
+>    finding the critic merely doubts; still NO_ACTIONs a genuinely thin/uncorroborated finding.
+> 4. **LIVE re-calibration (the careful part, billable, keys are in .env):** confirm SCN-HORMUZ now ACTs live
+>    (the strengthened (G) gate passes with the Skeptic ON), AND a genuine over-trigger/thin scenario still
+>    NO_ACTIONs live — across MULTIPLE scenarios, not just Hormuz, so C doesn't open a hole. Re-derive the
+>    Skeptic labelled set to include a Hormuz-shaped SOUND case (close the set-vs-real-finding gap).
+> 5. **Codex gate** (safety component) → fix → **then** promote: flip `ENABLE_AGENT_LOOP` default-on (mirror
+>    `skepticGateEnabled`), reconcile the "default OFF / ships dark" docs (env-flags.ts, trajectory.ts:5,
+>    PHASE3-GATE, README, Success_Criteria, PHASE0 docs), run the FULL suite (a live-DI test setting
+>    ENABLE_LIVE_AI+key without ENABLE_AGENT_LOOP could route into the loop once default-on), `verify:full`, commit.
 >
 > ----- the earlier 2026-06-28 block below (outbox crash-recovery + reconciliation, pushed `a8d59ec`) is history -----
 
