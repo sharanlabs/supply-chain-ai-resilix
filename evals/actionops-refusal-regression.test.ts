@@ -190,12 +190,26 @@ describe("consolidation anchors (detailed coverage referenced, not duplicated)",
     expect(packet.supplierMessages.length).toBeGreaterThan(0);
   });
 
-  it("the Skeptic-hold path forces NO_ACTION (full detail: actionops-skeptic.test.ts)", async () => {
+  it("the Skeptic gate VETOES a reject on a NON-strong finding -> NO_ACTION (full detail: actionops-skeptic.test.ts)", async () => {
     const packet = await buildDecisionPacket({
       live: false,
+      scenarioId: "SCN-ZERO-EXPOSURE", // no actionable exposure -> not strong -> the reject hard-vetoes
       skeptic: { generate: async () => ({ object: { accepted: false, reason: "over-trigger" } }) }
     });
     expect(packet.recommendation).toBe("NO_ACTION");
+    expect(packet.skepticGateOutcome).toBe("VETOED");
     expect(packet.supplierMessages).toEqual([]);
+  });
+
+  it("the Skeptic gate ANNOTATES a reject on a STRONG finding -> ACT stands (full detail: actionops-skeptic.test.ts)", async () => {
+    // The "scope the gate" fix: a corroborated, high-confidence, real-exposure flagship finding ACTs
+    // even when the cross-family critic doubts it -- the objection is a recorded caution, not a veto.
+    const packet = await buildDecisionPacket({
+      live: false,
+      skeptic: { generate: async () => ({ object: { accepted: false, reason: "the critic doubts this" } }) }
+    });
+    expect(packet.recommendation ?? "ACT").toBe("ACT");
+    expect(packet.skepticGateOutcome).toBe("ANNOTATED");
+    expect(packet.supplierMessages.length).toBeGreaterThan(0);
   });
 });

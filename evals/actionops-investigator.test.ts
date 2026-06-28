@@ -241,11 +241,17 @@ describe("(B) PARITY: the loop's authoritative numbers equal the waterfall's (th
 // still runs the cross-family critic (challengeFindingLive), so a live loop can never silently
 // downgrade the safety gate to the deterministic affirmative pass. Proven deterministically by
 // injecting a Skeptic generate (no key needed -- challengeFindingLive runs its live body when a
-// generate is injected) that REJECTS, and asserting the gate held to NO_ACTION.
+// generate is injected) that REJECTS, and asserting the loop applied the strength-aware gate.
+//
+// On the STRONG Hormuz finding the gate DOWNGRADES the reject to a recorded caution (ANNOTATED ->
+// ACT) -- and an ANNOTATED outcome is itself unambiguous proof the LIVE critic ran AND rejected (a
+// deterministic affirmative pass would be ACCEPTED/undefined), AND that the loop applies the SAME
+// gate as the waterfall (parity). The hard-veto-on-a-non-strong-finding path is covered end-to-end
+// in actionops-skeptic.test.ts.
 // ---------------------------------------------------------------------------
 describe("(B2) the live cross-family Skeptic still runs when the model skips the challenge tool", () => {
-  it("a REJECT from the completion-run critic forces NO_ACTION on an otherwise-ACT finding", async () => {
-    const ctx = buildCtx(getActionOpsScenario("SCN-HORMUZ")); // corroborated -> would ACT
+  it("the completion-run critic's REJECT on a STRONG finding is ANNOTATED (ACT stands) -- proving it ran", async () => {
+    const ctx = buildCtx(getActionOpsScenario("SCN-HORMUZ")); // corroborated, strong -> would ACT
     // The model investigates but never calls challengeFinding (script ends before it).
     const { model } = makeMockModel([
       { tool: "assessExposure" },
@@ -259,12 +265,14 @@ describe("(B2) the live cross-family Skeptic still runs when the model skips the
       skeptic: { generate: async () => ({ object: { accepted: false, reason: "thin evidence per critic" } }) }
     });
 
-    // The critic ran in post-loop COMPLETION (not as a tool call) and the gate held.
-    expect(loop.recommendation).toBe("NO_ACTION");
+    // The critic ran in post-loop COMPLETION (not as a tool call); the strength-aware gate
+    // downgraded its reject on this strong finding to a recorded caution -- the ACT stands.
+    expect(loop.recommendation).toBe("ACT");
+    expect(loop.skepticGateOutcome).toBe("ANNOTATED"); // only a live REJECT on a strong finding yields this
     const skepticRun = loop.agentRuns.find((r) => r.agentName === "Skeptic");
     expect(skepticRun?.mode).toBe("LIVE_AI"); // it genuinely ran the (injected) live critic
-    expect(loop.playbooks).toEqual([]); // NO_ACTION withholds outbound action
-    expect(loop.supplierMessages).toEqual([]);
+    expect(loop.playbooks.length).toBeGreaterThan(0); // ACT produces outbound action
+    expect(loop.supplierMessages.length).toBeGreaterThan(0);
   });
 });
 
@@ -652,23 +660,25 @@ describe("(G) live smoke: the Investigator loop runs end-to-end on a real key", 
   // chokepoint AND meet the documented promotion criterion (lib/evals/trajectory.ts): no safety
   // regression, composite same-or-better, within the $5 budget.
   //
-  // CURRENT STATE (2026-06-28, RUN_LIVE-measured): with the live cross-family Skeptic ON (the
-  // default), this test FAILS -- the live Skeptic FALSE-VETOES the sound Hormuz finding (confidence
-  // 0.9, 9 exposures, corroborated, CHOKEPOINT_CLOSURE) -> NO_ACTION on EVERY live run (loop AND
-  // waterfall; it is NOT loop-specific). It PASSES with ENABLE_SKEPTIC=false (measured 3/3), proving
-  // the loop ITSELF is promotable once the Skeptic over-veto is resolved. This failing-live assertion
-  // is the HONEST encoding of the promotion BLOCKER -- do NOT delete it to go green; it is the gate.
-  // The resolution is an OWNER decision: (C) scope the Skeptic gate so it cannot hard-veto a
-  // corroborated, high-confidence, real-exposure finding (recommended); or (B) ENABLE_SKEPTIC=false
-  // stopgap (ships the loop without the live critic). RUN_LIVE-gated, so `verify` is unaffected.
+  // RESOLVED (2026-06-28, owner picked (C) "scope the Skeptic gate"): the strength-aware gate
+  // (applySkepticGate + findingStrength) no longer lets the live cross-family Skeptic HARD-VETO a
+  // corroborated, high-confidence, real-exposure finding -- it DOWNGRADES the reject to
+  // a recorded caution (ANNOTATED -> ACT). So with the live Skeptic ON (the default), the sound
+  // Hormuz finding that was previously FALSE-VETOED now ACTs and promotes. The discriminating,
+  // flake-proof invariant is skepticGateOutcome !== "VETOED": the live critic may ACCEPT or REJECT
+  // Hormuz run-to-run, but on this strong finding the gate outcome is ALWAYS ACT (ACCEPTED or
+  // ANNOTATED), never a veto. (Before the fix this assertion FAILED live -- it was the honest blocker
+  // encoding.) RUN_LIVE-gated, so `verify` is unaffected.
   // Full attribution: docs/claude/gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md + HANDOFF.
   it.skipIf(!RUN_LIVE)(
-    "on corroborated Hormuz: ACTs and MEETS the documented promotion criterion vs the waterfall baseline",
+    "on corroborated Hormuz: ACTs (Skeptic ON, never VETOED) and MEETS the documented promotion criterion",
     async () => {
       const baselinePacket = await buildDecisionPacket({ scenarioId: "SCN-HORMUZ", live: false });
       const loopPacket = await buildDecisionPacket({ scenarioId: "SCN-HORMUZ", live: true });
 
       expect(loopPacket.recommendation).toBe("ACT");
+      // The fix made durable: with the live Skeptic ON, the strong Hormuz finding is NEVER hard-vetoed.
+      expect(loopPacket.skepticGateOutcome).not.toBe("VETOED");
       expect(loopPacket.agentRuns.some((r) => r.agentName === "Investigator")).toBe(true);
 
       const baseline = deriveTrajectory(baselinePacket, {

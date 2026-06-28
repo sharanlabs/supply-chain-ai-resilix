@@ -144,6 +144,14 @@ export async function buildDecisionPacket(
     // every packet; readers treat an absent recommendation as ACT (back-compat).
     recommendation: result.recommendation,
     missingEvidence: result.missingEvidence,
+    // The cross-family Skeptic gate outcome -- present only on a genuine cross-family run
+    // (ACCEPTED / ANNOTATED / VETOED). CONDITIONALLY spread (Codex P2) so a key-OFF deterministic
+    // packet has NO `skepticGateOutcome` OWN KEY at all (not merely undefined) -- the field is truly
+    // ABSENT, so byte-parity AND strict-shape parity with pre-Skeptic V2 fixtures hold (an own
+    // `undefined` key survives Zod parse and would break a strict round-trip / Object.hasOwn check).
+    ...(result.skepticGateOutcome !== undefined
+      ? { skepticGateOutcome: result.skepticGateOutcome }
+      : {}),
     playbooks: result.playbooks,
     recoveryOptions: result.recoveryOptions,
     supplierMessages: result.supplierMessages,

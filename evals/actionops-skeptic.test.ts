@@ -5,6 +5,7 @@ import {
   applySkepticGate,
   buildSkepticFinding,
   challengeFindingLive,
+  type FindingStrength,
   resolvedSkepticModel,
   runSkeptic,
   skepticEnabled
@@ -14,6 +15,7 @@ import { buildDecisionPacket } from "@/lib/pipeline/build-packet";
 import { getActionOpsScenario } from "@/lib/data/actionops-scenarios";
 import { ingestSeed } from "@/lib/ingest/seed-suppliers";
 import type { ActionOpsContext } from "@/lib/agents/actionops/types";
+import { DecisionPacketSchema } from "@/lib/schemas";
 import type { ExposureResult, ThreatCard } from "@/lib/schemas";
 
 // Phase 4 -- the cross-family Skeptic critic (key-OFF, NO network in any test here). Proven:
@@ -293,46 +295,166 @@ describe("Skeptic QUARANTINE -- no news-derived prose reaches the critic (Phase 
   });
 });
 
-describe("Skeptic gate -- applySkepticGate (pure)", () => {
-  it("an ACCEPT passes the base decision through unchanged", () => {
+describe("Skeptic gate -- applySkepticGate (pure, strength-aware)", () => {
+  // The Hormuz-shaped STRONG finding: corroborated + above the confidence floor + a real-sector
+  // exposure. This is the shape the live Skeptic FALSE-VETOED -- the gate must now DOWNGRADE a reject
+  // on it to a recorded caution (ANNOTATED), not a hard veto. (Geo is NOT a strength input: the
+  // verifier's geoAgrees is structurally false for chokepoint events -- see applySkepticGate.)
+  const STRONG: FindingStrength = {
+    corroborated: true,
+    confidence: 0.9,
+    hasActionableExposure: true
+  };
+  // A genuine OVER-TRIGGER: a scary, even corroborated/high-confidence event with NO actionable
+  // exposure -- NOT strong, so a reject must still hard-veto.
+  const OVER_TRIGGER: FindingStrength = {
+    corroborated: true,
+    confidence: 0.9,
+    hasActionableExposure: false
+  };
+  // A genuinely THIN finding: a lone uncorroborated low-confidence source -- NOT strong, hard-veto.
+  const THIN: FindingStrength = {
+    corroborated: false,
+    confidence: 0.3,
+    hasActionableExposure: true
+  };
+
+  it("an ACCEPT passes the base decision through unchanged (outcome ACCEPTED)", () => {
     const base = { recommendation: "ACT" as const, missingEvidence: [] };
-    const out = applySkepticGate(base, { accepted: true, reason: "ok", errored: false });
-    expect(out).toEqual(base);
+    const out = applySkepticGate(base, { accepted: true, reason: "ok", errored: false }, STRONG);
+    expect(out.recommendation).toBe("ACT");
+    expect(out.missingEvidence).toEqual([]);
+    expect(out.outcome).toBe("ACCEPTED");
   });
 
-  it("a NON-ACCEPT forces NO_ACTION and appends the templated Skeptic-hold evidence item", () => {
+  it("ANNOTATES (ACT stands) a REJECT on an independently STRONG finding -- the false-veto fix", () => {
     const base = { recommendation: "ACT" as const, missingEvidence: [] };
-    const out = applySkepticGate(base, { accepted: false, reason: "over-trigger", errored: false });
+    const out = applySkepticGate(
+      base,
+      { accepted: false, reason: "the critic doubts this", errored: false },
+      STRONG
+    );
+    // The ACT stands -- the critic's objection is downgraded to a recorded caution, NOT a veto.
+    expect(out.recommendation).toBe("ACT");
+    expect(out.outcome).toBe("ANNOTATED");
+    // No SKEPTIC_HOLD_EVIDENCE appended; missingEvidence stays as decideRecommendation left it.
+    expect(out.missingEvidence).toEqual([]);
+    expect(out.missingEvidence).not.toContainEqual(SKEPTIC_HOLD_EVIDENCE);
+  });
+
+  it("HARD-VETOES a REJECT on a NON-strong finding (over-trigger: no actionable exposure)", () => {
+    const base = { recommendation: "ACT" as const, missingEvidence: [] };
+    const out = applySkepticGate(
+      base,
+      { accepted: false, reason: "over-trigger -- no actionable exposure", errored: false },
+      OVER_TRIGGER
+    );
     expect(out.recommendation).toBe("NO_ACTION");
+    expect(out.outcome).toBe("VETOED");
     expect(out.missingEvidence).toContainEqual(SKEPTIC_HOLD_EVIDENCE);
     // Authoritative-binding: the hold evidence is numeral-free (no figure bound from the critic).
     const prose = [SKEPTIC_HOLD_EVIDENCE.requirement, SKEPTIC_HOLD_EVIDENCE.detail, SKEPTIC_HOLD_EVIDENCE.wouldFlipIf].join(" ");
     expect(prose).not.toMatch(/[0-9]/);
   });
 
-  it("preserves existing missingEvidence and adds the Skeptic item (a thin-evidence NO_ACTION + a reject)", () => {
+  it("HARD-VETOES a REJECT on a genuinely THIN finding, preserving prior missingEvidence", () => {
     const base = {
       recommendation: "NO_ACTION" as const,
       missingEvidence: [{ requirement: "Independent corroboration", detail: "d", wouldFlipIf: "f" }]
     };
-    const out = applySkepticGate(base, { accepted: false, reason: "thin", errored: false });
+    const out = applySkepticGate(base, { accepted: false, reason: "thin", errored: false }, THIN);
     expect(out.recommendation).toBe("NO_ACTION");
+    expect(out.outcome).toBe("VETOED");
     expect(out.missingEvidence.length).toBe(2);
+    expect(out.missingEvidence).toContainEqual(SKEPTIC_HOLD_EVIDENCE);
+  });
+
+  it("REGRESSION GUARD: geo is NOT a veto input -- a strong finding ANNOTATES even when geo is 'unconfirmed'", () => {
+    // The live re-calibration (2026-06-28) caught this: a CHOKEPOINT finding (Hormuz) has no
+    // location.country, so the verifier's geoAgrees is STRUCTURALLY false ("unconfirmed", not
+    // "disagrees"). An earlier draft hard-vetoed on geoAgrees=false and re-broke the flagship.
+    // FindingStrength now carries NO geo signal at all -- a strong finding ANNOTATES regardless of
+    // geography. This test fails loudly if a geo veto is ever reintroduced into the gate.
+    const base = { recommendation: "ACT" as const, missingEvidence: [] };
+    const out = applySkepticGate(base, { accepted: false, reason: "geo unconfirmed", errored: false }, STRONG);
+    expect(out.recommendation).toBe("ACT");
+    expect(out.outcome).toBe("ANNOTATED");
+    expect(out.missingEvidence).not.toContainEqual(SKEPTIC_HOLD_EVIDENCE);
+    // Structural: FindingStrength exposes no geo field for the gate to key off.
+    expect("geoAgrees" in STRONG).toBe(false);
+  });
+
+  it("a BROKEN critic (errored) ALWAYS hard-vetoes -- never downgraded, even on a strong finding", () => {
+    const base = { recommendation: "ACT" as const, missingEvidence: [] };
+    const out = applySkepticGate(
+      base,
+      { accepted: false, reason: "live call failed", errored: true, errorClass: "LIVE_CALL_THREW" },
+      STRONG
+    );
+    // A degraded safety critic cannot be overridden "because the finding is strong" (fail-closed).
+    expect(out.recommendation).toBe("NO_ACTION");
+    expect(out.outcome).toBe("VETOED");
+    expect(out.missingEvidence).toContainEqual(SKEPTIC_HOLD_EVIDENCE);
+  });
+
+  it("FAIL-CLOSED ORDERING (Codex P1): a contradictory {accepted:true, errored:true} hard-vetoes, never ACCEPTED", () => {
+    // The production paths never emit this shape (an errored HOLD is always accepted:false), but the
+    // fail-closed invariant must be STRUCTURAL: `errored` is checked BEFORE `accepted`, so a broken
+    // critic can never slip through as ACCEPTED on a strong finding because a stray `accepted:true`
+    // also rode along.
+    const base = { recommendation: "ACT" as const, missingEvidence: [] };
+    const out = applySkepticGate(
+      base,
+      { accepted: true, reason: "contradictory", errored: true, errorClass: "LIVE_CALL_THREW" },
+      STRONG
+    );
+    expect(out.recommendation).toBe("NO_ACTION");
+    expect(out.outcome).toBe("VETOED");
     expect(out.missingEvidence).toContainEqual(SKEPTIC_HOLD_EVIDENCE);
   });
 });
 
 describe("Skeptic gate -- end-to-end through buildDecisionPacket (Phase 4, no network)", () => {
-  it("a REJECT holds the finding: NO_ACTION, withhold holds, schema superRefine holds", async () => {
+  it("THE FIX: a REJECT on the STRONG flagship (Hormuz) is ANNOTATED -> ACT stands, drafts produced", async () => {
+    // The default scenario is the Hormuz finding the LIVE Skeptic false-vetoed (corroborated, high
+    // confidence, real exposure). An injected cross-family REJECT must now DOWNGRADE
+    // to a recorded caution, NOT hard-veto -- the flagship ACTs.
     const packet = await buildDecisionPacket({
-      // Hormuz ACTs deterministically; the injected Skeptic REJECT must flip it to NO_ACTION.
       live: false,
+      skeptic: {
+        generate: async () => ({ object: { accepted: false, reason: "the critic doubts this finding" } })
+      }
+    });
+
+    expect(packet.recommendation ?? "ACT").toBe("ACT");
+    expect(packet.skepticGateOutcome).toBe("ANNOTATED");
+    // The ACT plan is fully produced -- the critic's objection annotates, it does not withhold.
+    expect(packet.supplierMessages.length).toBeGreaterThan(0);
+    expect(packet.playbooks.length).toBeGreaterThan(0);
+    // NO Skeptic-hold evidence item -- the objection lives in the audit run, not as a packet "gap".
+    expect(packet.missingEvidence?.some((m) => m.requirement === SKEPTIC_HOLD_EVIDENCE.requirement) ?? false).toBe(false);
+
+    // The Skeptic run is still a HEALTHY LIVE_AI run that recorded its REJECT -- the audit trail is
+    // honest about the objection even though the gate downgraded it.
+    const skepticRun = packet.agentRuns.find((r) => r.id === "RUN-SKEPTIC");
+    expect(skepticRun?.mode).toBe("LIVE_AI");
+    expect(skepticRun?.validationStatus).toBe("PASS");
+    expect(packet.gatekeeper.status).not.toBe("BLOCKED");
+  });
+
+  it("VETO PRESERVED: a REJECT on a NON-strong finding (zero actionable exposure) hard-vetoes -> NO_ACTION", async () => {
+    // SCN-ZERO-EXPOSURE has no actionable exposure -> NOT strong -> the Skeptic reject must still
+    // force NO_ACTION (decideRecommendation alone would ACT here, so the veto is the SOLE driver).
+    const packet = await buildDecisionPacket({
+      live: false,
+      scenarioId: "SCN-ZERO-EXPOSURE",
       skeptic: {
         generate: async () => ({ object: { accepted: false, reason: "over-trigger -- no actionable exposure" } })
       }
     });
 
     expect(packet.recommendation).toBe("NO_ACTION");
+    expect(packet.skepticGateOutcome).toBe("VETOED");
     // The existing NO_ACTION withhold applies -- all outbound action suppressed.
     expect(packet.supplierMessages).toEqual([]);
     expect(packet.playbooks).toEqual([]);
@@ -341,18 +463,16 @@ describe("Skeptic gate -- end-to-end through buildDecisionPacket (Phase 4, no ne
     // The refusal states the Skeptic gap (the templated, numeral-free item).
     expect(packet.missingEvidence?.some((m) => m.requirement === SKEPTIC_HOLD_EVIDENCE.requirement)).toBe(true);
 
-    // The Skeptic run is a HEALTHY LIVE_AI reject (PASS) -- so the packet is a clean NO_ACTION
-    // refusal a human can review, NOT a gatekeeper-BLOCKED packet.
+    // A HEALTHY LIVE_AI reject (PASS) -- a clean NO_ACTION refusal a human can review, NOT a
+    // gatekeeper-BLOCKED packet. buildDecisionPacket validates the union+superRefine, so returning
+    // at all proves the NO_ACTION packet is schema-valid (withhold + >=1 missingEvidence).
     const skepticRun = packet.agentRuns.find((r) => r.id === "RUN-SKEPTIC");
     expect(skepticRun?.mode).toBe("LIVE_AI");
     expect(skepticRun?.validationStatus).toBe("PASS");
     expect(packet.gatekeeper.status).not.toBe("BLOCKED");
-    // buildDecisionPacket validateDecisionPacket()s the union+superRefine, so returning at all
-    // proves the NO_ACTION packet is schema-valid (withhold + >=1 missingEvidence).
-    expect(packet.agentRuns).toHaveLength(7);
   });
 
-  it("CONTROL: an ACCEPT lets the deterministic ACT stand (drafts produced)", async () => {
+  it("CONTROL: an ACCEPT lets the deterministic ACT stand (drafts produced; outcome ACCEPTED)", async () => {
     const packet = await buildDecisionPacket({
       live: false,
       skeptic: {
@@ -360,9 +480,59 @@ describe("Skeptic gate -- end-to-end through buildDecisionPacket (Phase 4, no ne
       }
     });
     expect(packet.recommendation ?? "ACT").toBe("ACT");
+    expect(packet.skepticGateOutcome).toBe("ACCEPTED");
     expect(packet.supplierMessages.length).toBeGreaterThan(0);
     const skepticRun = packet.agentRuns.find((r) => r.id === "RUN-SKEPTIC");
     expect(skepticRun?.mode).toBe("LIVE_AI");
     expect(skepticRun?.validationStatus).toBe("PASS");
+  });
+
+  it("PARITY (Codex P2): a key-OFF deterministic packet has NO skepticGateOutcome OWN KEY (truly absent)", async () => {
+    // No skeptic injection + no Groq key (beforeEach deletes it) -> the deterministic affirmative
+    // pass runs (model undefined), so no genuine cross-family critic ran -> the field must be ABSENT,
+    // not present-as-undefined. An own `undefined` key survives Zod parse and would break the strict
+    // round-trip / byte parity with pre-Skeptic V2 fixtures the moat depends on.
+    const packet = await buildDecisionPacket({ live: false });
+    expect(Object.hasOwn(packet, "skepticGateOutcome")).toBe(false);
+    expect(packet.skepticGateOutcome).toBeUndefined();
+  });
+
+  it("CONSISTENCY (Codex P2): the schema REJECTS a VETOED packet that still recommends ACT", async () => {
+    // Start from a valid ANNOTATED+ACT packet, then mutate ONLY the gate outcome to VETOED. VETOED is
+    // the hard veto, which forces NO_ACTION, so VETOED+ACT is malformed and must fail validation
+    // rather than reach human review.
+    const valid = await buildDecisionPacket({
+      live: false,
+      skeptic: {
+        generate: async () => ({ object: { accepted: false, reason: "the critic doubts this finding" } })
+      }
+    });
+    expect(valid.skepticGateOutcome).toBe("ANNOTATED");
+    expect(valid.recommendation ?? "ACT").toBe("ACT");
+    const parsed = DecisionPacketSchema.safeParse({ ...valid, skepticGateOutcome: "VETOED" });
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues.some((i) => /VETOED .*requires recommendation NO_ACTION/.test(i.message))).toBe(true);
+    }
+  });
+
+  it("CONSISTENCY (Codex P2): the schema REJECTS an ANNOTATED packet that recommends NO_ACTION", async () => {
+    // Start from a valid VETOED+NO_ACTION packet (already withholds all outbound action), then mutate
+    // ONLY the gate outcome to ANNOTATED. ANNOTATED claims the plan ACTs, so ANNOTATED+NO_ACTION is
+    // malformed -- the UI's "action proceeds" caution would contradict a refusal.
+    const valid = await buildDecisionPacket({
+      live: false,
+      scenarioId: "SCN-ZERO-EXPOSURE",
+      skeptic: {
+        generate: async () => ({ object: { accepted: false, reason: "over-trigger -- no actionable exposure" } })
+      }
+    });
+    expect(valid.skepticGateOutcome).toBe("VETOED");
+    expect(valid.recommendation).toBe("NO_ACTION");
+    const parsed = DecisionPacketSchema.safeParse({ ...valid, skepticGateOutcome: "ANNOTATED" });
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues.some((i) => /ANNOTATED .*requires recommendation ACT/.test(i.message))).toBe(true);
+    }
   });
 });

@@ -333,6 +333,27 @@ describe("ActionOpsPacketView (Phase 6 deliberation surfaces)", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows the Skeptic line as a CAUTION on an ANNOTATED downgrade -- never the 'it held' clear", () => {
+    // The "scope the gate" path: the live cross-family critic OBJECTED, but the finding was
+    // independently strong + geo-coherent, so the gate downgraded the veto to a recorded caution
+    // (skepticGateOutcome ANNOTATED) and the plan ACTs. The glass must NOT show the positive
+    // "and it held" clear (that would overclaim the critic endorsed it) -- it shows the honest
+    // caution + that action proceeds on the finding's own merits, with approval still required.
+    render(
+      <ActionOpsPacketView
+        packet={makeV2Packet({
+          agentRuns: SEVEN_RUN_CHAIN, // a genuine live cross-family Skeptic ran
+          recommendation: "ACT",
+          skepticGateOutcome: "ANNOTATED"
+        })}
+      />
+    );
+    expect(screen.getByText(/raised a caution about this finding/i)).toBeInTheDocument();
+    expect(screen.getByText(/requires your approval before anything is sent/i)).toBeInTheDocument();
+    // Must NOT claim the positive clear.
+    expect(screen.queryByText(/and it held/i)).not.toBeInTheDocument();
+  });
+
   it("shows the Skeptic line as ON HOLD on a NO_ACTION reject -- never 'it held'", () => {
     // A live REJECT is a HEALTHY run (validationStatus PASS) that forces NO_ACTION: keying
     // the verdict off validationStatus would ship a false "it held". The held-vs-hold read

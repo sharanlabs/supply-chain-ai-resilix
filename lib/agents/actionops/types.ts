@@ -9,6 +9,7 @@ import type {
   Recommendation,
   RecoveryOption,
   Simulation,
+  SkepticGateOutcome,
   Supplier,
   SupplierMessageDraft,
   ThreatCard
@@ -47,6 +48,12 @@ export type ActionOpsResult = {
   // and supplierMessages are then withheld and missingEvidence states the gap.
   recommendation: Recommendation;
   missingEvidence: MissingEvidence[];
+  // The cross-family Skeptic gate outcome (ACCEPTED / ANNOTATED / VETOED). Present ONLY when a
+  // genuine cross-family critic actually ran (absent on the deterministic affirmative pass), so a
+  // key-OFF packet stays byte-identical to before. ANNOTATED = the critic objected but the finding
+  // was independently strong (corroborated + above the floor + a real-sector exposure), so the gate
+  // downgraded the veto to a recorded caution rather than hard-vetoing it.
+  skepticGateOutcome?: SkepticGateOutcome;
   playbooks: Playbook[];
   // Scored, structured mitigation options (deterministic; see recovery.ts). Withheld
   // (empty) on a NO_ACTION refusal, exactly like playbooks and supplierMessages.

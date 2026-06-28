@@ -31,7 +31,8 @@ import type {
   MissingEvidence,
   PublicSignal,
   Recommendation,
-  RecoveryOption
+  RecoveryOption,
+  SkepticGateOutcome
 } from "@/lib/schemas";
 import { formatCurrency } from "@/lib/utils";
 
@@ -175,17 +176,29 @@ function reversibilityLabel(r: RecoveryOption["reversibility"]): string {
 // validationStatus: a live REJECT is a HEALTHY run (validationStatus PASS) that still forces
 // NO_ACTION, so validationStatus would ship a false "it held". A broken critic (degraded) is
 // a distinct third state that never claims the finding held.
-type SkepticState = "cleared" | "held-back" | "degraded";
+type SkepticState = "cleared" | "annotated" | "held-back" | "degraded";
 
 function skepticChallengeState(
   run: AgentRun | undefined,
-  recommendation: Recommendation
+  recommendation: Recommendation,
+  gateOutcome: SkepticGateOutcome | undefined
 ): SkepticState | null {
   if (!run) return null;
   const ranLiveCrossFamily = !!run.model && run.model !== "deterministic-rules";
   if (!ranLiveCrossFamily) return null;
   if (run.mode === "FAILED_TO_FALLBACK" || run.validationStatus === "FAIL") {
     return "degraded";
+  }
+  // ANNOTATED: the gate DOWNGRADED a live REJECT to a recorded caution on an independently strong
+  // finding -- the plan ACTs, but the critic OBJECTED. We must NOT show the positive
+  // "it held" clear (that would overclaim the critic endorsed it); a distinct, honest state instead.
+  // gateOutcome is set in CODE (authoritative-binding) and only present on a genuine cross-family run.
+  // REQUIRE recommendation ACT (Codex P2 defense-in-depth): the annotated copy says "action
+  // proceeds", so a malformed ANNOTATED+NO_ACTION packet (which the schema superRefine already
+  // rejects at parse) must NEVER reach it -- fall through to the held-back read instead of claiming
+  // outbound action proceeds on a refusal.
+  if (gateOutcome === "ANNOTATED" && recommendation === "ACT") {
+    return "annotated";
   }
   return recommendation === "NO_ACTION" ? "held-back" : "cleared";
 }
@@ -438,13 +451,14 @@ function RefusalCard({ missingEvidence }: { missingEvidence: MissingEvidence[] }
 
 // The cross-family Skeptic's verdict, as ONE calm trust line on the glass -- the
 // human-meaningful signal (a second, independent reviewer challenged this finding) lifted
-// out of the machinery. Three honest states: it HELD (the finding cleared on an ACT plan --
-// and since a Skeptic REJECT would have forced NO_ACTION, an ACT plan with a live Skeptic
-// means it genuinely accepted), it is ON HOLD (NO_ACTION -- the reviewer ran but the copy
-// does NOT claim it was the holder, since a thin-evidence hold can co-occur with a Skeptic
-// accept; the refusal above carries the why), or the review was DEGRADED (the critic broke
-// and could not complete). Only "cleared" reads in the positive accent seal; a hold/degrade
-// reads calm-neutral, never alarm.
+// out of the machinery. Four honest states: it HELD (the finding cleared on an ACT plan, the
+// critic ACCEPTED), it raised a CAUTION but the plan proceeds (annotated -- the critic objected
+// yet the finding was independently strong, so the gate downgraded the veto to a
+// recorded caution; action proceeds on the finding's own corroboration/confidence, human approval
+// still required), it is ON HOLD (NO_ACTION -- the reviewer ran but the copy does NOT claim it was
+// the holder, since a thin-evidence hold can co-occur with a Skeptic accept; the refusal above
+// carries the why), or the review was DEGRADED (the critic broke and could not complete). Only
+// "cleared" reads in the positive accent seal; caution/hold/degrade read calm-neutral, never alarm.
 function SkepticTrustLine({ state }: { state: SkepticState }) {
   const cleared = state === "cleared";
   return (
@@ -466,6 +480,15 @@ function SkepticTrustLine({ state }: { state: SkepticState }) {
           <>
             An independent reviewer -- a different AI model -- challenged this finding, and it
             held.
+          </>
+        ) : state === "annotated" ? (
+          // The critic OBJECTED, but the finding was independently strong, so the
+          // gate downgraded the veto to a recorded caution (ANNOTATED). Honest, calm-neutral: name
+          // the caution AND that action proceeds on the finding's own merits, with human approval.
+          <>
+            An independent reviewer -- a different AI model -- raised a caution about this finding;
+            outbound action proceeds on its independent corroboration and confidence, and still
+            requires your approval before anything is sent.
           </>
         ) : state === "held-back" ? (
           // Neutral by design: a NO_ACTION packet can be held by the thin-evidence gate even
@@ -720,7 +743,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
     () => packet.agentRuns.find((r) => r.agentName === "Skeptic"),
     [packet.agentRuns]
   );
-  const skepticState = skepticChallengeState(skepticRun, recommendation);
+  const skepticState = skepticChallengeState(skepticRun, recommendation, packet.skepticGateOutcome);
 
   // P1 sourcing read: how many exposed suppliers are single-source (no qualified backup) --
   // the concentration risk. Only meaningful when the rows carry the P1 singleSource field;

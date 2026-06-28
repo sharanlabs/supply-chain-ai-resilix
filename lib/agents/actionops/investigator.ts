@@ -10,6 +10,7 @@ import { runSimulator } from "@/lib/agents/actionops/simulator";
 import {
   applySkepticGate,
   challengeFindingLive,
+  findingStrength,
   runSkeptic,
   type SkepticInjection
 } from "@/lib/agents/actionops/skeptic";
@@ -427,7 +428,18 @@ export async function runInvestigatorLoop(
     confidence: threatCard.confidence,
     exposureResults
   });
-  const { recommendation, missingEvidence } = applySkepticGate(baseDecision, skepticVerdict);
+  // IDENTICAL to the waterfall (index.ts): the strength signal + the gate decide whether a live
+  // Skeptic REJECT hard-vetoes or is downgraded to a recorded caution on a strong finding (the
+  // false-veto fix). Parity here is the moat -- the loop and the waterfall MUST produce byte-equal packets.
+  const strength = findingStrength(verifierChecks, threatCard.confidence, exposureResults);
+  const {
+    recommendation,
+    missingEvidence,
+    outcome: skepticGateOutcomeRaw
+  } = applySkepticGate(baseDecision, skepticVerdict, strength);
+  const skepticRun = state.skeptic!.run;
+  const skepticRanLiveCrossFamily = !!skepticRun.model && skepticRun.model !== "deterministic-rules";
+  const skepticGateOutcome = skepticRanLiveCrossFamily ? skepticGateOutcomeRaw : undefined;
 
   // --- POST-DECISION outbound actions (CODE, gated by the decision) ------------------------
   let playbooks: Playbook[];
@@ -528,6 +540,7 @@ export async function runInvestigatorLoop(
     dataGaps,
     recommendation,
     missingEvidence,
+    skepticGateOutcome,
     playbooks,
     recoveryOptions,
     supplierMessages,

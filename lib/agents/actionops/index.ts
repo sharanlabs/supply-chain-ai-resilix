@@ -9,6 +9,7 @@ import { runSimulator } from "@/lib/agents/actionops/simulator";
 import {
   applySkepticGate,
   challengeFindingLive,
+  findingStrength,
   runSkeptic,
   type SkepticInjection
 } from "@/lib/agents/actionops/skeptic";
@@ -162,7 +163,20 @@ export async function runActionOpsAgents(
     confidence: threatCard.confidence,
     exposureResults
   });
-  const { recommendation, missingEvidence } = applySkepticGate(baseDecision, skepticVerdict);
+  // The strength signal (deterministic) the gate uses to DOWNGRADE a live REJECT on an independently
+  // strong finding to a recorded caution (ANNOTATED -> ACT stands) instead of a hard
+  // veto -- the "scope the gate" fix for the live Skeptic false-vetoing a sound flagship finding.
+  const strength = findingStrength(verifierChecks, threatCard.confidence, exposureResults);
+  const {
+    recommendation,
+    missingEvidence,
+    outcome: skepticGateOutcomeRaw
+  } = applySkepticGate(baseDecision, skepticVerdict, strength);
+  // Surface the gate outcome on the packet ONLY when a GENUINE cross-family Skeptic ran (a real model
+  // id, not the deterministic affirmative pass) -- so a key-OFF deterministic packet stays byte-
+  // identical to before (the flag-off no-op + the parity moat hold). Same ran-live test the UI uses.
+  const skepticRanLiveCrossFamily = !!skepticRun.model && skepticRun.model !== "deterministic-rules";
+  const skepticGateOutcome = skepticRanLiveCrossFamily ? skepticGateOutcomeRaw : undefined;
 
   // The outbound agents (Strategist -> playbooks, Dispatcher -> drafts) are the action.
   // ACT runs them; NO_ACTION WITHHOLDS them. On a withhold the exposure + runway already
@@ -278,6 +292,7 @@ export async function runActionOpsAgents(
     dataGaps,
     recommendation,
     missingEvidence,
+    skepticGateOutcome,
     playbooks,
     recoveryOptions,
     supplierMessages,

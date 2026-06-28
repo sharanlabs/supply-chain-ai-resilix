@@ -8,6 +8,7 @@ import { judgeNoUnsupportedClaims, resolvedJudgeModel } from "@/lib/evals/judge"
 import { ACTION_CONFIDENCE_FLOOR } from "@/lib/agents/actionops/recommendation";
 import { estimateLiveCallCostUsd } from "@/lib/agents/run";
 import { DEFAULT_BUDGET_CAP_USD } from "@/lib/agents/budget";
+import { agentLoopEnabled } from "@/lib/server/env-flags";
 import { KNOWN_PRODUCT_IDS, KNOWN_SUPPLIER_IDS } from "@/evals/golden/seed-ids";
 import type { DecisionPacketV2 } from "@/lib/schemas";
 
@@ -201,4 +202,63 @@ describe.skipIf(!LIVE)("D.9 live Gemini pass -- all scenarios (BILLS, gated)", (
       FIVE_MIN_MS + 30_000
     );
   }
+});
+
+// (C) live re-calibration gate -- the PRODUCTION-ACTIVE path. The Investigator loop ships dark
+// (ENABLE_AGENT_LOOP default-OFF), so the path a live deployment actually hits today is the live
+// WATERFALL with the live cross-family Skeptic ON (a Groq key present). That is exactly where the
+// 2026-06-28 false-veto was first observed -- and the loop-scoped (G) gate in
+// actionops-investigator.test.ts does NOT cover it (it asserts an Investigator run). The D.9 suite
+// above runs the live waterfall but INJECTS a Skeptic ACCEPT to decouple from stochastic flake, so
+// it never exercises the real critic's REJECT through the strength-aware gate. THIS gate closes that
+// gap with the same flake-proof invariant the (G) gate uses.
+//
+// FLAKE-PROOF: the live cross-family critic may ACCEPT or REJECT the Hormuz finding run-to-run, but
+// on this STRONG finding (corroborated + high-confidence + real-sector exposure) the gate outcome is
+// ALWAYS ACT -- ACCEPTED (critic stood behind it) or ANNOTATED (critic rejected, downgraded to a
+// recorded caution). The discriminating invariant is skepticGateOutcome !== "VETOED". Before the (C)
+// fix this FAILED live (the critic's REJECT hard-vetoed -> NO_ACTION); it is the honest regression
+// boundary for the path users run. Multiple spaced runs confirm the upstream live pipeline reliably
+// yields a STRONG finding (the only run-to-run variable that could silently re-break ACT).
+// Full attribution: docs/claude/gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md + HANDOFF.
+describe.skipIf(!LIVE)("(C) live re-cal: the production-active WATERFALL never hard-vetoes the strong Hormuz finding", () => {
+  // This gate asserts the WATERFALL path; the loop's own coverage is the (G) gate. Skip (do not
+  // falsely fail) if a run happens to have the loop flag on -- the premise is loop-OFF.
+  it.skipIf(agentLoopEnabled())(
+    "live waterfall + live cross-family Skeptic: Hormuz ACTs, never VETOED, across spaced runs",
+    async () => {
+      const RUNS = Number(process.env.RECAL_RUNS) || 3;
+      for (let i = 0; i < RUNS; i++) {
+        // No skeptic injection -> the REAL Groq cross-family critic fires (skepticEnabled gates on a
+        // Groq key). live:true + ENABLE_AGENT_LOOP off -> the live waterfall, not the loop.
+        const packet = await buildDecisionPacket({ scenarioId: "SCN-HORMUZ", live: true });
+
+        const skepticRun = packet.agentRuns.find((r) => r.id === "RUN-SKEPTIC");
+        const investigatorRan = packet.agentRuns.some((r) => r.agentName === "Investigator");
+
+        // A durable, greppable evidence line per run.
+        console.log(
+          `[recal-waterfall-evidence] run=${i + 1}/${RUNS} recommendation=${packet.recommendation} ` +
+            `skepticGateOutcome=${packet.skepticGateOutcome} skepticMode=${skepticRun?.mode} ` +
+            `confidence=${packet.threatCard.confidence.toFixed(2)} exposures=${packet.exposureResults.length} ` +
+            `cost=$${(packet.totalCostUsd ?? 0).toFixed(4)} investigator=${investigatorRan}`
+        );
+
+        // Confirm this is genuinely the WATERFALL with the REAL live critic (not the loop, not a
+        // key-OFF affirmative pass): no Investigator run + the Skeptic ran LIVE_AI.
+        expect(investigatorRan, "expected the WATERFALL (no Investigator); is ENABLE_AGENT_LOOP set?").toBe(false);
+        expect(skepticRun?.mode, "the real cross-family Skeptic must have fired LIVE_AI").toBe("LIVE_AI");
+
+        // THE FIX, on the path users run: the strong Hormuz finding ACTs and is NEVER hard-vetoed.
+        expect(packet.recommendation).toBe("ACT");
+        expect(packet.skepticGateOutcome).not.toBe("VETOED");
+        expect(packet.totalCostUsd ?? 0).toBeLessThanOrEqual(DEFAULT_BUDGET_CAP_USD);
+
+        // Space the runs so the per-build Skeptic call does not trip the Groq free-tier TPM window
+        // (the throttle artifact that fails CLOSED to a HOLD and reads as a bogus veto).
+        if (i < RUNS - 1) await new Promise((r) => setTimeout(r, 30_000));
+      }
+    },
+    FIVE_MIN_MS + 30_000
+  );
 });

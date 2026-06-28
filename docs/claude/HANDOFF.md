@@ -1,6 +1,99 @@
 # HANDOFF — resume pointer (updated 2026-06-28)
 
 > ============================================================================
+> ## SESSION 2026-06-28 (latest) — (C) GATES DISCHARGED: multi-run live re-cal GREEN + Codex closed; COMMITTED on a branch; PUSH + PROMOTION = owner decisions
+> ============================================================================
+>
+> **Read FIRST.** Resumed the (C) scope-the-Skeptic-gate work. The remaining ordered steps are DONE
+> through commit; the only open items are the two OWNER decisions (push, promotion). State:
+>
+> - **Multi-run LIVE re-calibration — DONE + GREEN (~$0.04, keys owner-authorized in `.env`).**
+>   - Raw cross-family Skeptic (Groq free, incl. the S10 flagship shape): **TPR 100% / TNR 90% / fn=0**, asymmetric bar cleared across 3 runs.
+>   - **Production-active WATERFALL** (loop-OFF, REAL Skeptic, a NEW durable gate in `actionops-live-real.test.ts`): **ACT / `skepticGateOutcome=ANNOTATED` / never-VETOED across 3 spaced runs**, strong finding each (conf 0.90–1.00, 9 exposures). The loop ships dark, so THIS is the path users hit — the (C) fix confirmed where it matters.
+>   - **Loop (G) promotion gate** (ENABLE_AGENT_LOOP + live), **3 spaced runs:** every run **ACT, never-VETOED, composite 1.000, promote=true, regressions=[]**, $0.0073–0.0087. The loop is now promotable.
+>   - over-trigger/thin → NO_ACTION stay covered DETERMINISTICALLY key-off (no spend).
+> - **Codex cross-model gate — DISCHARGED (mandatory safety component).** gpt-5.5, REVISE → 4 findings disposed primary-model-final: **#1 [P1] fail-closed ordering (errored before accepted) FIXED; #2 [P1] geo-CONFLICT veto DEFERRED with reason** (human-approval backstop + the correct fix is a Verifier UNCONFIRMED-vs-CONFLICT split needing its own tests/live-recal; a gate-only approximation would over-veto, untested); **#3 [P2] build-packet own-undefined key FIXED (conditional spread → truly absent key-off); #4 [P2] ANNOTATED⟺ACT consistency FIXED (schema superRefine + UI guard).** +4 regression tests. (Codex hit its usage cap once mid-session; re-run after the 7:25 PM EDT reset.) Closure pass: see `gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md`.
+> - **STATE:** `npm run verify:full` GREEN first-hand — **715 passed / 27 skipped** unit + 21 e2e + build + secrets, exit 0. Committed on a branch off `main` (NOT pushed). The flag flip is NOT in the commit.
+>
+> **OWNER DECISIONS (both surfaced, neither done autonomously):**
+> 1. **PUSH** the (C) branch (outward) — merge to `main` / push to origin, per the project's main-based norm, OR open a PR. Held for an explicit go (outward action).
+> 2. **PROMOTION** — flip `ENABLE_AGENT_LOOP` default-on (mirror `skepticGateEnabled`'s opt-out) + reconcile the "ships dark" docs (`env-flags.ts`, `trajectory.ts:5`, PHASE3-GATE, README, Success_Criteria, PHASE0). The (C) fix UNBLOCKED it (loop ACTs + promotes live); the flip is a reversible one-liner reserved for the owner. NOT in this commit.
+>
+> **OWNER FLAG (in-scope-as-designed, unchanged):** the flagship shows a PERMANENT "reviewer raised a caution" annotation (the live Skeptic is itself misled by `geoAgrees=false` and keeps REJECTING). A future "cleared" read needs the geo signal FED TO the Skeptic improved — the SAME Verifier UNCONFIRMED-vs-CONFLICT split that closes Codex #2. One evidenced follow-up resolves both.
+>
+> ----- the earlier 2026-06-28 (later) block below (the (C) BUILD, now committed) is history -----
+
+> ============================================================================
+> ## SESSION 2026-06-28 (later) — (C) SCOPE-THE-SKEPTIC-GATE: BUILT + live-confirmed; CODEX + multi-run re-cal + PROMOTION pending (UNCOMMITTED)
+> ============================================================================
+>
+> **Read FIRST.** Owner-picked (C) is BUILT and the flagship false-veto is FIXED + live-confirmed. The
+> work is **GREEN but UNCOMMITTED** (on `main`, not pushed). The remaining steps are the gates +
+> promotion + commit — START with the multi-run live re-calibration.
+>
+> **WHAT WAS BUILT (the gate, in PURE CODE — supersedes the recorded turnkey plan's step-1 LLM-category
+> approach, per advisor: an LLM-emitted category puts model judgment back in the exact path that
+> false-vetoed the flagship):**
+> - `applySkepticGate(base, verdict, strength)` (`skeptic.ts`) now takes a deterministic
+>   `findingStrength(verifierChecks, confidence, exposureResults)` = `{corroborated, confidence,
+>   hasActionableExposure}`. A live REJECT is DOWNGRADED to `ANNOTATED` (ACT stands, NO
+>   `SKEPTIC_HOLD_EVIDENCE`) when the finding `isStrong` (corroborated && confidence>=0.45 &&
+>   real-sector exposure); otherwise (non-strong over-trigger/thin, OR a BROKEN/errored critic) it
+>   hard-`VETOED`s (NO_ACTION). `ACCEPTED` = critic stood behind acting. Keys off booleans/numbers only
+>   (authoritative-binding); the critic's prose is recorded in the audit run, never bound.
+> - New `skepticGateOutcome` enum field (`ACCEPTED|ANNOTATED|VETOED`) on `DecisionPacketV2Schema`
+>   (additive-optional). Set in CODE at BOTH call sites (`index.ts` + `investigator.ts`), and ONLY when
+>   a genuine cross-family Skeptic ran (`model !== "deterministic-rules"`) → a key-OFF deterministic
+>   packet is byte-identical to before (flag-off no-op + parity moat hold; full suite confirms).
+>   Threaded `ActionOpsResult` → `build-packet.ts` → packet.
+> - UI (`action-packet-view.tsx`): 4th `"annotated"` trust-line state — honest caution copy ("raised a
+>   caution… action proceeds on its independent corroboration and confidence… requires your approval"),
+>   NEVER the positive "and it held" seal (that would overclaim the critic endorsed it).
+>
+> **THE LIVE RE-CALIBRATION CAUGHT A SECOND BUG (the careful part paid off — [[calibration-set-vs-real-finding]]):**
+> an initial draft hard-vetoed a strong finding when `geoAgrees === false`. But the Verifier's
+> `geoAgrees = location.country != null && some(source.country===threatCountry)` is STRUCTURALLY false
+> for a CHOKEPOINT event (Hormuz live finding has NO country — only region+chokepoint), so it is "geo
+> UNCONFIRMED", not "disagrees" → that clause RE-BROKE the flagship (live waterfall returned NO_ACTION,
+> `skepticGateOutcome=VETOED`). **FIX (advisor-reconciled, Option 1): geo dropped ENTIRELY from
+> `FindingStrength` + the gate** — it vetoed ZERO unsound cases (all are already non-strong via
+> corroboration/exposure), so it was pure downside. **Live-confirmed AFTER the fix: Hormuz waterfall →
+> `recommendation=ACT`, `skepticGateOutcome=ANNOTATED`, `missingEvidence=[]`** (critic still REJECTS —
+> geoAgrees=false misleads it — so we get ANNOTATED not ACCEPTED, which is correct + in-scope).
+>
+> **STATE:** typecheck clean · **711 unit passed / 26 skipped** · `verify:full` was GREEN earlier this
+> session (build + secrets; pre the final RTL/geo edits — RE-RUN it) · ONE live waterfall run confirmed
+> ANNOTATED/ACT (~$0.0055). Files: `schemas.ts`, `skeptic.ts`, `index.ts`, `investigator.ts`,
+> `types.ts`, `build-packet.ts`, `action-packet-view.tsx`; tests `actionops-skeptic.test.ts`,
+> `actionops-skeptic-calibration.test.ts` (+S10 = the real no-country flagship shape + deterministic
+> gate-outcome teeth), `actionops-investigator.test.ts` (B2 + (G) gate now assert `!== VETOED`),
+> `actionops-refusal-regression.test.ts`, `actionops-packet-view.test.tsx` (annotated RTL).
+>
+> **REMAINING (next session, IN ORDER):**
+> 1. **Multi-run spaced LIVE re-calibration** (keys in `.env`, owner-authorized): confirm Hormuz → ACT
+>    / never-VETOED **stable across N spaced runs on BOTH waterfall AND loop**, and over-trigger
+>    (`SCN-ZERO-EXPOSURE`) + thin (`SCN-THIN-EVIDENCE`) → NO_ACTION. Run the live (G) gate:
+>    `RUN_LIVE_AI_TESTS=true ENABLE_LIVE_AI=true ENABLE_AGENT_LOOP=true node --env-file=.env node_modules/vitest/vitest.mjs run evals/actionops-investigator.test.ts`
+>    and the live raw Skeptic calibration (incl. S10): `… run evals/actionops-skeptic-calibration.test.ts`.
+> 2. **`npm run verify:full`** GREEN (re-run; includes e2e + build + secrets).
+> 3. **Codex cross-model gate** (MANDATORY — safety component) on the diff → dispose primary-model-final → fix.
+> 4. **Docs:** update `gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md` (the (C) build + the geo-clause
+>    live finding + fix) + the gate doc.
+> 5. **PROMOTION (discrete final, AFTER Codex):** flip `ENABLE_AGENT_LOOP` default-ON (mirror
+>    `skepticGateEnabled`) + reconcile the "default OFF / ships dark" docs (`env-flags.ts`,
+>    `trajectory.ts:5`, `PHASE3-GATE`, `README`, `Success_Criteria`, PHASE0) + full-suite check (watch
+>    the live-DI-key-without-loop routing once default-on).
+> 6. **Commit** (BRANCH off `main` first per harness rule) + push.
+>
+> **OWNER FLAG (advisor, do NOT fix now — in-scope-as-designed):** the flagship will show a PERMANENT
+> "reviewer raised a caution" line, because the live Skeptic is itself misled by the same
+> `geoAgrees=false` and keeps REJECTING. (C) explicitly accepts the annotate outcome. If the owner later
+> wants it to read "cleared", the follow-up is improving the geo signal FED TO the Skeptic (distinguish
+> "unconfirmed" vs a real geo "conflict") — a separate, evidenced verifier change.
+>
+> ----- the earlier 2026-06-28 (cont.) block below (owner picked C; the now-SUPERSEDED category plan) is history -----
+
+> ============================================================================
 > ## SESSION 2026-06-28 (cont.) — LIVE CALIBRATION done; LOOP PROMOTION BLOCKED by a real Skeptic false-veto (OWNER DECISION owed)
 > ============================================================================
 >

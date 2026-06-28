@@ -451,6 +451,23 @@ export const ActionItemSchema = z.object({
 // the competitive analysis names "the agent that refuses when it can't prove it."
 export const RecommendationSchema = z.enum(["ACT", "NO_ACTION"]);
 
+// The cross-family Skeptic GATE outcome (agentic rework, the "scope the gate" change). Records
+// what the Skeptic gate DID to the deterministic decision -- DISTINCT from the Skeptic's own
+// accept/reject verdict (which lives only in the RUN-SKEPTIC audit run, never bound as fact):
+//   - ACCEPTED  -- the critic stood behind acting; decideRecommendation stands untouched.
+//   - ANNOTATED -- the critic OBJECTED, but the finding is independently STRONG (corroborated +
+//                  above the confidence floor + a real-sector exposure), so the gate DOWNGRADES the
+//                  veto to a recorded caution: the ACT stands, the critic's
+//                  objection is preserved in the audit run, and a human still approves every send.
+//                  This is the fix for the live Skeptic FALSE-VETOING a sound flagship finding.
+//   - VETOED    -- the critic objected on a NON-strong finding (not corroborated, OR below the
+//                  confidence floor, OR no real-sector exposure), or the critic BROKE, so the gate
+//                  forces NO_ACTION (the hard veto is preserved exactly where it is warranted). (Geo
+//                  is NOT a veto input -- it was dropped from strength; see SkepticGateOutcomeSchema's
+//                  producer applySkepticGate.)
+// Bound in CODE from booleans/numbers only (authoritative-binding); never from the critic's prose.
+export const SkepticGateOutcomeSchema = z.enum(["ACCEPTED", "ANNOTATED", "VETOED"]);
+
 // One missing-evidence item on a NO_ACTION packet: what corroboration is required,
 // what is absent now, and what specifically would flip the decision to ACT. All three
 // are NUMERAL-FREE prose by construction (templated from the deterministic Verifier
@@ -660,6 +677,15 @@ export const DecisionPacketV2Schema = z.object({
   // on an ACT packet it is absent. Readers treat an absent recommendation as ACT.
   recommendation: RecommendationSchema.optional(),
   missingEvidence: z.array(MissingEvidenceSchema).optional(),
+  // The cross-family Skeptic GATE outcome (ACCEPTED / ANNOTATED / VETOED), ADDITIVE + back-compat.
+  // .optional() so frozen pre-Skeptic V2 fixtures (the SCN-HORMUZ replay, golden, live -- all
+  // predate Phase 4) still parse, and an absent field stays absent through parse (the strict
+  // round-trip equality the versioning tests assert holds). Set in CODE ONLY when a GENUINE
+  // cross-family Skeptic actually ran (a real model id, not the deterministic affirmative pass) --
+  // so a key-OFF deterministic packet is byte-identical to before (the flag-off no-op + parity moat
+  // hold). Lets the war room honestly distinguish an ANNOTATED downgrade from a true ACCEPTED clear,
+  // never overclaiming "the reviewer cleared it" when the critic actually objected.
+  skepticGateOutcome: SkepticGateOutcomeSchema.optional(),
   playbooks: z.array(PlaybookSchema),
   // P1 scored recovery options (agentic rework Phase 1), ADDITIVE + back-compat. The
   // deterministic, structured mitigation set (EXPEDITE/REALLOCATE/SUBSTITUTE/ESCALATE with
@@ -720,6 +746,31 @@ export const DecisionPacketSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "NO_ACTION packet must list at least one missingEvidence item."
+        });
+      }
+    }
+    // The Skeptic gate outcome must be CONSISTENT with the decision it gated (defense-in-depth,
+    // Codex P2). ANNOTATED is ONLY produced by DOWNGRADING a reject on a STRONG finding -- the base
+    // decision there is ACT -- so ANNOTATED must pair with ACT. VETOED is ONLY the hard veto, which
+    // forces NO_ACTION. A packet that paired ANNOTATED with NO_ACTION (or VETOED with ACT) is
+    // malformed and must fail validation rather than reach human review, where the UI's "action
+    // proceeds" caution would contradict the recommendation. ACCEPTED is UNCONSTRAINED (the critic
+    // left decideRecommendation's verdict untouched -- it may be ACT or NO_ACTION). recommendation
+    // is optional and treated as ACT when absent (the documented back-compat reader rule).
+    if (packet.packetVersion === 2 && packet.skepticGateOutcome) {
+      const effectiveRec = packet.recommendation ?? "ACT";
+      if (packet.skepticGateOutcome === "ANNOTATED" && effectiveRec !== "ACT") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "An ANNOTATED Skeptic gate outcome requires recommendation ACT (the downgrade keeps the act/refuse verdict)."
+        });
+      }
+      if (packet.skepticGateOutcome === "VETOED" && effectiveRec !== "NO_ACTION") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "A VETOED Skeptic gate outcome requires recommendation NO_ACTION (the hard veto forces a refusal)."
         });
       }
     }
@@ -853,6 +904,7 @@ export type Claim = z.infer<typeof ClaimSchema>;
 export type SupplierMessageDraft = z.infer<typeof SupplierMessageDraftSchema>;
 export type ActionItem = z.infer<typeof ActionItemSchema>;
 export type Recommendation = z.infer<typeof RecommendationSchema>;
+export type SkepticGateOutcome = z.infer<typeof SkepticGateOutcomeSchema>;
 export type MissingEvidence = z.infer<typeof MissingEvidenceSchema>;
 export type DataTier = z.infer<typeof DataTierSchema>;
 // Sector/country and master-data (P2.4) types.

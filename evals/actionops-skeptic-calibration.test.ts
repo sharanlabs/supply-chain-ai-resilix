@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { challengeFindingLive, resolvedSkepticModel } from "@/lib/agents/actionops/skeptic";
+import {
+  applySkepticGate,
+  challengeFindingLive,
+  findingStrength,
+  resolvedSkepticModel,
+  type SkepticVerdict
+} from "@/lib/agents/actionops/skeptic";
+import { decideRecommendation } from "@/lib/agents/actionops/recommendation";
 import type { VerifierChecks } from "@/lib/agents/actionops/verifier";
 import { estimateLiveCallCostUsd } from "@/lib/agents/run";
 import { DEFAULT_BUDGET_CAP_USD } from "@/lib/agents/budget";
@@ -103,6 +110,17 @@ const LABELED: FindingSpec[] = [
   // be MORE conservative than the deterministic policy here -- aligning to that floor, not re-litigating the
   // confidence axis, is the whole point of the fix. Measured boundary ~0.55-0.60; 0.70 sits clearly above it.
   { id: "S9", accepted: true, eventType: "SUPPLIER_BANKRUPTCY", severity: "HIGH", location: { country: "DE" }, confidence: 0.7, sourceCount: 1, corroborated: false, geoAgrees: true, sectors: ["AUTOMOTIVE"] }, // gray-band single source -- consistent with decideRecommendation's floor
+  // S10 = the FLAGSHIP SHAPE: the EXACT structured finding the LIVE Skeptic FALSE-VETOED, reproduced
+  // from the 2026-06-28 live diagnostic -- confidence 0.9, 9 exposures (CHEMICALS/ENERGY), corroborated
+  // (3 sources), CHOKEPOINT_CLOSURE, and CRITICALLY: location has NO country (region + chokepoint only),
+  // so geoAgrees is STRUCTURALLY false ("unconfirmed", not "disagrees"). That is precisely what made
+  // an earlier draft's geo veto re-break the flagship. The 6/27 set carried only conf-0.82/2-sector S1
+  // (WITH a country), which did NOT reproduce the real finding -- so the labelled TPR/TNR read 100%
+  // while the real flagship refused itself. This closes the set-vs-real gap
+  // (gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md, 2026-06-28). It is the STRONG (corroborated)
+  // shape the strength-aware GATE now downgrades-not-vetoes -- proven by the deterministic gate-outcome
+  // teeth below regardless of how the live critic scores it OR that geoAgrees is false.
+  { id: "S10", accepted: true, eventType: "CHOKEPOINT_CLOSURE", severity: "CRITICAL", location: { region: "Middle East", chokepoint: "Strait of Hormuz" }, confidence: 0.9, sourceCount: 3, corroborated: true, geoAgrees: false, sectors: ["ENERGY", "CHEMICALS", "ENERGY", "CHEMICALS", "ENERGY", "CHEMICALS", "LOGISTICS", "ENERGY", "CHEMICALS"] },
 
   // --- UNSOUND (reject) ---
   { id: "U1", accepted: false, eventType: "CHOKEPOINT_CLOSURE", severity: "CRITICAL", location: { country: "OM", chokepoint: "Strait of Hormuz" }, confidence: 0.85, sourceCount: 3, corroborated: true, geoAgrees: true, sectors: [] }, // over-trigger: NO actionable exposure
@@ -133,6 +151,75 @@ describe("Skeptic calibration: set + fail-closed counting (no spend)", () => {
     // broken critic can only hurt TNR (a false reject), never inflate TPR.
     expect(verdict.accepted).toBe(false);
     expect(verdict.errored).toBe(true);
+  });
+});
+
+// A finding is "strong" (the strength-aware gate DOWNGRADES a reject on it to a recorded caution)
+// iff it is corroborated AND at/above the 0.45 confidence floor AND has a real-sector exposure --
+// EXACTLY applySkepticGate's downgrade condition, stated independently here as the oracle. NOTE: geo
+// is deliberately NOT part of strength (the verifier's geoAgrees is structurally false for chokepoint
+// events -- it false-vetoed the flagship; see applySkepticGate). The SINGLE-AUTHORITATIVE sound cases
+// (S3/S7/S8/S9, corroborated=false) are NOT strong by this rule: (C) is scoped to CORROBORATED
+// findings (the owner's text + the flagship shape), so those still rely on the live critic ACCEPTING
+// them (the labelled TNR below), exactly as before -- the gate's downgrade does not extend to
+// uncorroborated findings.
+const isStrongSpec = (s: FindingSpec): boolean =>
+  s.corroborated && s.confidence >= 0.45 && s.sectors.some((x) => x !== "OTHER_UNMAPPED");
+
+// The (C) regression teeth, DETERMINISTIC (runs every `verify`, NO spend). The fix lives in the GATE
+// (pure code), so we measure the GATE OUTCOME on the labelled finding SHAPES -- the gap 6/27 missed,
+// which measured only the raw critic verdict. For each shape we force a critic REJECT and a critic
+// ACCEPT and assert what the gate does: a REJECT on a STRONG, geo-coherent finding is ANNOTATED (ACT
+// stands -- the false-veto fix); a REJECT on any non-strong finding still hard-VETOES (NO_ACTION); an
+// ACCEPT always lets the deterministic decision stand. The live critic's real verdict varies run to
+// run, but the GATE'S response to a reject is deterministic -- so THIS is the durable safety boundary.
+describe("Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic)", () => {
+  const FORCED_REJECT: SkepticVerdict = { accepted: false, reason: "forced reject (shape test)", errored: false };
+  const FORCED_ACCEPT: SkepticVerdict = { accepted: true, reason: "forced accept (shape test)", errored: false };
+
+  const gateFor = (spec: FindingSpec, verdict: SkepticVerdict) => {
+    const { threatCard, checks, exposures } = inputsFor(spec);
+    const base = decideRecommendation({
+      corroborated: checks.corroborated,
+      confidence: threatCard.confidence,
+      exposureResults: exposures
+    });
+    const strength = findingStrength(checks, threatCard.confidence, exposures);
+    return applySkepticGate(base, verdict, strength);
+  };
+
+  it.each(LABELED.map((s) => [s.id, s] as const))(
+    "%s: a forced critic REJECT yields the correct gate outcome for its strength",
+    (_id, spec) => {
+      const onReject = gateFor(spec, FORCED_REJECT);
+      if (isStrongSpec(spec)) {
+        // STRONG + geo-coherent: the reject is DOWNGRADED to a recorded caution -- the ACT stands.
+        expect(onReject.outcome).toBe("ANNOTATED");
+        expect(onReject.recommendation).toBe("ACT");
+      } else {
+        // Non-strong (over-trigger / thin / single-authoritative / geo-disagree): the hard veto stands.
+        expect(onReject.outcome).toBe("VETOED");
+        expect(onReject.recommendation).toBe("NO_ACTION");
+      }
+    }
+  );
+
+  it.each(LABELED.map((s) => [s.id, s] as const))(
+    "%s: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED)",
+    (_id, spec) => {
+      const onAccept = gateFor(spec, FORCED_ACCEPT);
+      expect(onAccept.outcome).toBe("ACCEPTED");
+    }
+  );
+
+  it("THE FLAGSHIP (S10): a forced REJECT on the exact false-vetoed Hormuz shape is ANNOTATED -> ACT", () => {
+    const flagship = LABELED.find((s) => s.id === "S10")!;
+    // The structured finding must match the real shape that was false-vetoed: corroborated, conf 0.9,
+    // a real chokepoint exposure across multiple lines, geo-coherent.
+    expect(isStrongSpec(flagship)).toBe(true);
+    const onReject = gateFor(flagship, FORCED_REJECT);
+    expect(onReject.outcome).toBe("ANNOTATED");
+    expect(onReject.recommendation).toBe("ACT");
   });
 });
 

@@ -1,5 +1,13 @@
 import { z } from "zod";
-import type { AgentRun, ExposureResult, MissingEvidence, Recommendation, ThreatCard } from "@/lib/schemas";
+import type {
+  AgentRun,
+  ExposureResult,
+  MissingEvidence,
+  Recommendation,
+  SkepticGateOutcome,
+  ThreatCard
+} from "@/lib/schemas";
+import { ACTION_CONFIDENCE_FLOOR } from "@/lib/agents/actionops/recommendation";
 import type { AgentRunUsage } from "@/lib/agents/actionops/agent-run";
 import { makeAgentRun } from "@/lib/agents/actionops/agent-run";
 import type { ActionOpsContext } from "@/lib/agents/actionops/types";
@@ -414,9 +422,13 @@ export async function challengeFindingLive(
         agentName: "Skeptic",
         input: finding,
         output: verdict,
+        // The summary describes the CRITIC'S verdict only -- NOT the final disposition. The
+        // act/refuse gate (applySkepticGate, downstream) decides whether a REJECT hard-vetoes
+        // (NO_ACTION) or is downgraded to a recorded caution on an independently strong finding
+        // (ACT), so the summary must not pre-claim "holding".
         summary: accepted
           ? "Accepted: the cross-family critic stands behind acting on this finding."
-          : "Rejected: the cross-family critic could not stand behind acting on this finding -- holding.",
+          : "Rejected: the cross-family critic raised an objection to acting on this finding; the act/refuse gate weighs it against the finding's independent strength.",
         createdAt: ctx.baseDateIso,
         model,
         mode: "LIVE_AI" as const,
@@ -448,19 +460,127 @@ export const SKEPTIC_HOLD_EVIDENCE: MissingEvidence = {
     "An analyst confirms the finding is sound, or stronger corroborating evidence resolves the critic's objection."
 };
 
-// applySkepticGate: the GATE. A Skeptic ACCEPT leaves decideRecommendation's verdict untouched. A
-// NON-ACCEPT (a live REJECT or a fail-closed HOLD) forces NO_ACTION and appends the templated
-// Skeptic-hold evidence item -- so the existing NO_ACTION withhold (playbooks / messages / action
-// items / recovery options) and the schema superRefine carry the refusal. Pure + deterministic.
-export function applySkepticGate(
-  base: { recommendation: Recommendation; missingEvidence: MissingEvidence[] },
-  verdict: SkepticVerdict
-): { recommendation: Recommendation; missingEvidence: MissingEvidence[] } {
-  if (verdict.accepted) {
-    return base;
-  }
+// FindingStrength: the deterministic finding-strength signal the gate keys the downgrade off.
+// EVERY field is a boolean/number the upstream deterministic agents already computed -- so the
+// gate's decision is PURE CODE (authoritative-binding), never the Skeptic's prose or an
+// LLM-emitted category. It is EXACTLY decideRecommendation's ACT-worthy shape.
+//
+// WHY NO GEO SIGNAL (learned from the live re-calibration, 2026-06-28): the Verifier's `geoAgrees`
+// is `threatCard.location.country != null && some(source.country === threatCountry)` -- so for a
+// CHOKEPOINT event (Hormuz: location is region + chokepoint, NO country) it is STRUCTURALLY ALWAYS
+// false. That is "geo UNCONFIRMED", not "geo DISAGREES". Keying any veto off geoAgrees=false
+// re-broke the exact flagship (C) exists to fix -- and it caught ZERO unsound findings (every
+// unsound case is already non-strong via corroboration / actionable-exposure), so it was pure
+// downside. The recorded Skeptic objection + the mandatory human approval are the backstop for a
+// genuinely incoherent strong finding. (A future verifier change distinguishing UNCONFIRMED from a
+// real geo CONFLICT could reintroduce a precise geo veto; that is a separate, evidenced change.)
+export type FindingStrength = {
+  corroborated: boolean;
+  confidence: number;
+  hasActionableExposure: boolean;
+};
+
+// findingStrength: build the strength signal from the SAME upstream slices the act/refuse gate and
+// the Skeptic finding already read. "Strong" is EXACTLY decideRecommendation's ACT-worthy shape --
+// corroborated AND at/above the confidence floor AND a real-sector exposure -- so the two can never
+// silently diverge (the floor + the actionable-exposure rule are single-sourced).
+export function findingStrength(
+  verifierChecks: VerifierChecks,
+  confidence: number,
+  exposureResults: ExposureResult[]
+): FindingStrength {
+  return {
+    corroborated: verifierChecks.corroborated,
+    confidence,
+    hasActionableExposure: exposureResults.some((e) => e.sector !== "OTHER_UNMAPPED")
+  };
+}
+
+type SkepticGateResult = {
+  recommendation: Recommendation;
+  missingEvidence: MissingEvidence[];
+  outcome: SkepticGateOutcome;
+};
+
+// hardVeto: force NO_ACTION + append the templated Skeptic-hold evidence item -- so the existing
+// NO_ACTION withhold (playbooks / messages / action items / recovery options) and the schema
+// superRefine carry the refusal. The hard veto preserved exactly where it is warranted.
+function hardVeto(base: {
+  recommendation: Recommendation;
+  missingEvidence: MissingEvidence[];
+}): SkepticGateResult {
   return {
     recommendation: "NO_ACTION",
-    missingEvidence: [...base.missingEvidence, SKEPTIC_HOLD_EVIDENCE]
+    missingEvidence: [...base.missingEvidence, SKEPTIC_HOLD_EVIDENCE],
+    outcome: "VETOED"
   };
+}
+
+// applySkepticGate: the GATE (the owner-approved "scope the gate" change). Pure + deterministic.
+//   - ACCEPT -> ACCEPTED: decideRecommendation's verdict stands untouched.
+//   - A BROKEN critic (errored: a fail-closed HOLD -- threw / unparseable / budget breach) -> always
+//     a hard VETO, NEVER downgraded. A critic that could not run cannot be overridden "because the
+//     finding is strong"; the fail-closed contract is that a degraded safety critic REFUSES.
+//   - A live REJECT -> DOWNGRADED to a recorded caution (ANNOTATED, the ACT stands) ONLY when the
+//     finding is independently STRONG (corroborated + at/above the confidence floor + a real-sector
+//     exposure -- decideRecommendation's ACT-worthy shape). Geo is NOT a strength input (it was
+//     dropped -- see FindingStrength), so it plays NO part in the downgrade decision. Otherwise the
+//     REJECT hard-VETOes (a genuine over-trigger / thin finding is NOT strong, so it still forces
+//     NO_ACTION).
+//
+// THE FIX (live Skeptic FALSE-VETOING a sound flagship finding): a corroborated, high-confidence,
+// real-exposure event now ACTs even when the cross-family critic doubts it -- the
+// critic's objection is recorded (the RUN-SKEPTIC audit run, surfaced as a caution) and a human
+// still approves every outbound send. The critic ANNOTATES the strong finding; it no longer hard-
+// vetoes it.
+//
+// WHY pure code, not the critic's stated CATEGORY (supersedes the earlier category-emitting plan --
+// see HANDOFF): routing the veto through an LLM-emitted reason category would put model judgment
+// back in the EXACT path that false-vetoed the flagship -- a model that mislabels a sound finding
+// "misclassification" would re-break it. The gate keys ONLY off deterministic signals already
+// computed upstream, so a strong finding downgrades regardless of HOW the critic phrased its
+// objection (over-trigger read, misclassification claim, confidence doubt) -- (C)'s literal
+// contract, with the atomic human approval as the backstop. A NON-strong finding (a genuine
+// over-trigger with no actionable exposure, or a thin uncorroborated one) is still hard-vetoed.
+// NOTHING numeric or textual is bound from the verdict.reason (authoritative-binding). (Geo is
+// deliberately NOT a veto input -- see FindingStrength: the geoAgrees signal is structurally false
+// for chokepoint events and false-vetoed the flagship.)
+export function applySkepticGate(
+  base: { recommendation: Recommendation; missingEvidence: MissingEvidence[] },
+  verdict: SkepticVerdict,
+  strength: FindingStrength
+): SkepticGateResult {
+  // FAIL-CLOSED FIRST (Codex P1): a BROKEN/errored critic ALWAYS hard-vetoes, checked BEFORE
+  // `accepted` -- so a contradictory verdict {accepted:true, errored:true} can never slip through as
+  // ACCEPTED. The production paths never emit that shape (an errored HOLD is always accepted:false),
+  // but the fail-closed invariant on a SAFETY gate must not depend on that; order makes it structural.
+  if (verdict.errored) {
+    return hardVeto(base);
+  }
+  if (verdict.accepted) {
+    return { ...base, outcome: "ACCEPTED" };
+  }
+
+  const isStrong =
+    strength.corroborated &&
+    strength.confidence >= ACTION_CONFIDENCE_FLOOR &&
+    strength.hasActionableExposure;
+  if (isStrong) {
+    // DOWNGRADE: keep decideRecommendation's verdict + its (empty-on-ACT) missingEvidence. NO
+    // SKEPTIC_HOLD_EVIDENCE -- the critic's objection lives in the audit run, surfaced as a caution,
+    // never restated as a packet "gap".
+    //
+    // INVARIANT (load-bearing for the schema's ANNOTATED=>ACT consistency refine): isStrong
+    // GUARANTEES base.recommendation === "ACT". decideRecommendation refuses ONLY when
+    // (!corroborated && confidence < FLOOR && hasActionableExposure); isStrong requires
+    // (corroborated && confidence >= FLOOR), which is mutually exclusive with that refusal
+    // (corroborated cannot be both). So ANNOTATED is ALWAYS paired with ACT -- the gate never emits
+    // a packet the schema would reject (no production parse throw). The calibration oracle
+    // isStrongSpec (actionops-skeptic-calibration.test.ts) is the regression tripwire if the two
+    // strength definitions ever diverge.
+    return { ...base, outcome: "ANNOTATED" };
+  }
+
+  // A non-strong (over-trigger with no actionable exposure / thin uncorroborated) finding.
+  return hardVeto(base);
 }
