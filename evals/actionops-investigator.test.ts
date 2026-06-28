@@ -647,4 +647,52 @@ describe("(G) live smoke: the Investigator loop runs end-to-end on a real key", 
     // The Investigator drove the run.
     expect(packet.agentRuns.some((r) => r.agentName === "Investigator")).toBe(true);
   }, 60_000);
+
+  // The DURABLE PROMOTION GATE, run live. The loop must ACT on the corroborated authoritative Hormuz
+  // chokepoint AND meet the documented promotion criterion (lib/evals/trajectory.ts): no safety
+  // regression, composite same-or-better, within the $5 budget.
+  //
+  // CURRENT STATE (2026-06-28, RUN_LIVE-measured): with the live cross-family Skeptic ON (the
+  // default), this test FAILS -- the live Skeptic FALSE-VETOES the sound Hormuz finding (confidence
+  // 0.9, 9 exposures, corroborated, CHOKEPOINT_CLOSURE) -> NO_ACTION on EVERY live run (loop AND
+  // waterfall; it is NOT loop-specific). It PASSES with ENABLE_SKEPTIC=false (measured 3/3), proving
+  // the loop ITSELF is promotable once the Skeptic over-veto is resolved. This failing-live assertion
+  // is the HONEST encoding of the promotion BLOCKER -- do NOT delete it to go green; it is the gate.
+  // The resolution is an OWNER decision: (C) scope the Skeptic gate so it cannot hard-veto a
+  // corroborated, high-confidence, real-exposure finding (recommended); or (B) ENABLE_SKEPTIC=false
+  // stopgap (ships the loop without the live critic). RUN_LIVE-gated, so `verify` is unaffected.
+  // Full attribution: docs/claude/gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md + HANDOFF.
+  it.skipIf(!RUN_LIVE)(
+    "on corroborated Hormuz: ACTs and MEETS the documented promotion criterion vs the waterfall baseline",
+    async () => {
+      const baselinePacket = await buildDecisionPacket({ scenarioId: "SCN-HORMUZ", live: false });
+      const loopPacket = await buildDecisionPacket({ scenarioId: "SCN-HORMUZ", live: true });
+
+      expect(loopPacket.recommendation).toBe("ACT");
+      expect(loopPacket.agentRuns.some((r) => r.agentName === "Investigator")).toBe(true);
+
+      const baseline = deriveTrajectory(baselinePacket, {
+        label: "waterfall",
+        expectedRecommendation: "ACT"
+      });
+      const candidate = deriveTrajectory(loopPacket, {
+        label: "loop-live",
+        expectedRecommendation: "ACT"
+      });
+      const cmp = compareTrajectories(baseline, candidate);
+
+      // A durable, greppable promotion record on each live run (cost + the criterion verdict).
+      console.log(
+        `[loop-promotion-evidence] recommendation=${loopPacket.recommendation} ` +
+          `cost=$${(loopPacket.totalCostUsd ?? 0).toFixed(4)} ` +
+          `composite=${cmp.candidate.composite.toFixed(3)} promote=${cmp.promote} ` +
+          `regressions=${JSON.stringify(cmp.safetyRegressions)}`
+      );
+
+      expect(cmp.safetyRegressions).toEqual([]);
+      expect(cmp.withinBudget).toBe(true);
+      expect(cmp.promote).toBe(true);
+    },
+    120_000
+  );
 });

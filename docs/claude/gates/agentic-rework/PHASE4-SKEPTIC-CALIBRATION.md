@@ -175,3 +175,25 @@ Three findings on EVAL RIGOR, disposed primary-model-final (refute-with-evidence
 Re-measured after the closure: **TPR 100% (6/6, each unsound individually rejected) AND TNR 100% (9/9, incl.
 the gray-band S9)**; `npm run verify` GREEN. The differentiator is restored, the unsound side now has per-case
 teeth, and the gray band + misclassification ownership are documented. **Fully cross-model gated.**
+
+---
+
+## ⚠️ 2026-06-28 — LIVE finding: the calibrated Skeptic STILL false-vetoes the REAL flagship Hormuz finding (loop-promotion BLOCKER)
+
+Owner authorized the Gemini + Groq keys ("safe to use") and asked to complete loop promotion + live calibration. Running the live loop smoke surfaced a significant, reproducible finding — the calibration above passes but **does not generalize to the real Hormuz finding the production path feeds the Skeptic**.
+
+**Measured, first-hand (RUN_LIVE_AI_TESTS, ~$0.02 total spend):**
+- **Live loop on SCN-HORMUZ → `NO_ACTION`, 3/3 runs** (consistent, not flaky). The strengthened (G) promotion gate (`evals/actionops-investigator.test.ts`) fails live with the Skeptic on.
+- **Attributed precisely** (diagnostic dump): `confidence 0.9`, `exposureCount 9`, `actionableExposure true`, `CHOKEPOINT_CLOSURE/HIGH` → `decideRecommendation` would **ACT** (it refuses only at confidence < 0.45). The NO_ACTION comes from **`applySkepticGate`**: `missingEvidence = "Independent adversarial review"` + Skeptic run summary `"Rejected: the cross-family critic could not stand behind acting on this finding -- holding."` → **the live cross-family Skeptic FALSE-VETOES a sound, corroborated, high-confidence finding.**
+- **NOT loop-specific:** the live WATERFALL (loop OFF, Skeptic ON) on Hormuz ALSO returns `NO_ACTION` with the same Skeptic reject. `challengeFindingLive` is shared, so **any live run refuses the flagship.**
+- **The loop itself is sound:** with `ENABLE_SKEPTIC=false` the live loop **ACTs + meets the documented promotion criterion (composite ≥ baseline, no safety regression, ≤ $5), 3/3.** Cost ≈ $0.0021/run. So the loop is promotable once the Skeptic over-veto is resolved.
+- **Skeptic labelled calibration re-confirmed live (Groq): still passes** (3/3 gated tests) — which is exactly the gap: **the labelled set's "sound" cases do not reproduce the real Hormuz finding shape**, so a 100% TPR/TNR on it did NOT predict the real-finding false-veto. (Perfect-on-the-set is necessary, not sufficient — the lesson the prior caveat flagged, now demonstrated.)
+
+**Impact:** the live cross-family Skeptic breaks the flagship's ACT on every live run — the "war-room refuses a confirmed chokepoint closure" failure mode, now confirmed with the ACTUAL finding (not a boundary probe). **Loop promotion is BLOCKED** by the comparator's own rule (ACT must produce; a NO_ACTION on the flagship is a safety regression). Promotion HELD; `ENABLE_AGENT_LOOP` NOT flipped.
+
+**OWNER DECISION OWED (the same 6/26 A/B/C/D, now with hard evidence; the chosen "scope the gate + ENABLE_SKEPTIC flag" did NOT hold on the real finding):**
+- **(C) RECOMMENDED — scope the Skeptic gate** so it ANNOTATES/flags but cannot HARD-veto a finding that is corroborated AND high-confidence (≥ floor) AND has real-sector exposure; reserve the hard NO_ACTION veto for genuine over-trigger / thin-low-confidence / geo-disagreement. Preserves the critic, fixes the flagship, matches the 6/26 lean. **Needs its own gated build + live re-calibration against the real finding (not just the labelled set)** — a safety-component semantic change, maker≠judge, not a session-end bolt-on.
+- **(B) stopgap — `ENABLE_SKEPTIC=false`** ships the loop visibly ACTing today but DROPS the live adversarial critic (a deliberate rework feature). Reversible flag.
+- (D) accept the refusal + soften the "single authoritative source acts" claim (degrades the war-room value).
+
+No production logic changed this session (maker≠judge + an owner-gated design call). Working-tree change = the strengthened (G) live promotion gate (RUN_LIVE-gated, so `verify` is unaffected; it correctly FAILS live with the Skeptic on, encoding the blocker) + this finding.

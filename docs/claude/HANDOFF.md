@@ -1,6 +1,40 @@
 # HANDOFF — resume pointer (updated 2026-06-28)
 
 > ============================================================================
+> ## SESSION 2026-06-28 (cont.) — LIVE CALIBRATION done; LOOP PROMOTION BLOCKED by a real Skeptic false-veto (OWNER DECISION owed)
+> ============================================================================
+>
+> **Read FIRST.** Owner authorized the Gemini + Groq keys ("safe to use") and asked to complete **loop
+> promotion + live calibration**. Live calibration is **COMPLETE and SUCCESSFUL — it caught a flagship-breaking
+> bug before shipping.** Loop promotion is **correctly HELD** (the gate working as designed). No production
+> logic changed (maker≠judge + an owner-gated design call). ~$0.02 spent.
+>
+> - **THE FINDING (reproducible, attributed):** the **live cross-family Skeptic FALSE-VETOES the sound flagship
+>   Hormuz finding** (confidence 0.9, 9 exposures, corroborated, CHOKEPOINT_CLOSURE) → `NO_ACTION` on EVERY
+>   live run. Attributed via a diagnostic dump: `decideRecommendation` would ACT (0.9 ≥ 0.45 floor); the veto is
+>   `applySkepticGate` (`missingEvidence="Independent adversarial review"`, Skeptic "Rejected … holding").
+> - **NOT loop-specific:** the live WATERFALL (loop OFF, Skeptic ON) ALSO `NO_ACTION`s Hormuz (shared
+>   `challengeFindingLive`). **The loop ITSELF is sound:** with `ENABLE_SKEPTIC=false` it **ACTs + meets the
+>   documented promotion criterion, 3/3** (~$0.0021/run). So the loop is promotable once the Skeptic is fixed.
+> - **Why the 6/27 calibration missed it:** the labelled Skeptic set (TPR/TNR 100%, re-confirmed live 3/3) does
+>   NOT reproduce the real Hormuz finding shape. Perfect-on-the-set ≠ correct-on-the-real-finding.
+> - **DURABLE:** strengthened the (G) live promotion gate (`evals/actionops-investigator.test.ts`) to assert
+>   ACT + `compareTrajectories().promote` + budget — it RUN_LIVE-gated-FAILS with the Skeptic on (the honest
+>   blocker encoding; `verify` unaffected). Full attribution: `gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md`.
+>
+> **OWNER DECISION OWED (the same 6/26 A/B/C/D, now with hard evidence — the chosen "scope the gate" did NOT
+> hold on the real finding):** **(C) RECOMMENDED** — scope the Skeptic gate so it ANNOTATES but cannot HARD-veto
+> a corroborated + high-confidence + real-exposure finding (preserves the critic, fixes the flagship; needs its
+> own gated build + live re-calibration against the REAL finding). **(B) stopgap** — `ENABLE_SKEPTIC=false`
+> (loop ACTs today, but DROPS the live critic). (D) accept the refusal + soften the claim. **Promotion waits on
+> the pick.** Then: flip `ENABLE_AGENT_LOOP` default-on (mirror `skepticGateEnabled`), reconcile the
+> "default OFF / ships dark" docs (env-flags.ts, trajectory.ts:5, PHASE3-GATE, README, Success_Criteria,
+> PHASE0 docs), run the FULL suite (a live-DI test setting ENABLE_LIVE_AI+key without ENABLE_AGENT_LOOP could
+> route into the loop once default-on), Codex the promotion diff, `verify:full`, commit.
+>
+> ----- the earlier 2026-06-28 block below (outbox crash-recovery + reconciliation, pushed `a8d59ec`) is history -----
+
+> ============================================================================
 > ## SESSION 2026-06-28 — "resume except design, complete other tasks": outbox crash-recovery BUILT + Codex-gated; backlog reconciled
 > ============================================================================
 >
