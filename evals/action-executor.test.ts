@@ -11,7 +11,8 @@ import {
   __resetExecutedActionsForTest,
   dispatchGovernableAction,
   executeApprovedPacketActions,
-  getExecutedActionStore
+  getExecutedActionStore,
+  reconcileStrandedDispatches
 } from "@/lib/server/action-executor";
 import { FakeTransport } from "@/evals/_helpers/fake-transport";
 
@@ -215,5 +216,328 @@ describe("NO real network -- the default transport is the Noop", () => {
       expect(row.auditDetail).toContain("noop");
       expect(row.auditDetail).toContain("delivered=false");
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Crash recovery (Codex P5 closure #2): a process that dies between reserve and
+// finalize strands a DISPATCHING row. reconcileStrandedDispatches re-drives it.
+// We simulate the crash by reserving a claim and NEVER finalizing it.
+// ---------------------------------------------------------------------------
+const STRAND_AT = "2026-06-27T00:00:00.000Z";
+
+function findOutwardAction(packet: DecisionPacketV2): GovernableAction {
+  const action = deriveGovernableActions(packet).find(
+    (a) => a.actionType === "SUPPLIER_EMAIL_SEND"
+  );
+  if (!action) {
+    throw new Error("expected a SUPPLIER_EMAIL_SEND (outward) action on the packet");
+  }
+  return action;
+}
+
+describe("crash recovery -- reconcileStrandedDispatches", () => {
+  it("the GAP: a retry dedupes on a stranded DISPATCHING row WITHOUT dispatching; reconcile re-drives it to EXECUTED", async () => {
+    const approved = approvedClone();
+    const action = findReversibleAction(approved);
+    const store = getExecutedActionStore();
+
+    // Simulate a crash: claim the action (DISPATCHING) but never dispatch/finalize.
+    const reservation = await store.reserveAction({
+      action,
+      requestedAt: STRAND_AT,
+      auditDetail: "simulated crash: reserved, never finalized"
+    });
+    expect(reservation.outcome).toBe("RESERVED");
+    expect(reservation.action.status).toBe("DISPATCHING");
+
+    // The naive bug a plain retry hits: it dedupes on the DISPATCHING row and the
+    // transport is NEVER called -- the action is stranded forever.
+    const naiveRetryTransport = new FakeTransport();
+    const retry = await dispatchGovernableAction(action, {
+      registry: { INTERNAL: naiveRetryTransport }
+    });
+    expect(retry.status).toBe("DISPATCHING");
+    expect(naiveRetryTransport.callCount).toBe(0);
+
+    // Reconcile closes the gap: it re-drives the stranded claim through the transport.
+    const fake = new FakeTransport();
+    const res = await reconcileStrandedDispatches({
+      packet: approved,
+      deps: { registry: { INTERNAL: fake } },
+      options: { leaseMs: 0 } // not testing the lease here; treat any DISPATCHING as stranded
+    });
+    expect(res.reconciled).toBe(1);
+    expect(res.reExecuted).toBe(1);
+    expect(res.reFailed).toBe(0);
+    expect(fake.callCount).toBe(1);
+
+    const stored = await store.getActionByIdempotencyKey(action.idempotencyKey);
+    expect(stored?.status).toBe("EXECUTED");
+    expect(stored?.executedAt).not.toBeNull();
+  });
+
+  it("re-drive is FAIL-CLOSED: a throwing transport records FAILED + the error class, never a silent partial", async () => {
+    const approved = approvedClone();
+    const action = findReversibleAction(approved);
+    const store = getExecutedActionStore();
+    await store.reserveAction({
+      action,
+      requestedAt: STRAND_AT,
+      auditDetail: "strand"
+    });
+
+    const throwing = new FakeTransport("internal", "throw");
+    const res = await reconcileStrandedDispatches({
+      packet: approved,
+      deps: { registry: { INTERNAL: throwing } },
+      options: { leaseMs: 0 }
+    });
+    expect(res.reconciled).toBe(1);
+    expect(res.reFailed).toBe(1);
+    expect(throwing.callCount).toBe(1);
+
+    const stored = await store.getActionByIdempotencyKey(action.idempotencyKey);
+    expect(stored?.status).toBe("FAILED");
+    expect(stored?.errorClass).toBe("FakeTransportError");
+  });
+
+  it("THE MOAT on recovery: reconcile NEVER auto-drives a non-reversible/outward action, even if one is stranded DISPATCHING", async () => {
+    const approved = approvedClone();
+    const outward = findOutwardAction(approved);
+    expect(outward.reversibility).toBe("IRREVERSIBLE");
+    const store = getExecutedActionStore();
+
+    // Anomalously claim an OUTWARD action into DISPATCHING (normal flow never does this --
+    // outward actions are recorded PENDING via recordNonDispatched, never reserved). The
+    // moat must hold anyway.
+    await store.reserveAction({
+      action: outward,
+      requestedAt: STRAND_AT,
+      auditDetail: "anomalous outward claim"
+    });
+
+    const email = new FakeTransport("email");
+    const res = await reconcileStrandedDispatches({
+      packet: approved,
+      deps: { registry: { EMAIL: email } },
+      options: { leaseMs: 0 }
+    });
+
+    // Refused, not re-driven; the outward transport was NEVER called.
+    expect(res.skippedNonReversible).toBe(1);
+    expect(res.reconciled).toBe(0);
+    expect(email.callCount).toBe(0);
+
+    // The row is left untouched for a human (still DISPATCHING, never sent).
+    const stored = await store.getActionByIdempotencyKey(outward.idempotencyKey);
+    expect(stored?.status).toBe("DISPATCHING");
+  });
+
+  it("respects the lease window: a freshly-claimed DISPATCHING row is left alone, an old one is re-driven", async () => {
+    const approved = approvedClone();
+    const action = findReversibleAction(approved);
+    const store = getExecutedActionStore();
+    await store.reserveAction({
+      action,
+      requestedAt: STRAND_AT,
+      auditDetail: "claim"
+    });
+
+    const fake = new FakeTransport();
+    // 60s lease, clock only 1s past the claim -> still in-lease -> skip (likely live).
+    const inLease = await reconcileStrandedDispatches({
+      packet: approved,
+      deps: { registry: { INTERNAL: fake }, now: () => "2026-06-27T00:00:01.000Z" },
+      options: { leaseMs: 60_000 }
+    });
+    expect(inLease.skippedInLease).toBe(1);
+    expect(inLease.reconciled).toBe(0);
+    expect(fake.callCount).toBe(0);
+
+    // 1h past the claim -> past the lease -> re-driven.
+    const expired = await reconcileStrandedDispatches({
+      packet: approved,
+      deps: { registry: { INTERNAL: fake }, now: () => "2026-06-27T01:00:00.000Z" },
+      options: { leaseMs: 60_000 }
+    });
+    expect(expired.reconciled).toBe(1);
+    expect(fake.callCount).toBe(1);
+  });
+
+  it("no-op when the packet is not APPROVED (defense in depth) or there are no stranded rows", async () => {
+    // Not approved: a DISPATCHING row is NOT re-driven.
+    const pending = basePacket; // approvalStatus PENDING, as built
+    const action = findReversibleAction(pending);
+    const store = getExecutedActionStore();
+    await store.reserveAction({
+      action,
+      requestedAt: STRAND_AT,
+      auditDetail: "strand on an unapproved packet"
+    });
+    const fake = new FakeTransport();
+    const notApproved = await reconcileStrandedDispatches({
+      packet: pending,
+      deps: { registry: { INTERNAL: fake } }
+    });
+    expect(notApproved.reconciled).toBe(0);
+    expect(fake.callCount).toBe(0);
+    expect(
+      (await store.getActionByIdempotencyKey(action.idempotencyKey))?.status
+    ).toBe("DISPATCHING");
+
+    // Approved but nothing stranded: a clean no-op.
+    __resetExecutedActionsForTest();
+    const clean = await reconcileStrandedDispatches({
+      packet: approvedClone(),
+      deps: { registry: {} }
+    });
+    expect(clean.reconciled).toBe(0);
+    expect(clean.actions).toHaveLength(0);
+  });
+
+  it("a second sweep is idempotent: the re-driven row is terminal, so the transport is not called again", async () => {
+    const approved = approvedClone();
+    const action = findReversibleAction(approved);
+    const store = getExecutedActionStore();
+    await store.reserveAction({
+      action,
+      requestedAt: STRAND_AT,
+      auditDetail: "strand"
+    });
+
+    const fake = new FakeTransport();
+    const first = await reconcileStrandedDispatches({
+      packet: approved,
+      deps: { registry: { INTERNAL: fake } },
+      options: { leaseMs: 0 }
+    });
+    expect(first.reconciled).toBe(1);
+
+    const second = await reconcileStrandedDispatches({
+      packet: approved,
+      deps: { registry: { INTERNAL: fake } },
+      options: { leaseMs: 0 }
+    });
+    expect(second.reconciled).toBe(0);
+    expect(fake.callCount).toBe(1);
+  });
+
+  it("concurrent sweeps re-drive a stranded row EXACTLY ONCE (atomic reclaim, no double-send)", async () => {
+    const approved = approvedClone();
+    const action = findReversibleAction(approved);
+    const store = getExecutedActionStore();
+    await store.reserveAction({
+      action,
+      requestedAt: STRAND_AT,
+      auditDetail: "strand"
+    });
+
+    const fake = new FakeTransport();
+    const reconNow = "2026-06-27T12:00:00.000Z";
+    const runSweep = () =>
+      reconcileStrandedDispatches({
+        packet: approved,
+        deps: { registry: { INTERNAL: fake }, now: () => reconNow },
+        options: { leaseMs: 0 }
+      });
+
+    const [a, b] = await Promise.all([runSweep(), runSweep()]);
+
+    // The transport fired exactly once; one sweep won the reclaim, the other saw it raced.
+    expect(fake.callCount).toBe(1);
+    expect(a.reconciled + b.reconciled).toBe(1);
+    expect(a.skippedRaced + b.skippedRaced).toBe(1);
+
+    const stored = await store.getActionByIdempotencyKey(action.idempotencyKey);
+    expect(stored?.status).toBe("EXECUTED");
+  });
+
+  it("refuses an INTEGRITY MISMATCH: a stored row that disagrees with the re-derived action is not re-driven", async () => {
+    const approved = approvedClone();
+    const real = findReversibleAction(approved);
+    const store = getExecutedActionStore();
+    // Same idempotencyKey, tampered payloadHash (a hash-prefix collision / tampered row).
+    const tampered: GovernableAction = { ...real, payloadHash: "0".repeat(64) };
+    await store.reserveAction({
+      action: tampered,
+      requestedAt: STRAND_AT,
+      auditDetail: "tampered row"
+    });
+
+    const fake = new FakeTransport();
+    const res = await reconcileStrandedDispatches({
+      packet: approved,
+      deps: { registry: { INTERNAL: fake } },
+      options: { leaseMs: 0 }
+    });
+
+    expect(res.skippedIntegrityMismatch).toBe(1);
+    expect(res.reconciled).toBe(0);
+    expect(fake.callCount).toBe(0);
+    // Left untouched for an operator (still DISPATCHING, never re-driven with a bad payload).
+    expect(
+      (await store.getActionByIdempotencyKey(real.idempotencyKey))?.status
+    ).toBe("DISPATCHING");
+  });
+
+  it("the execution summary COUNTS a stranded DISPATCHING row (it never hides)", async () => {
+    const approved = approvedClone();
+    const action = findReversibleAction(approved); // AUDIT_LOG (reversible)
+    const store = getExecutedActionStore();
+    // Strand a reversible action as a prior crashed run would (reserve, never finalize).
+    await store.reserveAction({
+      action,
+      requestedAt: STRAND_AT,
+      auditDetail: "strand from a prior crashed run"
+    });
+
+    // Re-run the normal sweep: the stranded action is a DUPLICATE hit -> stays DISPATCHING
+    // (the normal sweep does NOT re-drive it; reconcile is what clears it). The summary
+    // must still surface it.
+    const result = await executeApprovedPacketActions({
+      packet: approved,
+      autoExecuteReversible: true,
+      deps: {
+        registry: {
+          INTERNAL: new FakeTransport("internal"),
+          EMAIL: new FakeTransport("email"),
+          SLACK: new FakeTransport("slack"),
+          TICKET: new FakeTransport("ticket")
+        }
+      }
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected ok");
+
+    expect(result.summary.dispatching).toBe(1);
+    const stranded = result.summary.actions.filter((r) => r.status === "DISPATCHING");
+    expect(stranded).toHaveLength(1);
+    expect(stranded[0].idempotencyKey).toBe(action.idempotencyKey);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// First-attempt moat (Codex P5 closure #2, finding 1): the exported auto-dispatch
+// primitive itself fails closed for outward actions -- the moat does not rest only
+// on the orchestrator filtering before the call.
+// ---------------------------------------------------------------------------
+describe("first-attempt moat -- the auto-dispatch primitive refuses outward actions", () => {
+  it("dispatchGovernableAction THROWS on a non-reversible/outward action and never touches the transport", async () => {
+    const approved = approvedClone();
+    const outward = findOutwardAction(approved);
+    expect(outward.reversibility).toBe("IRREVERSIBLE");
+
+    const email = new FakeTransport("email");
+    await expect(
+      dispatchGovernableAction(outward, { registry: { EMAIL: email } })
+    ).rejects.toThrow(/non-reversible/i);
+
+    // Fail-closed BEFORE any side effect: no transport call, no reserved row.
+    expect(email.callCount).toBe(0);
+    const store = getExecutedActionStore();
+    expect(
+      await store.getActionByIdempotencyKey(outward.idempotencyKey)
+    ).toBeUndefined();
   });
 });

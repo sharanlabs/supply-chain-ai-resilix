@@ -1,4 +1,43 @@
-# HANDOFF — resume pointer (updated 2026-06-27)
+# HANDOFF — resume pointer (updated 2026-06-28)
+
+> ============================================================================
+> ## SESSION 2026-06-28 — "resume except design, complete other tasks": outbox crash-recovery BUILT + Codex-gated; backlog reconciled
+> ============================================================================
+>
+> **Read FIRST.** Owner: resume the full-permission run but SKIP design (the 5 frontend samples are already
+> built locally; no new UI this run) and complete the OTHER tasks. Advisor-shaped; cross-model gated. State:
+>
+> - **Outbox crash-recovery reconcile — ✅ DONE + Codex-gated (the one genuine correctness item, Codex P5 #2).**
+>   The transactional outbox stranded a dispatch-intent row on a crash-between-reserve-and-finalize (a naive
+>   retry deduped on it and never dispatched). FIX: a new additive `DISPATCHING` claim/lease status (no
+>   migration — status is a text column) makes a stranded attempt STRUCTURALLY distinct from a human-gated
+>   outward `PENDING`; `reconcileStrandedDispatches({packet,deps,options})` re-derives the action from the
+>   packet (the digest is deliberately not persisted) and re-drives stranded rows through a shared
+>   `dispatchAndFinalize` (one moat point). **Moat holds on recovery** (re-drives REVERSIBLE-only, code-owned
+>   classification; outward never auto-driven), fail-closed, APPROVED-only, **intentionally UNWIRED** (the
+>   guardrail a real-transport startup hook will call; inert under Noop).
+> - **Cross-model gate (mandatory) — DISCHARGED CLEAN.** Codex (gpt-5.5 xhigh, main+sidecar) → REVISE (moat
+>   confirmed unbreakable) → 4 findings ADOPTed + fixed: F1 [High] the exported auto-dispatch primitive now
+>   fails closed on non-REVERSIBLE; F2 [High] atomic `reclaimForReconcile` CAS → no concurrent double-send;
+>   F3 [Med] row↔re-derived-action integrity check before any side effect; F4 [Low] `dispatching` summary
+>   count → Codex CLOSURE **`VERDICT: APPROVE`** (both reviews; tests non-vacuous). +10 unit tests.
+> - **Backlog RECONCILED (the owner's "reconciliations"; evidence-cited).** Stale inline checkboxes verified
+>   done (Prettier/husky/pino; P7/P9; misclassification grader; n8n positive-path); playbook-numeral grading =
+>   moot-by-design (playbooks are numeral-free); deps-hygiene `npm ls` = deferred-with-reason (cosmetic).
+> - **Assessed + DELIBERATELY NOT BUILT (sanity-checked vs gold-plating; advisor-confirmed) → surfaced
+>   owner-gated:** `$-at-stake` ranking (REORDERING → ripples the moat-bound top-3 + only surfaces after a
+>   billable homepage re-capture), per-line TTS (no consumer), demand-side lever (rejected at brainstorm).
+> - **Verify:** `npm run verify` GREEN first-hand (672 unit / 25 skip); `verify:full` GREEN (+21 e2e incl.
+>   masthead flake-guard + WCAG 2.2 AA). Full record: `tasks/todo.md` (top FOLLOW-UP RUN block) +
+>   `gates/agentic-rework/CLOSURE-P2-P7.md` #2 + `PHASE5-GATE.md`.
+>
+> **Owner-gated set (unchanged; none blocking):** (1) pick a frontend direction → build into the app (DESIGN,
+> skipped this run); (2) loop promotion `ENABLE_AGENT_LOOP` (Gemini-billable loop smoke); (3) real transport
+> (Slack/SES/n8n) — the typed seam + the now-built reconcile guardrail gate it; (4) gated live calibrations
+> (Skeptic TPR/TNR + loop smoke) on a key; (5) optional billable homepage re-capture (what would surface
+> `$-at-stake`-rank / per-line-TTS if greenlit).
+>
+> ----- the 2026-06-27 block below is the prior session (Skeptic + frontend samples), retained as history -----
 
 > ============================================================================
 > ## SESSION 2026-06-27 — FULL-PERMISSION run: Skeptic reconciled + 5 frontend samples; at the Codex+push gate

@@ -772,19 +772,29 @@ export const ActionChannelSchema = z.enum([
 ]);
 
 // Execution lifecycle (the task's locked status set). PENDING = recorded, awaiting a
-// human-gated execution OR a disabled-autonomy hold; EXECUTED = the transport
-// delivered (or the Noop logged) -- terminal; FAILED = the transport threw
-// (fail-closed, audited, never a silent partial) -- terminal; SKIPPED = a reversible
-// action whose auto-execute is disabled by config.
+// human-gated execution OR a disabled-autonomy hold; DISPATCHING = a winner has CLAIMED
+// the action and a dispatch attempt is in flight (the lease state -- requestedAt is the
+// lease clock); EXECUTED = the transport delivered (or the Noop logged) -- terminal;
+// FAILED = the transport threw (fail-closed, audited, never a silent partial) -- terminal;
+// SKIPPED = a reversible action whose auto-execute is disabled by config.
+//
+// DISPATCHING is the realized "CLAIMED" state from the forward-path note below. It makes a
+// crash-stranded dispatch attempt (reserved, then the process died before finalize)
+// STRUCTURALLY distinct from a deliberately-held outward PENDING row -- so the reconcile
+// sweep (reconcileStrandedDispatches) can re-drive a stranded attempt WITHOUT ever touching
+// a human-gated outward action. "EXPIRED / NEEDS_RECONCILE" stay COMPUTED from the lease age
+// (DISPATCHING + requestedAt older than the lease window), not stored, so no extra states or
+// background flipper are needed for the single-instance MVP.
 //
 // Forward-compat (Codex P3 closure, Low -- corrected): the richer outbox state machine
-// (CLAIMED / EXPIRED / NEEDS_RECONCILE per the grill NEW-4 enterprise path) is purely ADDITIVE
-// -- the column is text (not a pgEnum), so adding a value is no migration. But this Zod enum is
-// CLOSED on purpose: it VALIDATES against the known set and fails loud on an unknown rather than
-// silently passing it. Adding a status is therefore an explicit additive change HERE, not a
-// silently-tolerated unknown -- the reader contract is the current closed set.
+// (per the grill NEW-4 enterprise path) is purely ADDITIVE -- the column is text (not a
+// pgEnum), so adding a value is no migration. But this Zod enum is CLOSED on purpose: it
+// VALIDATES against the known set and fails loud on an unknown rather than silently passing
+// it. Adding a status is therefore an explicit additive change HERE, not a silently-tolerated
+// unknown -- the reader contract is the current closed set.
 export const ExecutedActionStatusSchema = z.enum([
   "PENDING",
+  "DISPATCHING",
   "EXECUTED",
   "FAILED",
   "SKIPPED"
