@@ -1,11 +1,11 @@
 # HANDOFF — resume pointer (updated 2026-06-29)
 
-> ## ▶ RESUME HERE (next session) — (A) geo split BUILT + live-confirmed + COMMITTED; ONE gate pending (Codex cap)
+> ## ▶ RESUME HERE (next session) — (A) geo split DONE + GATE-DISCHARGED + PUSHED; NEXT = (B) promotion flip
 >
 > Owner directive 2026-06-29: "complete all other steps except design in fresh session." Sequence is
 > **(A) geo split → (B) promotion flip → (transport: pause + confirm) → design deferred to a fresh session.**
 >
-> **(A) is DONE + GATE-DISCHARGED on `main` (commit `edbadde` + a fixes commit; NOT pushed)** — the
+> **(A) is DONE + GATE-DISCHARGED + PUSHED to `origin/main` (`edbadde` + `eda8101`, in sync)** — the
 > Verifier `UNCONFIRMED`-vs-`CONFLICT` geo split. It RESOLVED the flagship's permanent "caution"
 > annotation (real Hormuz packet now reads `skepticGateOutcome=ACCEPTED`, 5/5 live across two run sets)
 > AND closes Codex's deferred [P1] #2 (a true geo CONFLICT hard-vetoes again). Live re-cal: **raw Skeptic
@@ -17,7 +17,7 @@
 > **Codex cross-model gate: DISCHARGED.** REVISE → fixed [P1]#1 (source-country ISO normalization — the
 > raw compare false-vetoed real US/JP findings; new shared `lib/data/country-iso.ts`) + [P2] (stale
 > schema comment) + an honest-boundary fix for [P1]#2 → **closure pass APPROVED, no material findings.**
-> The work is ready for **owner-approved push** to origin/main.
+> Owner approved the push 2026-06-29: `fb12e60..eda8101` published, origin/main in sync.
 >
 > **OWNER-GATED follow-up surfaced (the [P1]#2 residual):** make a precise geo CONFLICT a critic-
 > INDEPENDENT deterministic veto (NO_ACTION regardless of the critic's accept). The owner's call — it
