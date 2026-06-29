@@ -1,5 +1,29 @@
 # HANDOFF — resume pointer (updated 2026-06-28)
 
+> ## ▶ RESUME HERE (next session) — state is CLEAN, nothing half-done; everything below is shipped + pushed
+>
+> The (C) Skeptic-gate work is COMPLETE, gated, and on `origin/main` (`c7fd06d`). Working tree clean,
+> `verify:full` GREEN (715/27 + 21 e2e). Loop is still default-OFF (promotion owner-deferred). When you
+> resume, **confirm the owner's intent, then pick ONE** (do not auto-start either — both want a steer):
+>
+> - **(A) RECOMMENDED — build the Verifier `UNCONFIRMED`-vs-`CONFLICT` geo split.** Buildable now (an
+>   evidenced deterministic-agent change with its own gate). It closes **two** things at once: Codex's
+>   deferred [P1] #2 (a true geo-conflict can again hard-veto) AND the flagship's permanent "reviewer
+>   raised a caution" annotation (the live Skeptic stops being misled by `geoAgrees=false`, so the
+>   gate can read `ACCEPTED`/"cleared" not just `ANNOTATED`). This is the natural prerequisite to a
+>   clean promotion. Sketch: split `verifier.ts` geo into AGREES / UNCONFIRMED (country null, e.g.
+>   chokepoints) / CONFLICT (country named + sources name a different one); feed the richer signal to
+>   the Skeptic + reintroduce a PRECISE geo veto in `findingStrength`/`applySkepticGate`; unit + live re-cal.
+> - **(B) OWNER-GATED — flip loop promotion.** `ENABLE_AGENT_LOOP` default-on (mirror
+>   `skepticGateEnabled`'s opt-out) + reconcile the "ships dark" docs (`env-flags.ts`, `trajectory.ts:5`,
+>   PHASE3-GATE, README, Success_Criteria, PHASE0) + full-suite check (watch the live-DI-key-without-loop
+>   routing once default-on). Already PROVEN promotable (loop ACTs + `promote=true`, 3/3 live). Reversible
+>   one-liner. The owner said "not yet" 2026-06-28; do A first if you want the loop to read "cleared".
+> - **Standing owner-gated backlog (unchanged):** real transport (Slack/SES/n8n) behind the typed seam +
+>   the built reconcile guardrail; optional billable homepage re-capture ($-at-stake rank / per-line TTS).
+>
+> ----- full detail of the just-finished session below -----
+
 > ============================================================================
 > ## SESSION 2026-06-28 (latest) — (C) GATES DISCHARGED + PUSHED to origin/main; PROMOTION owner-deferred (the one open item)
 > ============================================================================
