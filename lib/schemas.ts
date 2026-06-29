@@ -461,10 +461,11 @@ export const RecommendationSchema = z.enum(["ACT", "NO_ACTION"]);
 //                  objection is preserved in the audit run, and a human still approves every send.
 //                  This is the fix for the live Skeptic FALSE-VETOING a sound flagship finding.
 //   - VETOED    -- the critic objected on a NON-strong finding (not corroborated, OR below the
-//                  confidence floor, OR no real-sector exposure), or the critic BROKE, so the gate
-//                  forces NO_ACTION (the hard veto is preserved exactly where it is warranted). (Geo
-//                  is NOT a veto input -- it was dropped from strength; see SkepticGateOutcomeSchema's
-//                  producer applySkepticGate.)
+//                  confidence floor, OR no real-sector exposure, OR a real geo CONFLICT), or the
+//                  critic BROKE, so the gate forces NO_ACTION (the hard veto is preserved exactly
+//                  where it is warranted). (Geo IS a veto input, but ONLY a real CONFLICT -- the
+//                  named country contradicted by the sources; the structurally-empty UNCONFIRMED of a
+//                  chokepoint is NEVER a veto. See applySkepticGate / FindingStrength.geoConflict.)
 // Bound in CODE from booleans/numbers only (authoritative-binding); never from the critic's prose.
 export const SkepticGateOutcomeSchema = z.enum(["ACCEPTED", "ANNOTATED", "VETOED"]);
 

@@ -90,3 +90,51 @@ describe("Verifier corroboration counts independent sources (Codex BLOCKER-1)", 
     }
   });
 });
+
+// THREE-STATE geo coherence (AGREES / UNCONFIRMED / CONFLICT) -- the (A) split + the Codex [P1]
+// normalization closure. The load-bearing guard: a SOURCE country is a LOOSE string (GDELT/NWS emit
+// "United States" / "Japan"), while the threat country is ISO. Both sides MUST be normalized to ISO
+// before comparing, or a raw compare reads a real US finding with US sources as a CONFLICT and the
+// Skeptic gate false-vetoes it on a critic reject. These pin the normalization deterministically.
+describe("Verifier three-state geo coherence (normalized both sides; Codex [P1] closure)", () => {
+  // A signal in a given (possibly full-name) country; distinct source labels so corroboration is real.
+  const sigIn = (id: string, country: string): PublicSignal => ({
+    ...sig(id, `Source ${id}`, `https://x/${id}`),
+    location: { country }
+  });
+  const threatIn = (country?: string): ThreatCard => ({
+    ...threat(),
+    location: country ? { country } : {}
+  });
+
+  it("a full-name source AGREES with an ISO threat country -- NO false CONFLICT (the [P1] regression guard)", () => {
+    // threat US + sources "United States" must normalize to US -> AGREES, not CONFLICT.
+    const { checks } = runVerifier(ctx([sigIn("a", "United States"), sigIn("b", "USA")]), threatIn("US"));
+    expect(checks.geo).toBe("AGREES");
+  });
+
+  it("a genuinely DIFFERENT country is a CONFLICT (the precise veto input)", () => {
+    // threat US, every source resolves to JP -> a real geographic contradiction.
+    const { checks } = runVerifier(ctx([sigIn("a", "Japan"), sigIn("b", "JP")]), threatIn("US"));
+    expect(checks.geo).toBe("CONFLICT");
+  });
+
+  it("AGREES wins when ANY source matches, even if another differs", () => {
+    const { checks } = runVerifier(ctx([sigIn("a", "United States"), sigIn("b", "Japan")]), threatIn("US"));
+    expect(checks.geo).toBe("AGREES");
+  });
+
+  it("a blank or UNRECOGNIZED source country is UNCONFIRMED, never a phantom CONFLICT", () => {
+    for (const junk of ["", "   ", "Atlantis", "Westeros"]) {
+      const { checks } = runVerifier(ctx([sigIn("a", junk)]), threatIn("US"));
+      expect(checks.geo, `country "${junk}" must not create a conflict`).toBe("UNCONFIRMED");
+    }
+  });
+
+  it("a chokepoint threat with NO country is UNCONFIRMED, never a conflict (the flagship shape)", () => {
+    // The Hormuz shape: no threat country (region + chokepoint) -> UNCONFIRMED even when the sources
+    // DO carry comparable geography (here US/JP), because there is no single country to corroborate.
+    const { checks } = runVerifier(ctx([sigIn("a", "United States"), sigIn("b", "Japan")]), threatIn(undefined));
+    expect(checks.geo).toBe("UNCONFIRMED");
+  });
+});

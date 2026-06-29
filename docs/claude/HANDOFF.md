@@ -5,21 +5,25 @@
 > Owner directive 2026-06-29: "complete all other steps except design in fresh session." Sequence is
 > **(A) geo split → (B) promotion flip → (transport: pause + confirm) → design deferred to a fresh session.**
 >
-> **(A) is DONE and COMMITTED to `main` (not pushed)** — the Verifier `UNCONFIRMED`-vs-`CONFLICT` geo
-> split. It RESOLVED the flagship's permanent "caution" annotation (real Hormuz packet now reads
-> `skepticGateOutcome=ACCEPTED`, 3/3 live) AND closes Codex's deferred [P1] #2 (a true geo CONFLICT
-> hard-vetoes again). Live re-cal: **raw Skeptic TPR 100% (7/7, incl. new geo-CONFLICT U7) / TNR 100%
-> (10/10, incl. the S10 flagship now ACCEPTED)**; **waterfall 3/3 `ACT`+`ACCEPTED`+`LIVE_AI`**, ~$0.02.
-> `verify:full` GREEN first-hand (718/27 unit + 21 e2e + build + secrets, exit 0). Full evidence:
+> **(A) is DONE + GATE-DISCHARGED on `main` (commit `edbadde` + a fixes commit; NOT pushed)** — the
+> Verifier `UNCONFIRMED`-vs-`CONFLICT` geo split. It RESOLVED the flagship's permanent "caution"
+> annotation (real Hormuz packet now reads `skepticGateOutcome=ACCEPTED`, 5/5 live across two run sets)
+> AND closes Codex's deferred [P1] #2 (a true geo CONFLICT hard-vetoes again). Live re-cal: **raw Skeptic
+> TPR 100% (7/7, incl. geo-CONFLICT U7) / TNR 100% (10/10, incl. the S10 flagship now ACCEPTED)**;
+> **waterfall `ACT`+`ACCEPTED`+`LIVE_AI`** every run, ~$0.04 total. `verify:full` GREEN first-hand
+> (723/27 unit + 21 e2e + build + secrets, exit 0). Full evidence + the Codex closure:
 > `gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md` (2026-06-29 section).
 >
-> **THE ONE OPEN ITEM on (A): the mandatory Codex cross-model gate is PENDING — Codex hit its usage cap.**
-> Retry after the reset (stated **12:51 AM EDT / 00:51**, 2026-06-29). Re-run the read-only adversarial
-> review of the (A) diff (prompt + diff captured under the session scratchpad, or regenerate via
-> `git diff` against the parent of the (A) commit). Dispose findings primary-model-final, then the work
-> is ready for **owner-approved push** to origin/main.
+> **Codex cross-model gate: DISCHARGED.** REVISE → fixed [P1]#1 (source-country ISO normalization — the
+> raw compare false-vetoed real US/JP findings; new shared `lib/data/country-iso.ts`) + [P2] (stale
+> schema comment) + an honest-boundary fix for [P1]#2 → **closure pass APPROVED, no material findings.**
+> The work is ready for **owner-approved push** to origin/main.
 >
-> **NEXT after Codex discharges:**
+> **OWNER-GATED follow-up surfaced (the [P1]#2 residual):** make a precise geo CONFLICT a critic-
+> INDEPENDENT deterministic veto (NO_ACTION regardless of the critic's accept). The owner's call — it
+> overrides a critic accept + the deterministic ACT decision; the human-approval backstop covers it until then.
+>
+> **NEXT (owner picked "Hold for Codex on (A) first" — now done):**
 > - **(B) flip loop promotion** — `ENABLE_AGENT_LOOP` default-on (mirror `skepticGateEnabled`'s opt-out)
 >   + reconcile the "ships dark" docs (`env-flags.ts`, `trajectory.ts:5`, PHASE3-GATE, README,
 >   Success_Criteria, PHASE0) + full-suite check + a LIVE loop (G)-gate run to confirm the loop path

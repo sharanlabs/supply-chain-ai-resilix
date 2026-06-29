@@ -10,6 +10,7 @@ import {
   type SupplierRowReport,
   type SupplierUploadReport
 } from "@/lib/schemas";
+import { COUNTRY_NAME_TO_ISO } from "@/lib/data/country-iso";
 
 // ---------------------------------------------------------------------------
 // P2.5 supplier CSV ingestion core (R4-5/6). Framework-free: no Next.js / no DB
@@ -70,32 +71,11 @@ const TIER2_HEADERS = new Set([
   "revenue_per_unit"
 ]);
 
-// Minimal ISO-3166 alpha-2 name normalization for the common full-name spellings a
-// human is likely to type. NOT a full ISO table -- the goal is that a FIXABLE row
-// (a lowercase code or a common country name) is normalized rather than silently
-// dropped, making zero-match-by-typo structurally avoidable. Anything outside this
-// map plus the alpha-2 regex is rejected WITH A SPECIFIC REASON, never silently.
-const COUNTRY_NAME_TO_ISO: Record<string, string> = {
-  "united states": "US",
-  "united states of america": "US",
-  usa: "US",
-  "united kingdom": "GB",
-  uk: "GB",
-  germany: "DE",
-  france: "FR",
-  china: "CN",
-  japan: "JP",
-  "south korea": "KR",
-  korea: "KR",
-  taiwan: "TW",
-  india: "IN",
-  mexico: "MX",
-  canada: "CA",
-  netherlands: "NL",
-  vietnam: "VN",
-  malaysia: "MY",
-  singapore: "SG"
-};
+// The ISO-3166 alpha-2 name map now lives in lib/data/country-iso.ts (single source of
+// truth: ingest + the Verifier's geo-coherence check normalize through the SAME table, so
+// "United States" vs "US" can never read as agreement in one path and conflict in another).
+// A row outside this map plus the alpha-2 regex is still rejected WITH A SPECIFIC REASON
+// (see normalizeCountry / its caller), never silently.
 
 export type IngestResult = {
   suppliers: Supplier[];

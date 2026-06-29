@@ -133,11 +133,16 @@ const LABELED: FindingSpec[] = [
   { id: "U6", accepted: false, eventType: "QUALITY_RECALL", severity: "MEDIUM", location: { country: "US" }, confidence: 0.8, sourceCount: 2, corroborated: true, geo: "AGREES", sectors: ["OTHER_UNMAPPED"] }, // over-trigger: only off-taxonomy exposure (no recognized sector)
   // U7 = the GENUINE GEO-CONFLICT case (new with the UNCONFIRMED-vs-CONFLICT split; closes Codex's
   // deferred [P1] #2). Otherwise ACT-worthy -- corroborated (3 sources), high confidence (0.82), a
-  // real ELECTRONICS exposure -- BUT the finding names JP while every corroborating source is in a
-  // DIFFERENT country (geo CONFLICT), a likely misclassification the system must NOT act on. It is the
-  // discriminator vs the UNCONFIRMED flagship S10 (which is corroborated+high-conf+real-exposure too,
-  // but its chokepoint geo is UNCONFIRMED, not contradicted). The deterministic gate teeth below prove
-  // a forced REJECT on U7 hard-VETOES (geoConflict => non-strong) while the same on S10 ANNOTATES.
+  // real ELECTRONICS exposure -- BUT the finding names JP while every corroborating source resolves to
+  // a DIFFERENT country (geo CONFLICT), a likely misclassification the critic SHOULD reject. The scope
+  // (C)+(A) close is the DOWNGRADE gap: a critic REJECT on U7 now HARD-VETOES (geoConflict => non-strong)
+  // rather than being downgraded to a caution like the UNCONFIRMED flagship S10 -- that is exactly what
+  // [P1] #2 asked for, and the deterministic teeth below prove it (forced REJECT on U7 -> VETOED, on S10
+  // -> ANNOTATED). NOTE the scope boundary (honest): the gate does NOT veto a CONFLICT independently of
+  // the critic -- a critic ACCEPT on U7 lets it ACT (the forced-ACCEPT teeth allow it), gated by the
+  // mandatory human approval like any ACCEPTED finding. Empirically the live critic REJECTS this shape
+  // (the labelled TPR below counts U7), so the accept-a-conflict path is rare; making CONFLICT a
+  // critic-INDEPENDENT deterministic veto is a separate, owner-gated hardening, not claimed here.
   { id: "U7", accepted: false, eventType: "NATURAL_DISASTER", severity: "HIGH", location: { country: "JP" }, confidence: 0.82, sourceCount: 3, corroborated: true, geo: "CONFLICT", sectors: ["ELECTRONICS"] }
 ];
 

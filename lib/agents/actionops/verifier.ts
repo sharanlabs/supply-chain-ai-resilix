@@ -1,4 +1,5 @@
-import type { AgentRun, ThreatCard } from "@/lib/schemas";
+import type { AgentRun, CountryCode, ThreatCard } from "@/lib/schemas";
+import { normalizeCountryToIso } from "@/lib/data/country-iso";
 import { makeAgentRun } from "@/lib/agents/actionops/agent-run";
 import { type QuarantinedSignal, quarantineSignals } from "@/lib/agents/actionops/quarantine";
 import type { ActionOpsContext } from "@/lib/agents/actionops/types";
@@ -64,23 +65,31 @@ function computeChecks(signals: QuarantinedSignal[], threatCard: ThreatCard): Ve
   // Three-state geo coherence (see GeoStatus). The distinction Codex's deferred [P1] #2 named: a
   // gate-only `country != null && !agrees` approximation would mislabel "country named but the
   // sources carry NO geography" as a conflict and over-veto. So we compute CONFLICT precisely --
-  // it requires the sources to actually carry a DIFFERENT country, not merely the ABSENCE of a match.
-  const threatCountry = threatCard.location.country;
+  // it requires the sources to actually carry a DIFFERENT, COMPARABLE country, not merely the
+  // ABSENCE of a match.
+  //
+  // NORMALIZE BOTH SIDES TO ISO before comparing (Codex [P1], closure): the threat country is
+  // already an ISO alpha-2 code (Sentinel validates via CountryCodeSchema), but a SOURCE signal's
+  // country is a LOOSE string -- GDELT/NWS emit "United States" / "Japan", not "US" / "JP". A raw
+  // string compare would read a real US finding whose sources say "United States" as a CONFLICT and
+  // false-veto it. Only a source that resolves to a real ISO code counts as geography; a blank or
+  // unrecognized one is neither agreement nor conflict -- it stays UNCONFIRMED (cannot confirm/deny).
+  const threatCountry = normalizeCountryToIso(threatCard.location.country);
   const sourceCountries = signals
-    .map((s) => s.location.country)
-    .filter((c): c is string => c != null);
+    .map((s) => normalizeCountryToIso(s.location.country))
+    .filter((c): c is CountryCode => c != null);
   let geo: GeoStatus;
   if (threatCountry == null) {
     // No single country to corroborate against (a chokepoint spanning several states, a global
-    // event). UNCONFIRMED, never a disagreement -- this is the chokepoint flagship's shape.
+    // event, or an unrecognized threat country). UNCONFIRMED -- the chokepoint flagship's shape.
     geo = "UNCONFIRMED";
   } else if (sourceCountries.includes(threatCountry)) {
     geo = "AGREES";
   } else if (sourceCountries.length > 0) {
-    // The sources DO carry geography and none of them is the named threat country -> a real conflict.
+    // The sources resolve to a real country and none is the named threat country -> a real conflict.
     geo = "CONFLICT";
   } else {
-    // The finding names a country but no source carries any geography -> cannot confirm or deny.
+    // The finding names a country but no source resolves to one -> cannot confirm or deny.
     geo = "UNCONFIRMED";
   }
   // Corroboration counts INDEPENDENT sources, not raw signals: two articles from the SAME
