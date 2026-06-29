@@ -1,11 +1,11 @@
 # HANDOFF — resume pointer (updated 2026-06-29)
 
-> ## ▶ RESUME HERE (next session) — (A) geo split + (B) promotion flip BOTH DONE + GATE-DISCHARGED (UNPUSHED); NEXT = transport (owner-gated) or design (deferred)
+> ## ▶ RESUME HERE (next session) — (A) geo split + (B) promotion flip BOTH DONE + GATE-DISCHARGED + PUSHED (`4bf960a`, origin/main in sync); NEXT = transport (owner-gated) or design (deferred)
 >
 > Owner directive 2026-06-29: "complete all other steps except design in fresh session." Sequence is
 > **(A) geo split → (B) promotion flip → (transport: pause + confirm) → design deferred to a fresh session.**
 >
-> **(B) loop promotion is DONE + CODEX-DISCHARGED, COMMITTED, UNPUSHED (push is the owner gate).**
+> **(B) loop promotion is DONE + CODEX-DISCHARGED + PUSHED (`4bf960a`, owner-approved 2026-06-29).**
 > `ENABLE_AGENT_LOOP` flipped default-ON (opt-out mirror of `skepticGateEnabled`); the deterministic
 > waterfall is the byte-for-byte opt-out (`=false`) — MOAT unchanged. Reconciled the ships-dark docs
 > (env-flags, trajectory.ts, PHASE0-GRILL R6, PHASE3-GATE banner, README live-orchestration bullet,
@@ -17,7 +17,8 @@
 > holds). Full evidence: `gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md` ((B) section).
 >
 > **NEXT (owner's call):**
-> - **PUSH** the (A)+(B) work to origin/main — owner-gated (every prior session pushed only on owner OK).
+> - **⚠️ `.env` check:** the CODE default is now on, but if a local/deploy `.env` still pins
+>   `ENABLE_AGENT_LOOP=false` (ships-dark leftover) the loop stays OFF there — remove that line wherever live AI runs.
 > - **transport (Slack/SES/n8n behind the typed seam):** outward-facing + needs creds → PAUSE + confirm before building.
 > - **design (billable homepage re-capture: $-at-stake rank / per-line TTS):** DEFERRED to a fresh session. **Scope it DESKTOP/WEB ONLY — skip mobile entirely (owner 2026-06-29).**
 >
