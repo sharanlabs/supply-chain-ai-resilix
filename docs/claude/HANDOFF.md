@@ -1,23 +1,24 @@
 # HANDOFF — resume pointer (updated 2026-06-28)
 
 > ============================================================================
-> ## SESSION 2026-06-28 (latest) — (C) GATES DISCHARGED: multi-run live re-cal GREEN + Codex closed; COMMITTED on a branch; PUSH + PROMOTION = owner decisions
+> ## SESSION 2026-06-28 (latest) — (C) GATES DISCHARGED + PUSHED to origin/main; PROMOTION owner-deferred (the one open item)
 > ============================================================================
 >
-> **Read FIRST.** Resumed the (C) scope-the-Skeptic-gate work. The remaining ordered steps are DONE
-> through commit; the only open items are the two OWNER decisions (push, promotion). State:
+> **Read FIRST.** Resumed the (C) scope-the-Skeptic-gate work and took it to the end: live re-cal +
+> Codex + commit + **push (owner-approved, `098014e..667a7d6`, origin/main in sync)**. The ONLY open
+> item is loop promotion, which the owner DEFERRED ("not yet"). State:
 >
-> - **Multi-run LIVE re-calibration — DONE + GREEN (~$0.04, keys owner-authorized in `.env`).**
+> - **Multi-run LIVE re-calibration — DONE + GREEN (~$0.05, keys owner-authorized in `.env`).**
 >   - Raw cross-family Skeptic (Groq free, incl. the S10 flagship shape): **TPR 100% / TNR 90% / fn=0**, asymmetric bar cleared across 3 runs.
 >   - **Production-active WATERFALL** (loop-OFF, REAL Skeptic, a NEW durable gate in `actionops-live-real.test.ts`): **ACT / `skepticGateOutcome=ANNOTATED` / never-VETOED across 3 spaced runs**, strong finding each (conf 0.90–1.00, 9 exposures). The loop ships dark, so THIS is the path users hit — the (C) fix confirmed where it matters.
 >   - **Loop (G) promotion gate** (ENABLE_AGENT_LOOP + live), **3 spaced runs:** every run **ACT, never-VETOED, composite 1.000, promote=true, regressions=[]**, $0.0073–0.0087. The loop is now promotable.
 >   - over-trigger/thin → NO_ACTION stay covered DETERMINISTICALLY key-off (no spend).
 > - **Codex cross-model gate — DISCHARGED (mandatory safety component).** gpt-5.5, REVISE → 4 findings disposed primary-model-final: **#1 [P1] fail-closed ordering (errored before accepted) FIXED; #2 [P1] geo-CONFLICT veto DEFERRED with reason** (human-approval backstop + the correct fix is a Verifier UNCONFIRMED-vs-CONFLICT split needing its own tests/live-recal; a gate-only approximation would over-veto, untested); **#3 [P2] build-packet own-undefined key FIXED (conditional spread → truly absent key-off); #4 [P2] ANNOTATED⟺ACT consistency FIXED (schema superRefine + UI guard).** +4 regression tests. (Codex hit its usage cap once mid-session; re-run after the 7:25 PM EDT reset.) Closure pass: see `gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md`.
-> - **STATE:** `npm run verify:full` GREEN first-hand — **715 passed / 27 skipped** unit + 21 e2e + build + secrets, exit 0. Committed on a branch off `main` (NOT pushed). The flag flip is NOT in the commit.
+> - **STATE:** `npm run verify:full` GREEN first-hand — **715 passed / 27 skipped** unit + 21 e2e + build + secrets, exit 0. Commit **`667a7d6` on `main`, PUSHED to origin/main** (owner-approved merge+push). The flag flip is NOT in the commit (promotion deferred).
 >
-> **OWNER DECISIONS (both surfaced, neither done autonomously):**
-> 1. **PUSH** the (C) branch (outward) — merge to `main` / push to origin, per the project's main-based norm, OR open a PR. Held for an explicit go (outward action).
-> 2. **PROMOTION** — flip `ENABLE_AGENT_LOOP` default-on (mirror `skepticGateEnabled`'s opt-out) + reconcile the "ships dark" docs (`env-flags.ts`, `trajectory.ts:5`, PHASE3-GATE, README, Success_Criteria, PHASE0). The (C) fix UNBLOCKED it (loop ACTs + promotes live); the flip is a reversible one-liner reserved for the owner. NOT in this commit.
+> **OWNER DECISIONS (resolved this session):**
+> 1. **PUSH — DONE.** Owner chose merge-to-main + push; `098014e..667a7d6` published, origin/main in sync.
+> 2. **PROMOTION — DEFERRED by owner ("not yet"). THE ONE OPEN ITEM.** When greenlit: flip `ENABLE_AGENT_LOOP` default-on (mirror `skepticGateEnabled`'s opt-out) + reconcile the "ships dark" docs (`env-flags.ts`, `trajectory.ts:5`, PHASE3-GATE, README, Success_Criteria, PHASE0) + full-suite check (watch live-DI-key-without-loop routing once default-on). The (C) fix UNBLOCKED it (loop ACTs + promotes live, 3/3); a reversible one-liner reserved for the owner. The owner may want to resolve the permanent-caution annotation FIRST (the Verifier UNCONFIRMED-vs-CONFLICT split below) before making the loop the default.
 >
 > **OWNER FLAG (in-scope-as-designed, unchanged):** the flagship shows a PERMANENT "reviewer raised a caution" annotation (the live Skeptic is itself misled by `geoAgrees=false` and keeps REJECTING). A future "cleared" read needs the geo signal FED TO the Skeptic improved — the SAME Verifier UNCONFIRMED-vs-CONFLICT split that closes Codex #2. One evidenced follow-up resolves both.
 >
