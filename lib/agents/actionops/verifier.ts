@@ -9,11 +9,26 @@ import type { ActionOpsContext } from "@/lib/agents/actionops/types";
 // DETERMINISTIC_RULES runs. It corroborates the threat against the fetched signals
 // (source count, recency, geo agreement) with a templated rationale, never an LLM
 // call. D.4 hardens the checks.
+
+// GeoStatus: the THREE-STATE geo-coherence signal (supersedes the old `geoAgrees` boolean, which
+// conflated two very different situations). The split is load-bearing for the Skeptic gate:
+//   - AGREES      -- the finding names a country AND at least one corroborating source is in it.
+//   - UNCONFIRMED -- there is no single country to match: EITHER the finding carries no country
+//                    (e.g. a CHOKEPOINT event like the Strait of Hormuz, which spans several states),
+//                    OR the sources carry no geography at all. This is "we cannot confirm OR deny",
+//                    NOT a disagreement -- it must never be treated as a geo conflict (the old
+//                    boolean did, which STRUCTURALLY false-vetoed the chokepoint flagship).
+//   - CONFLICT    -- the finding names a country, the sources DO carry geography, and NONE of them
+//                    is that country: a real geographic contradiction (likely misclassification).
+// Only CONFLICT is an adverse signal; UNCONFIRMED is neutral. The Skeptic gate keys its precise geo
+// veto off CONFLICT alone (skeptic.ts: FindingStrength.geoConflict).
+export type GeoStatus = "AGREES" | "UNCONFIRMED" | "CONFLICT";
+
 export type VerifierChecks = {
   sourceCount: number;
   corroborated: boolean;
   freshestMinutes: number | null;
-  geoAgrees: boolean;
+  geo: GeoStatus;
 };
 
 export function runVerifier(
@@ -34,7 +49,7 @@ export function runVerifier(
     output: checks,
     summary: `${checks.sourceCount} source(s); corroboration ${
       checks.corroborated ? "met" : "single-source"
-    }; geo ${checks.geoAgrees ? "agrees" : "unconfirmed"}.`,
+    }; geo ${checks.geo.toLowerCase()}.`,
     createdAt: baseDateIso,
     // A run with zero corroborating signals is a real verification failure.
     validationStatus: checks.sourceCount > 0 ? "PASS" : "FAIL"
@@ -46,9 +61,28 @@ export function runVerifier(
 function computeChecks(signals: QuarantinedSignal[], threatCard: ThreatCard): VerifierChecks {
   const freshestMinutes =
     signals.length > 0 ? Math.min(...signals.map((s) => s.freshnessMinutes)) : null;
+  // Three-state geo coherence (see GeoStatus). The distinction Codex's deferred [P1] #2 named: a
+  // gate-only `country != null && !agrees` approximation would mislabel "country named but the
+  // sources carry NO geography" as a conflict and over-veto. So we compute CONFLICT precisely --
+  // it requires the sources to actually carry a DIFFERENT country, not merely the ABSENCE of a match.
   const threatCountry = threatCard.location.country;
-  const geoAgrees =
-    threatCountry != null && signals.some((s) => s.location.country === threatCountry);
+  const sourceCountries = signals
+    .map((s) => s.location.country)
+    .filter((c): c is string => c != null);
+  let geo: GeoStatus;
+  if (threatCountry == null) {
+    // No single country to corroborate against (a chokepoint spanning several states, a global
+    // event). UNCONFIRMED, never a disagreement -- this is the chokepoint flagship's shape.
+    geo = "UNCONFIRMED";
+  } else if (sourceCountries.includes(threatCountry)) {
+    geo = "AGREES";
+  } else if (sourceCountries.length > 0) {
+    // The sources DO carry geography and none of them is the named threat country -> a real conflict.
+    geo = "CONFLICT";
+  } else {
+    // The finding names a country but no source carries any geography -> cannot confirm or deny.
+    geo = "UNCONFIRMED";
+  }
   // Corroboration counts INDEPENDENT sources, not raw signals: two articles from the SAME
   // source (same `source` label) are one outlet, not two-source agreement. Counting raw
   // signals would let duplicated same-source items flip the refusal gate to ACT, which is
@@ -67,6 +101,6 @@ function computeChecks(signals: QuarantinedSignal[], threatCard: ThreatCard): Ve
     sourceCount,
     corroborated: sourceCount >= 2,
     freshestMinutes,
-    geoAgrees
+    geo
   };
 }

@@ -1,26 +1,33 @@
-# HANDOFF — resume pointer (updated 2026-06-28)
+# HANDOFF — resume pointer (updated 2026-06-29)
 
-> ## ▶ RESUME HERE (next session) — state is CLEAN, nothing half-done; everything below is shipped + pushed
+> ## ▶ RESUME HERE (next session) — (A) geo split BUILT + live-confirmed + COMMITTED; ONE gate pending (Codex cap)
 >
-> The (C) Skeptic-gate work is COMPLETE, gated, and on `origin/main` (`c7fd06d`). Working tree clean,
-> `verify:full` GREEN (715/27 + 21 e2e). Loop is still default-OFF (promotion owner-deferred). When you
-> resume, **confirm the owner's intent, then pick ONE** (do not auto-start either — both want a steer):
+> Owner directive 2026-06-29: "complete all other steps except design in fresh session." Sequence is
+> **(A) geo split → (B) promotion flip → (transport: pause + confirm) → design deferred to a fresh session.**
 >
-> - **(A) RECOMMENDED — build the Verifier `UNCONFIRMED`-vs-`CONFLICT` geo split.** Buildable now (an
->   evidenced deterministic-agent change with its own gate). It closes **two** things at once: Codex's
->   deferred [P1] #2 (a true geo-conflict can again hard-veto) AND the flagship's permanent "reviewer
->   raised a caution" annotation (the live Skeptic stops being misled by `geoAgrees=false`, so the
->   gate can read `ACCEPTED`/"cleared" not just `ANNOTATED`). This is the natural prerequisite to a
->   clean promotion. Sketch: split `verifier.ts` geo into AGREES / UNCONFIRMED (country null, e.g.
->   chokepoints) / CONFLICT (country named + sources name a different one); feed the richer signal to
->   the Skeptic + reintroduce a PRECISE geo veto in `findingStrength`/`applySkepticGate`; unit + live re-cal.
-> - **(B) OWNER-GATED — flip loop promotion.** `ENABLE_AGENT_LOOP` default-on (mirror
->   `skepticGateEnabled`'s opt-out) + reconcile the "ships dark" docs (`env-flags.ts`, `trajectory.ts:5`,
->   PHASE3-GATE, README, Success_Criteria, PHASE0) + full-suite check (watch the live-DI-key-without-loop
->   routing once default-on). Already PROVEN promotable (loop ACTs + `promote=true`, 3/3 live). Reversible
->   one-liner. The owner said "not yet" 2026-06-28; do A first if you want the loop to read "cleared".
-> - **Standing owner-gated backlog (unchanged):** real transport (Slack/SES/n8n) behind the typed seam +
->   the built reconcile guardrail; optional billable homepage re-capture ($-at-stake rank / per-line TTS).
+> **(A) is DONE and COMMITTED to `main` (not pushed)** — the Verifier `UNCONFIRMED`-vs-`CONFLICT` geo
+> split. It RESOLVED the flagship's permanent "caution" annotation (real Hormuz packet now reads
+> `skepticGateOutcome=ACCEPTED`, 3/3 live) AND closes Codex's deferred [P1] #2 (a true geo CONFLICT
+> hard-vetoes again). Live re-cal: **raw Skeptic TPR 100% (7/7, incl. new geo-CONFLICT U7) / TNR 100%
+> (10/10, incl. the S10 flagship now ACCEPTED)**; **waterfall 3/3 `ACT`+`ACCEPTED`+`LIVE_AI`**, ~$0.02.
+> `verify:full` GREEN first-hand (718/27 unit + 21 e2e + build + secrets, exit 0). Full evidence:
+> `gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md` (2026-06-29 section).
+>
+> **THE ONE OPEN ITEM on (A): the mandatory Codex cross-model gate is PENDING — Codex hit its usage cap.**
+> Retry after the reset (stated **12:51 AM EDT / 00:51**, 2026-06-29). Re-run the read-only adversarial
+> review of the (A) diff (prompt + diff captured under the session scratchpad, or regenerate via
+> `git diff` against the parent of the (A) commit). Dispose findings primary-model-final, then the work
+> is ready for **owner-approved push** to origin/main.
+>
+> **NEXT after Codex discharges:**
+> - **(B) flip loop promotion** — `ENABLE_AGENT_LOOP` default-on (mirror `skepticGateEnabled`'s opt-out)
+>   + reconcile the "ships dark" docs (`env-flags.ts`, `trajectory.ts:5`, PHASE3-GATE, README,
+>   Success_Criteria, PHASE0) + full-suite check + a LIVE loop (G)-gate run to confirm the loop path
+>   also reads ACCEPTED (the geo fix applies to both paths; proven live only on the waterfall so far).
+>   The owner now greenlit this via "complete all other steps" (was "not yet" 2026-06-28).
+> - **transport (Slack/SES/n8n behind the typed seam):** outward-facing + needs creds → PAUSE and
+>   confirm with the owner before building (flagged in-session, not silently built).
+> - **design (billable homepage re-capture: $-at-stake rank / per-line TTS):** DEFERRED to a fresh session per the owner.
 >
 > ----- full detail of the just-finished session below -----
 

@@ -240,3 +240,31 @@ Codex explicitly engaged the load-bearing invariants and did NOT break them: aut
 **CLOSURE PASS (Codex, gpt-5.5, on the FIXED diff): NO [P1] findings** — the three fixes confirmed functionally sound (errored-before-accepted at skeptic.ts; conditional spread at build-packet; schema reject + UI guard for the ANNOTATED/VETOED consistency), and the **#2 deferral confirmed "acceptable, not a ship blocker"** (ANNOTATED keeps human approval required + records the objection; a gate-only `geoAgrees=false` veto would over-veto the Hormuz "geo unconfirmed" shape; the right fix is the deferred Verifier UNCONFIRMED-vs-CONFLICT split). One new **[P2]: stale contract comments** (skeptic.ts + schemas.ts still described geo-coherence as a gate input) → **FIXED** (comments now state geo is not a strength/veto input).
 
 Re-verified after all fixes: `npm run verify:full` GREEN first-hand (**715 passed / 27 skipped** unit + 21 e2e + build + secrets, exit 0). **The cross-model gate is DISCHARGED** (3 code fixes + 1 doc fix + 1 evidenced deferral, closure clean); the deferred geo-CONFLICT precision is a tracked, human-backstopped follow-up, not a ship blocker.
+
+---
+
+## ✅ 2026-06-29 — (A) VERIFIER `UNCONFIRMED`-vs-`CONFLICT` GEO SPLIT: closes Codex [P1] #2 + clears the flagship annotation
+
+Owner picked "complete all other steps except design." (A) was the recommended next move: it closes the deferred [P1] #2 AND resolves the flagship's permanent "reviewer raised a caution" annotation — **one evidenced verifier change resolves both**, exactly as the prior OWNER FLAG predicted.
+
+**THE FIX (a deterministic-agent semantic change):** the binary `geoAgrees: boolean` is replaced by a three-state `geo: GeoStatus` (`AGREES | UNCONFIRMED | CONFLICT`) computed in `verifier.ts`. The distinction the deferral named is now precise:
+- **AGREES** — finding names a country AND ≥1 corroborating source is in it.
+- **UNCONFIRMED** — no single country to match: the finding carries no country (a CHOKEPOINT spanning several states — the Hormuz flagship), OR the sources carry no geography. NEUTRAL, not a disagreement.
+- **CONFLICT** — finding names a country, the sources DO carry geography, and NONE is that country: a real contradiction (likely misclassification). This is the ONLY adverse state.
+
+A gate-only `country != null && !geoAgrees` approximation (the thing the deferral warned would over-veto) is avoided: CONFLICT requires the sources to actually carry a DIFFERENT country, never mere absence of a match.
+
+**Two consumers fed the richer signal:**
+1. **The Skeptic prompt** (`buildSkepticPrompt`) now names all three states explicitly: CONFLICT is an over-trigger/misclassification reject signal; **UNCONFIRMED is explicitly NEUTRAL** ("a chokepoint closure legitimately has no single country and is fully actionable — do NOT reject on UNCONFIRMED"). This is what stops the live critic being structurally misled by the chokepoint's empty geo.
+2. **The gate** (`findingStrength`/`applySkepticGate`) regains a PRECISE geo veto: `FindingStrength.geoConflict = (geo === "CONFLICT")`, and `isStrong` now requires `!geoConflict`. So a critic REJECT on a genuine CONFLICT finding HARD-VETOES again (closing [P1] #2), while an UNCONFIRMED strong finding still ANNOTATES (the flagship is NOT re-broken). UNCONFIRMED plays no part in the veto — the precise distinction that bit twice is now structural.
+
+**DURABLE coverage (no spend, every `verify`):**
+- `actionops-skeptic.test.ts` — the old "geo is NOT a veto input" regression guard is **deliberately inverted** into TWO named guards (comment explains why the precise veto is safe where the broad one wasn't): "UNCONFIRMED is NOT a conflict → strong finding ANNOTATES" (the false-veto guard) + "CONFLICT IS a veto input → REJECT on otherwise-strong finding HARD-VETOES". `GEO_CONFLICT` fixture is identical to `STRONG` except `geoConflict` — the exact discriminator.
+- `actionops-skeptic-calibration.test.ts` — `FindingSpec.geo` three-state; **new U7** = the genuine geo-CONFLICT unsound label (corroborated + high-conf + real exposure but wrong country); `isStrongSpec` carries `&& geo !== "CONFLICT"` in lockstep with `applySkepticGate`; S10 flagship relabeled `geo: "UNCONFIRMED"`. The deterministic teeth prove a forced REJECT on U7 VETOES while the same on S10 ANNOTATES.
+- `actionops-verifier.test.ts`, `actionops-investigator.test.ts` (loop parity) — green under the new shape.
+
+**LIVE RE-CALIBRATION (2026-06-29, keys owner-authorized in `.env`, ~$0.02 real Gemini; Groq Skeptic free):**
+- **Raw cross-family Skeptic** (`actionops-skeptic-calibration.test.ts`, Groq free tier, incl. S10 + the new U7): **TPR 100% (7/7 — every unsound rejected, INCLUDING the genuine geo-CONFLICT U7), TNR 100% (10/10 — every sound accepted, INCLUDING the S10 flagship), `fn === 0`, zero misses.** TNR rose from 90%→100% and — the decisive datum — the flagship S10 is now ACCEPTED, not the tolerated sound-reject it was before.
+- **Production-active WATERFALL** (`actionops-live-real.test.ts`, loop-OFF, REAL cross-family Skeptic, 3 spaced runs): every run **`recommendation=ACT`, `skepticGateOutcome=ACCEPTED`, Skeptic `LIVE_AI`**, confidence 0.90, 9 exposures, $0.0062–0.0077/run. **The real Hormuz packet now reads "cleared" (ACCEPTED), not ANNOTATED** — last session this same path was ANNOTATED every run because the live critic kept rejecting on the structurally-false geo. The flagship's permanent "caution" annotation is RESOLVED on the path users hit. (The durable test assertion stays robust — `ACT` + `!== VETOED` — because the critic is stochastic; ACCEPTED is the observed-and-recorded outcome, not a flaky hard-assert.)
+
+**RESOLVES the prior OWNER FLAG:** the flagship no longer shows a permanent "reviewer raised a caution" — the live Skeptic, no longer misled by the chokepoint's empty geo, ACCEPTS the strong finding. **CLOSES Codex deferred [P1] #2:** a true geo CONFLICT can again hard-veto (proven by U7 TPR + the deterministic CONFLICT-vetoes teeth).

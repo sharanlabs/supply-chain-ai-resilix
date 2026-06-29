@@ -160,7 +160,7 @@ export function makeInvestigatorTools(
         return {
           sourceCount: c.sourceCount,
           corroborated: c.corroborated,
-          geoAgrees: c.geoAgrees,
+          geo: c.geo,
           freshestMinutes: c.freshestMinutes
         };
       }

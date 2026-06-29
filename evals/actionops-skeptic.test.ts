@@ -60,7 +60,7 @@ function soundThreat(): ThreatCard {
 }
 
 function soundChecks(): VerifierChecks {
-  return { sourceCount: 3, corroborated: true, freshestMinutes: 12, geoAgrees: true };
+  return { sourceCount: 3, corroborated: true, freshestMinutes: 12, geo: "AGREES" };
 }
 
 function realExposures(): ExposureResult[] {
@@ -297,26 +297,40 @@ describe("Skeptic QUARANTINE -- no news-derived prose reaches the critic (Phase 
 
 describe("Skeptic gate -- applySkepticGate (pure, strength-aware)", () => {
   // The Hormuz-shaped STRONG finding: corroborated + above the confidence floor + a real-sector
-  // exposure. This is the shape the live Skeptic FALSE-VETOED -- the gate must now DOWNGRADE a reject
-  // on it to a recorded caution (ANNOTATED), not a hard veto. (Geo is NOT a strength input: the
-  // verifier's geoAgrees is structurally false for chokepoint events -- see applySkepticGate.)
+  // exposure + geo UNCONFIRMED (a chokepoint has no single country -- NOT a conflict). This is the
+  // shape the live Skeptic FALSE-VETOED -- the gate must now DOWNGRADE a reject on it to a recorded
+  // caution (ANNOTATED), not a hard veto. geoConflict is FALSE here: UNCONFIRMED never makes a
+  // finding non-strong (only a real CONFLICT does -- see GEO_CONFLICT below and applySkepticGate).
   const STRONG: FindingStrength = {
     corroborated: true,
     confidence: 0.9,
-    hasActionableExposure: true
+    hasActionableExposure: true,
+    geoConflict: false
   };
   // A genuine OVER-TRIGGER: a scary, even corroborated/high-confidence event with NO actionable
   // exposure -- NOT strong, so a reject must still hard-veto.
   const OVER_TRIGGER: FindingStrength = {
     corroborated: true,
     confidence: 0.9,
-    hasActionableExposure: false
+    hasActionableExposure: false,
+    geoConflict: false
   };
   // A genuinely THIN finding: a lone uncorroborated low-confidence source -- NOT strong, hard-veto.
   const THIN: FindingStrength = {
     corroborated: false,
     confidence: 0.3,
-    hasActionableExposure: true
+    hasActionableExposure: true,
+    geoConflict: false
+  };
+  // A real GEO CONFLICT finding: otherwise ACT-worthy (corroborated + high-confidence + a real-sector
+  // exposure) but the named country is contradicted by the sources -- a likely misclassification.
+  // geoConflict makes it NON-strong, so a critic REJECT must hard-veto (the precise veto that closes
+  // Codex's deferred [P1] #2). This is the discriminator vs STRONG: identical EXCEPT geoConflict.
+  const GEO_CONFLICT: FindingStrength = {
+    corroborated: true,
+    confidence: 0.9,
+    hasActionableExposure: true,
+    geoConflict: true
   };
 
   it("an ACCEPT passes the base decision through unchanged (outcome ACCEPTED)", () => {
@@ -369,19 +383,36 @@ describe("Skeptic gate -- applySkepticGate (pure, strength-aware)", () => {
     expect(out.missingEvidence).toContainEqual(SKEPTIC_HOLD_EVIDENCE);
   });
 
-  it("REGRESSION GUARD: geo is NOT a veto input -- a strong finding ANNOTATES even when geo is 'unconfirmed'", () => {
-    // The live re-calibration (2026-06-28) caught this: a CHOKEPOINT finding (Hormuz) has no
-    // location.country, so the verifier's geoAgrees is STRUCTURALLY false ("unconfirmed", not
-    // "disagrees"). An earlier draft hard-vetoed on geoAgrees=false and re-broke the flagship.
-    // FindingStrength now carries NO geo signal at all -- a strong finding ANNOTATES regardless of
-    // geography. This test fails loudly if a geo veto is ever reintroduced into the gate.
+  // GEO is a PRECISE veto input -- but ONLY a real CONFLICT, never the structurally-false UNCONFIRMED.
+  // These two tests pin the exact distinction the deferral (Codex [P1] #2) warned about: the broad
+  // `!geoAgrees` veto an earlier (C) draft tried re-broke the chokepoint flagship because UNCONFIRMED
+  // (no single country) read as "disagrees"; the three-state GeoStatus + geoConflict fixes that. The
+  // FIRST test is the false-veto regression guard the earlier "geo is not a veto input" guard became
+  // -- inverted on purpose: geo NOW vetoes, but only on CONFLICT, so the flagship (UNCONFIRMED) is
+  // still safe.
+  it("UNCONFIRMED is NOT a conflict: a strong finding with geo unconfirmed ANNOTATES (the flagship false-veto fix)", () => {
+    // The chokepoint flagship's shape: corroborated + high-conf + real exposure, geo UNCONFIRMED
+    // (geoConflict=false). A reject must DOWNGRADE to a recorded caution, never hard-veto. Fails
+    // loudly if the over-broad `!geoAgrees`-style veto is ever reintroduced.
     const base = { recommendation: "ACT" as const, missingEvidence: [] };
     const out = applySkepticGate(base, { accepted: false, reason: "geo unconfirmed", errored: false }, STRONG);
     expect(out.recommendation).toBe("ACT");
     expect(out.outcome).toBe("ANNOTATED");
     expect(out.missingEvidence).not.toContainEqual(SKEPTIC_HOLD_EVIDENCE);
-    // Structural: FindingStrength exposes no geo field for the gate to key off.
-    expect("geoAgrees" in STRONG).toBe(false);
+    // Structural: STRONG carries geoConflict=false, so an UNCONFIRMED strong finding is never vetoed on geo.
+    expect(STRONG.geoConflict).toBe(false);
+  });
+
+  it("CONFLICT IS a veto input: a REJECT on an otherwise-strong finding with a real geo CONFLICT HARD-VETOES", () => {
+    // The genuine geo-contradiction case Codex's deferred [P1] #2 named: the finding names a country
+    // but the sources all point to a DIFFERENT one. geoConflict makes it non-strong, so the reject is
+    // NOT downgraded -- it forces NO_ACTION + the templated hold evidence. GEO_CONFLICT is identical
+    // to STRONG except geoConflict, so this is the precise discriminator.
+    const base = { recommendation: "ACT" as const, missingEvidence: [] };
+    const out = applySkepticGate(base, { accepted: false, reason: "geo conflict", errored: false }, GEO_CONFLICT);
+    expect(out.recommendation).toBe("NO_ACTION");
+    expect(out.outcome).toBe("VETOED");
+    expect(out.missingEvidence).toContainEqual(SKEPTIC_HOLD_EVIDENCE);
   });
 
   it("a BROKEN critic (errored) ALWAYS hard-vetoes -- never downgraded, even on a strong finding", () => {

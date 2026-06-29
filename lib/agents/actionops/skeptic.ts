@@ -11,7 +11,7 @@ import { ACTION_CONFIDENCE_FLOOR } from "@/lib/agents/actionops/recommendation";
 import type { AgentRunUsage } from "@/lib/agents/actionops/agent-run";
 import { makeAgentRun } from "@/lib/agents/actionops/agent-run";
 import type { ActionOpsContext } from "@/lib/agents/actionops/types";
-import type { VerifierChecks } from "@/lib/agents/actionops/verifier";
+import type { GeoStatus, VerifierChecks } from "@/lib/agents/actionops/verifier";
 import { BudgetExceededError } from "@/lib/agents/budget";
 import {
   type BudgetContext,
@@ -104,8 +104,9 @@ export type SkepticVerdict = {
 // location.region. region is the ONE location sub-field the Sentinel firewall leaves as sanitized
 // free text (country is ISO-validated, chokepoint is forced to the canonical known value, but region
 // is only control-stripped, never injection-scanned), so it is news-derived text and is DROPPED here.
-// geoAgrees already carries the geo-coherence signal the critic needs. That is the moat-killer the
-// design names: "the Skeptic must also not inherit news-derived text."
+// `geo` (the closed-vocab GeoStatus) carries the geo-coherence signal the critic needs -- a closed
+// enum, never raw text. That is the moat-killer the design names: "the Skeptic must also not inherit
+// news-derived text."
 export type SkepticFinding = {
   eventType: string;
   severity: string;
@@ -114,7 +115,10 @@ export type SkepticFinding = {
   corroboration: {
     sourceCount: number;
     corroborated: boolean;
-    geoAgrees: boolean;
+    // Three-state (AGREES / UNCONFIRMED / CONFLICT). UNCONFIRMED (e.g. a chokepoint with no single
+    // country) is NEUTRAL, not a disagreement -- the prompt is explicit so the critic never treats
+    // "cannot confirm" as "contradicts" (the structural false-veto that bit the chokepoint flagship).
+    geo: GeoStatus;
     freshestMinutes: number | null;
   };
   exposure: {
@@ -173,7 +177,7 @@ export function buildSkepticFinding(
     corroboration: {
       sourceCount: verifierChecks.sourceCount,
       corroborated: verifierChecks.corroborated,
-      geoAgrees: verifierChecks.geoAgrees,
+      geo: verifierChecks.geo,
       freshestMinutes: verifierChecks.freshestMinutes
     },
     exposure: {
@@ -258,8 +262,16 @@ export function buildSkepticPrompt(finding: SkepticFinding): string {
     "sectors): if it is EMPTY there is NO actionable exposure -- either no matched supplier, or every " +
     "match is an unrecognized / off-taxonomy sector -- so acting would be noise. This holds REGARDLESS " +
     "of how corroborated or high-confidence the event is: a FULLY corroborated, high-confidence event " +
-    "with an empty `topSectors` is STILL an over-trigger and must be REJECTED. Also an over-trigger: on " +
-    "a location-specific event, the threat geography does not agree with the sources (geoAgrees=false).\n" +
+    "with an empty `topSectors` is STILL an over-trigger and must be REJECTED. Also an over-trigger / " +
+    "likely misclassification: a GEO CONFLICT -- `corroboration.geo` is `CONFLICT`, meaning the finding " +
+    "names a country but the corroborating sources all point to a DIFFERENT country.\n" +
+    "  CRITICAL -- do NOT confuse the three geo states: `corroboration.geo` is `AGREES` (a source " +
+    "confirms the named country -- positive corroboration), `CONFLICT` (sources name a DIFFERENT " +
+    "country -- the over-trigger above), or `UNCONFIRMED`. `UNCONFIRMED` means there is NO single " +
+    "country to match -- e.g. a CHOKEPOINT event (a strait or canal spanning several states), a global " +
+    "event, or sources that carry no country tag. `UNCONFIRMED` is NEUTRAL: it is 'cannot confirm or " +
+    "deny', NOT a disagreement. Do NOT reject a finding because geo is `UNCONFIRMED`; a chokepoint " +
+    "closure legitimately has no single country and is fully actionable.\n" +
     "- MISCLASSIFICATION: the event type is incoherent with the location or the exposure (e.g. a " +
     "chokepoint-closure with no chokepoint and no plausibly-affected lane).\n" +
     "- THIN EVIDENCE: a source that is BOTH uncorroborated AND low-confidence -- ALL THREE must hold: " +
@@ -463,27 +475,32 @@ export const SKEPTIC_HOLD_EVIDENCE: MissingEvidence = {
 // FindingStrength: the deterministic finding-strength signal the gate keys the downgrade off.
 // EVERY field is a boolean/number the upstream deterministic agents already computed -- so the
 // gate's decision is PURE CODE (authoritative-binding), never the Skeptic's prose or an
-// LLM-emitted category. It is EXACTLY decideRecommendation's ACT-worthy shape.
+// LLM-emitted category. It is EXACTLY decideRecommendation's ACT-worthy shape, MINUS a real geo
+// conflict.
 //
-// WHY NO GEO SIGNAL (learned from the live re-calibration, 2026-06-28): the Verifier's `geoAgrees`
-// is `threatCard.location.country != null && some(source.country === threatCountry)` -- so for a
-// CHOKEPOINT event (Hormuz: location is region + chokepoint, NO country) it is STRUCTURALLY ALWAYS
-// false. That is "geo UNCONFIRMED", not "geo DISAGREES". Keying any veto off geoAgrees=false
-// re-broke the exact flagship (C) exists to fix -- and it caught ZERO unsound findings (every
-// unsound case is already non-strong via corroboration / actionable-exposure), so it was pure
-// downside. The recorded Skeptic objection + the mandatory human approval are the backstop for a
-// genuinely incoherent strong finding. (A future verifier change distinguishing UNCONFIRMED from a
-// real geo CONFLICT could reintroduce a precise geo veto; that is a separate, evidenced change.)
+// GEO -- the PRECISE conflict veto (the follow-up that closes Codex's deferred [P1] #2). An earlier
+// (C) draft keyed a veto off the OLD boolean `geoAgrees=false`, which STRUCTURALLY false-vetoed the
+// chokepoint flagship: `geoAgrees` was false for ANY country-less event (Hormuz is region +
+// chokepoint, no country) -- i.e. "UNCONFIRMED", not "DISAGREES". The fix was the Verifier's
+// three-state GeoStatus (verifier.ts): `geoConflict` is true ONLY for a real CONFLICT -- the finding
+// names a country AND the sources carry geography AND none of them is that country. UNCONFIRMED
+// (chokepoint / no source geo) leaves a strong finding strong, so the flagship is NOT re-broken;
+// a genuine CONFLICT (corroborated + high-conf + actionable but in the WRONG country -- a likely
+// misclassification) is no longer "strong", so a critic REJECT on it hard-vetoes again rather than
+// being downgraded to a caution. The atomic human approval remains the backstop on the ANNOTATED path.
 export type FindingStrength = {
   corroborated: boolean;
   confidence: number;
   hasActionableExposure: boolean;
+  geoConflict: boolean;
 };
 
 // findingStrength: build the strength signal from the SAME upstream slices the act/refuse gate and
-// the Skeptic finding already read. "Strong" is EXACTLY decideRecommendation's ACT-worthy shape --
-// corroborated AND at/above the confidence floor AND a real-sector exposure -- so the two can never
-// silently diverge (the floor + the actionable-exposure rule are single-sourced).
+// the Skeptic finding already read. "Strong" is decideRecommendation's ACT-worthy shape --
+// corroborated AND at/above the confidence floor AND a real-sector exposure -- MINUS a real geo
+// CONFLICT, so the two can never silently diverge (the floor + the actionable-exposure rule are
+// single-sourced). geoConflict keys off the Verifier's three-state GeoStatus: ONLY a CONFLICT
+// (named country contradicted by the sources) counts -- UNCONFIRMED never does.
 export function findingStrength(
   verifierChecks: VerifierChecks,
   confidence: number,
@@ -492,7 +509,8 @@ export function findingStrength(
   return {
     corroborated: verifierChecks.corroborated,
     confidence,
-    hasActionableExposure: exposureResults.some((e) => e.sector !== "OTHER_UNMAPPED")
+    hasActionableExposure: exposureResults.some((e) => e.sector !== "OTHER_UNMAPPED"),
+    geoConflict: verifierChecks.geo === "CONFLICT"
   };
 }
 
@@ -523,9 +541,11 @@ function hardVeto(base: {
 //     finding is strong"; the fail-closed contract is that a degraded safety critic REFUSES.
 //   - A live REJECT -> DOWNGRADED to a recorded caution (ANNOTATED, the ACT stands) ONLY when the
 //     finding is independently STRONG (corroborated + at/above the confidence floor + a real-sector
-//     exposure -- decideRecommendation's ACT-worthy shape). Geo is NOT a strength input (it was
-//     dropped -- see FindingStrength), so it plays NO part in the downgrade decision. Otherwise the
-//     REJECT hard-VETOes (a genuine over-trigger / thin finding is NOT strong, so it still forces
+//     exposure + NO real geo conflict -- decideRecommendation's ACT-worthy shape minus a CONFLICT).
+//     A genuine geo CONFLICT (named country contradicted by the sources) makes the finding NON-strong,
+//     so a REJECT on it hard-VETOes -- the precise veto that closes Codex's deferred [P1] #2. A geo
+//     UNCONFIRMED finding (chokepoint / no source geo) is NOT a conflict and stays strong. Otherwise
+//     the REJECT hard-VETOes (a genuine over-trigger / thin finding is NOT strong, so it still forces
 //     NO_ACTION).
 //
 // THE FIX (live Skeptic FALSE-VETOING a sound flagship finding): a corroborated, high-confidence,
@@ -542,9 +562,9 @@ function hardVeto(base: {
 // objection (over-trigger read, misclassification claim, confidence doubt) -- (C)'s literal
 // contract, with the atomic human approval as the backstop. A NON-strong finding (a genuine
 // over-trigger with no actionable exposure, or a thin uncorroborated one) is still hard-vetoed.
-// NOTHING numeric or textual is bound from the verdict.reason (authoritative-binding). (Geo is
-// deliberately NOT a veto input -- see FindingStrength: the geoAgrees signal is structurally false
-// for chokepoint events and false-vetoed the flagship.)
+// NOTHING numeric or textual is bound from the verdict.reason (authoritative-binding). (Geo IS a
+// PRECISE veto input -- but only a real CONFLICT, never the structurally-false UNCONFIRMED that
+// false-vetoed the chokepoint flagship -- see FindingStrength.geoConflict.)
 export function applySkepticGate(
   base: { recommendation: Recommendation; missingEvidence: MissingEvidence[] },
   verdict: SkepticVerdict,
@@ -564,7 +584,8 @@ export function applySkepticGate(
   const isStrong =
     strength.corroborated &&
     strength.confidence >= ACTION_CONFIDENCE_FLOOR &&
-    strength.hasActionableExposure;
+    strength.hasActionableExposure &&
+    !strength.geoConflict;
   if (isStrong) {
     // DOWNGRADE: keep decideRecommendation's verdict + its (empty-on-ACT) missingEvidence. NO
     // SKEPTIC_HOLD_EVIDENCE -- the critic's objection lives in the audit run, surfaced as a caution,

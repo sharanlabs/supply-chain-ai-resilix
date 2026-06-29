@@ -8,7 +8,7 @@ import {
   type SkepticVerdict
 } from "@/lib/agents/actionops/skeptic";
 import { decideRecommendation } from "@/lib/agents/actionops/recommendation";
-import type { VerifierChecks } from "@/lib/agents/actionops/verifier";
+import type { GeoStatus, VerifierChecks } from "@/lib/agents/actionops/verifier";
 import { estimateLiveCallCostUsd } from "@/lib/agents/run";
 import { DEFAULT_BUDGET_CAP_USD } from "@/lib/agents/budget";
 import { getActionOpsScenario } from "@/lib/data/actionops-scenarios";
@@ -36,8 +36,8 @@ function ctx(): ActionOpsContext {
 // A compact description of a finding -> the three structured inputs the Skeptic challenges. The
 // labelled `accepted` is the hand label: SOUND findings (recognized event, real exposure, AND
 // corroboration OR an authoritative high-confidence source) should ACCEPT; OVER-TRIGGER (no
-// actionable exposure / geo disagreement), THIN EVIDENCE (lone uncorroborated low-confidence), and
-// MISCLASSIFICATION cases should REJECT.
+// actionable exposure / geo CONFLICT -- named country contradicted by the sources), THIN EVIDENCE
+// (lone uncorroborated low-confidence), and MISCLASSIFICATION cases should REJECT.
 type FindingSpec = {
   id: string;
   accepted: boolean;
@@ -47,7 +47,7 @@ type FindingSpec = {
   confidence: number;
   sourceCount: number;
   corroborated: boolean;
-  geoAgrees: boolean;
+  geo: GeoStatus; // AGREES | UNCONFIRMED (no single country, e.g. chokepoint) | CONFLICT (sources name a different country)
   sectors: string[]; // exposure sectors; [] = zero exposure; "OTHER_UNMAPPED" = off-taxonomy
 };
 
@@ -70,7 +70,7 @@ function inputsFor(s: FindingSpec): {
     sourceCount: s.sourceCount,
     corroborated: s.corroborated,
     freshestMinutes: 30,
-    geoAgrees: s.geoAgrees
+    geo: s.geo
   };
   const exposures: ExposureResult[] = s.sectors.map((sector, i) => ({
     id: `EXP-${s.id}-${i}`,
@@ -91,44 +91,54 @@ function inputsFor(s: FindingSpec): {
 // modes the Skeptic exists to catch plus the "single authoritative source still acts" discriminator.
 const LABELED: FindingSpec[] = [
   // --- SOUND (accept) ---
-  { id: "S1", accepted: true, eventType: "CHOKEPOINT_CLOSURE", severity: "HIGH", location: { country: "OM", chokepoint: "Strait of Hormuz" }, confidence: 0.82, sourceCount: 3, corroborated: true, geoAgrees: true, sectors: ["ENERGY", "LOGISTICS"] },
-  { id: "S2", accepted: true, eventType: "NATURAL_DISASTER", severity: "HIGH", location: { country: "US" }, confidence: 0.78, sourceCount: 2, corroborated: true, geoAgrees: true, sectors: ["ELECTRONICS"] },
-  { id: "S3", accepted: true, eventType: "SUPPLIER_BANKRUPTCY", severity: "HIGH", location: { country: "DE" }, confidence: 0.8, sourceCount: 1, corroborated: false, geoAgrees: true, sectors: ["AUTOMOTIVE"] }, // single AUTHORITATIVE source still acts
-  { id: "S4", accepted: true, eventType: "TARIFF_DEADLINE", severity: "MEDIUM", location: { country: "CN" }, confidence: 0.74, sourceCount: 3, corroborated: true, geoAgrees: true, sectors: ["TEXTILES_APPAREL"] },
-  { id: "S5", accepted: true, eventType: "MATERIAL_SHORTAGE_ALLOCATION", severity: "HIGH", location: { country: "TW" }, confidence: 0.76, sourceCount: 2, corroborated: true, geoAgrees: true, sectors: ["SEMICONDUCTORS"] },
-  { id: "S6", accepted: true, eventType: "ROUTE_DIVERSION", severity: "MEDIUM", location: { country: "EG" }, confidence: 0.71, sourceCount: 2, corroborated: true, geoAgrees: true, sectors: ["LOGISTICS"] },
+  { id: "S1", accepted: true, eventType: "CHOKEPOINT_CLOSURE", severity: "HIGH", location: { country: "OM", chokepoint: "Strait of Hormuz" }, confidence: 0.82, sourceCount: 3, corroborated: true, geo: "AGREES", sectors: ["ENERGY", "LOGISTICS"] },
+  { id: "S2", accepted: true, eventType: "NATURAL_DISASTER", severity: "HIGH", location: { country: "US" }, confidence: 0.78, sourceCount: 2, corroborated: true, geo: "AGREES", sectors: ["ELECTRONICS"] },
+  { id: "S3", accepted: true, eventType: "SUPPLIER_BANKRUPTCY", severity: "HIGH", location: { country: "DE" }, confidence: 0.8, sourceCount: 1, corroborated: false, geo: "AGREES", sectors: ["AUTOMOTIVE"] }, // single AUTHORITATIVE source still acts
+  { id: "S4", accepted: true, eventType: "TARIFF_DEADLINE", severity: "MEDIUM", location: { country: "CN" }, confidence: 0.74, sourceCount: 3, corroborated: true, geo: "AGREES", sectors: ["TEXTILES_APPAREL"] },
+  { id: "S5", accepted: true, eventType: "MATERIAL_SHORTAGE_ALLOCATION", severity: "HIGH", location: { country: "TW" }, confidence: 0.76, sourceCount: 2, corroborated: true, geo: "AGREES", sectors: ["SEMICONDUCTORS"] },
+  { id: "S6", accepted: true, eventType: "ROUTE_DIVERSION", severity: "MEDIUM", location: { country: "EG" }, confidence: 0.71, sourceCount: 2, corroborated: true, geo: "AGREES", sectors: ["LOGISTICS"] },
   // Single-AUTHORITATIVE high-confidence cases (sourceCount 1, corroborated=false). The design's stated
   // differentiator -- "unverified, not raw source count; a single AUTHORITATIVE source acts" (an official
   // NWS warning, a confirmed recall). decideRecommendation ACTs on these (confidence >= 0.45); the Skeptic
   // MUST NOT over-reject them on corroboration alone. Probing this class ONCE (S3) hid a categorical
   // over-rejection behind an 83% PASS, so the set deliberately carries THREE now (S3/S7/S8) as the
   // regression teeth (gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md).
-  { id: "S7", accepted: true, eventType: "NATURAL_DISASTER", severity: "HIGH", location: { country: "US" }, confidence: 0.88, sourceCount: 1, corroborated: false, geoAgrees: true, sectors: ["ELECTRONICS"] }, // official NWS hurricane warning: single AUTHORITATIVE source acts
-  { id: "S8", accepted: true, eventType: "QUALITY_RECALL", severity: "HIGH", location: { country: "US" }, confidence: 0.82, sourceCount: 1, corroborated: false, geoAgrees: true, sectors: ["AGRICULTURE_FOOD"] }, // confirmed official recall: single AUTHORITATIVE source acts
+  { id: "S7", accepted: true, eventType: "NATURAL_DISASTER", severity: "HIGH", location: { country: "US" }, confidence: 0.88, sourceCount: 1, corroborated: false, geo: "AGREES", sectors: ["ELECTRONICS"] }, // official NWS hurricane warning: single AUTHORITATIVE source acts
+  { id: "S8", accepted: true, eventType: "QUALITY_RECALL", severity: "HIGH", location: { country: "US" }, confidence: 0.82, sourceCount: 1, corroborated: false, geo: "AGREES", sectors: ["AGRICULTURE_FOOD"] }, // confirmed official recall: single AUTHORITATIVE source acts
   // Gray-band single source (Codex closure F1): a single, UNCORROBORATED, MEDIUM-confidence finding with a
   // real exposure. decideRecommendation ACTs on this (confidence >= the 0.45 floor), so the Skeptic must NOT
   // be MORE conservative than the deterministic policy here -- aligning to that floor, not re-litigating the
   // confidence axis, is the whole point of the fix. Measured boundary ~0.55-0.60; 0.70 sits clearly above it.
-  { id: "S9", accepted: true, eventType: "SUPPLIER_BANKRUPTCY", severity: "HIGH", location: { country: "DE" }, confidence: 0.7, sourceCount: 1, corroborated: false, geoAgrees: true, sectors: ["AUTOMOTIVE"] }, // gray-band single source -- consistent with decideRecommendation's floor
+  { id: "S9", accepted: true, eventType: "SUPPLIER_BANKRUPTCY", severity: "HIGH", location: { country: "DE" }, confidence: 0.7, sourceCount: 1, corroborated: false, geo: "AGREES", sectors: ["AUTOMOTIVE"] }, // gray-band single source -- consistent with decideRecommendation's floor
   // S10 = the FLAGSHIP SHAPE: the EXACT structured finding the LIVE Skeptic FALSE-VETOED, reproduced
   // from the 2026-06-28 live diagnostic -- confidence 0.9, 9 exposures (CHEMICALS/ENERGY), corroborated
   // (3 sources), CHOKEPOINT_CLOSURE, and CRITICALLY: location has NO country (region + chokepoint only),
-  // so geoAgrees is STRUCTURALLY false ("unconfirmed", not "disagrees"). That is precisely what made
-  // an earlier draft's geo veto re-break the flagship. The 6/27 set carried only conf-0.82/2-sector S1
-  // (WITH a country), which did NOT reproduce the real finding -- so the labelled TPR/TNR read 100%
-  // while the real flagship refused itself. This closes the set-vs-real gap
-  // (gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md, 2026-06-28). It is the STRONG (corroborated)
-  // shape the strength-aware GATE now downgrades-not-vetoes -- proven by the deterministic gate-outcome
-  // teeth below regardless of how the live critic scores it OR that geoAgrees is false.
-  { id: "S10", accepted: true, eventType: "CHOKEPOINT_CLOSURE", severity: "CRITICAL", location: { region: "Middle East", chokepoint: "Strait of Hormuz" }, confidence: 0.9, sourceCount: 3, corroborated: true, geoAgrees: false, sectors: ["ENERGY", "CHEMICALS", "ENERGY", "CHEMICALS", "ENERGY", "CHEMICALS", "LOGISTICS", "ENERGY", "CHEMICALS"] },
+  // so its geo is UNCONFIRMED (no single country to match), NOT a disagreement -- the old boolean
+  // geoAgrees collapsed both to "false", which is precisely what made an earlier draft's geo veto
+  // re-break the flagship. The 6/27 set carried only conf-0.82/2-sector S1 (WITH a country), which did
+  // NOT reproduce the real finding -- so the labelled TPR/TNR read 100% while the real flagship refused
+  // itself. This closes the set-vs-real gap (gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md,
+  // 2026-06-28). It is the STRONG (corroborated, geo UNCONFIRMED) shape the strength-aware GATE
+  // downgrades-not-vetoes -- proven by the deterministic gate-outcome teeth below regardless of how the
+  // live critic scores it. With the UNCONFIRMED-vs-CONFLICT split + prompt fix, the LIVE critic should
+  // now ACCEPT it (geo UNCONFIRMED is explicitly neutral) -- the goal that lets the flagship read "cleared".
+  { id: "S10", accepted: true, eventType: "CHOKEPOINT_CLOSURE", severity: "CRITICAL", location: { region: "Middle East", chokepoint: "Strait of Hormuz" }, confidence: 0.9, sourceCount: 3, corroborated: true, geo: "UNCONFIRMED", sectors: ["ENERGY", "CHEMICALS", "ENERGY", "CHEMICALS", "ENERGY", "CHEMICALS", "LOGISTICS", "ENERGY", "CHEMICALS"] },
 
   // --- UNSOUND (reject) ---
-  { id: "U1", accepted: false, eventType: "CHOKEPOINT_CLOSURE", severity: "CRITICAL", location: { country: "OM", chokepoint: "Strait of Hormuz" }, confidence: 0.85, sourceCount: 3, corroborated: true, geoAgrees: true, sectors: [] }, // over-trigger: NO actionable exposure
-  { id: "U2", accepted: false, eventType: "PORT_DISRUPTION", severity: "MEDIUM", location: { country: "US" }, confidence: 0.18, sourceCount: 1, corroborated: false, geoAgrees: false, sectors: ["LOGISTICS"] }, // thin evidence: lone, uncorroborated, low-confidence
-  { id: "U3", accepted: false, eventType: "NATURAL_DISASTER", severity: "HIGH", location: { country: "JP" }, confidence: 0.3, sourceCount: 1, corroborated: false, geoAgrees: false, sectors: ["ELECTRONICS"] }, // geo disagreement + thin
-  { id: "U4", accepted: false, eventType: "CHOKEPOINT_CLOSURE", severity: "HIGH", location: {}, confidence: 0.7, sourceCount: 2, corroborated: true, geoAgrees: false, sectors: [] }, // OVER-TRIGGER (empty topSectors) + geo-disagree -- the signals the Skeptic actually rejects on. NOTE (Codex closure F3): a PURE misclassification (incoherent type but otherwise corroborated + a real actionable sector) is NOT the Skeptic's job -- it is caught upstream by Atlas's deterministic Sentinel->Atlas firewall (fail-closed); measured, the Skeptic ACCEPTS such a finding by design. The Skeptic's residual mandate is over-trigger / geo-disagreement / thin-low-confidence.
-  { id: "U5", accepted: false, eventType: "GEOPOLITICAL_CONFLICT", severity: "HIGH", location: { country: "BR" }, confidence: 0.22, sourceCount: 1, corroborated: false, geoAgrees: true, sectors: ["AGRICULTURE_FOOD"] }, // thin evidence
-  { id: "U6", accepted: false, eventType: "QUALITY_RECALL", severity: "MEDIUM", location: { country: "US" }, confidence: 0.8, sourceCount: 2, corroborated: true, geoAgrees: true, sectors: ["OTHER_UNMAPPED"] } // over-trigger: only off-taxonomy exposure (no recognized sector)
+  { id: "U1", accepted: false, eventType: "CHOKEPOINT_CLOSURE", severity: "CRITICAL", location: { country: "OM", chokepoint: "Strait of Hormuz" }, confidence: 0.85, sourceCount: 3, corroborated: true, geo: "AGREES", sectors: [] }, // over-trigger: NO actionable exposure
+  { id: "U2", accepted: false, eventType: "PORT_DISRUPTION", severity: "MEDIUM", location: { country: "US" }, confidence: 0.18, sourceCount: 1, corroborated: false, geo: "UNCONFIRMED", sectors: ["LOGISTICS"] }, // thin evidence: lone, uncorroborated, low-confidence (geo unconfirmed -- the lone source carries no country)
+  { id: "U3", accepted: false, eventType: "NATURAL_DISASTER", severity: "HIGH", location: { country: "JP" }, confidence: 0.3, sourceCount: 1, corroborated: false, geo: "CONFLICT", sectors: ["ELECTRONICS"] }, // geo CONFLICT (named JP, sources name a different country) + thin
+  { id: "U4", accepted: false, eventType: "CHOKEPOINT_CLOSURE", severity: "HIGH", location: {}, confidence: 0.7, sourceCount: 2, corroborated: true, geo: "UNCONFIRMED", sectors: [] }, // OVER-TRIGGER (empty topSectors) -- the decisive reject signal here is the EMPTY exposure, NOT geo (no country => UNCONFIRMED, neutral). NOTE (Codex closure F3): a PURE misclassification (incoherent type but otherwise corroborated + a real actionable sector) is NOT the Skeptic's job -- it is caught upstream by Atlas's deterministic Sentinel->Atlas firewall (fail-closed); measured, the Skeptic ACCEPTS such a finding by design. The Skeptic's residual mandate is over-trigger / geo-CONFLICT / thin-low-confidence.
+  { id: "U5", accepted: false, eventType: "GEOPOLITICAL_CONFLICT", severity: "HIGH", location: { country: "BR" }, confidence: 0.22, sourceCount: 1, corroborated: false, geo: "AGREES", sectors: ["AGRICULTURE_FOOD"] }, // thin evidence
+  { id: "U6", accepted: false, eventType: "QUALITY_RECALL", severity: "MEDIUM", location: { country: "US" }, confidence: 0.8, sourceCount: 2, corroborated: true, geo: "AGREES", sectors: ["OTHER_UNMAPPED"] }, // over-trigger: only off-taxonomy exposure (no recognized sector)
+  // U7 = the GENUINE GEO-CONFLICT case (new with the UNCONFIRMED-vs-CONFLICT split; closes Codex's
+  // deferred [P1] #2). Otherwise ACT-worthy -- corroborated (3 sources), high confidence (0.82), a
+  // real ELECTRONICS exposure -- BUT the finding names JP while every corroborating source is in a
+  // DIFFERENT country (geo CONFLICT), a likely misclassification the system must NOT act on. It is the
+  // discriminator vs the UNCONFIRMED flagship S10 (which is corroborated+high-conf+real-exposure too,
+  // but its chokepoint geo is UNCONFIRMED, not contradicted). The deterministic gate teeth below prove
+  // a forced REJECT on U7 hard-VETOES (geoConflict => non-strong) while the same on S10 ANNOTATES.
+  { id: "U7", accepted: false, eventType: "NATURAL_DISASTER", severity: "HIGH", location: { country: "JP" }, confidence: 0.82, sourceCount: 3, corroborated: true, geo: "CONFLICT", sectors: ["ELECTRONICS"] }
 ];
 
 describe("Skeptic calibration: set + fail-closed counting (no spend)", () => {
@@ -155,16 +165,20 @@ describe("Skeptic calibration: set + fail-closed counting (no spend)", () => {
 });
 
 // A finding is "strong" (the strength-aware gate DOWNGRADES a reject on it to a recorded caution)
-// iff it is corroborated AND at/above the 0.45 confidence floor AND has a real-sector exposure --
-// EXACTLY applySkepticGate's downgrade condition, stated independently here as the oracle. NOTE: geo
-// is deliberately NOT part of strength (the verifier's geoAgrees is structurally false for chokepoint
-// events -- it false-vetoed the flagship; see applySkepticGate). The SINGLE-AUTHORITATIVE sound cases
-// (S3/S7/S8/S9, corroborated=false) are NOT strong by this rule: (C) is scoped to CORROBORATED
-// findings (the owner's text + the flagship shape), so those still rely on the live critic ACCEPTING
-// them (the labelled TNR below), exactly as before -- the gate's downgrade does not extend to
-// uncorroborated findings.
+// iff it is corroborated AND at/above the 0.45 confidence floor AND has a real-sector exposure AND
+// has NO real geo CONFLICT -- EXACTLY applySkepticGate's downgrade condition, stated independently
+// here as the oracle (keep the two in LOCKSTEP). NOTE on geo: only a real CONFLICT (named country
+// contradicted by the sources) disqualifies strength; UNCONFIRMED (the verifier's structurally-empty
+// geo for a chokepoint, which false-vetoed the flagship) does NOT -- that is the whole point of the
+// UNCONFIRMED-vs-CONFLICT split. The SINGLE-AUTHORITATIVE sound cases (S3/S7/S8/S9, corroborated=false)
+// are NOT strong by this rule: (C) is scoped to CORROBORATED findings (the owner's text + the flagship
+// shape), so those still rely on the live critic ACCEPTING them (the labelled TNR below), exactly as
+// before -- the gate's downgrade does not extend to uncorroborated findings.
 const isStrongSpec = (s: FindingSpec): boolean =>
-  s.corroborated && s.confidence >= 0.45 && s.sectors.some((x) => x !== "OTHER_UNMAPPED");
+  s.corroborated &&
+  s.confidence >= 0.45 &&
+  s.sectors.some((x) => x !== "OTHER_UNMAPPED") &&
+  s.geo !== "CONFLICT";
 
 // The (C) regression teeth, DETERMINISTIC (runs every `verify`, NO spend). The fix lives in the GATE
 // (pure code), so we measure the GATE OUTCOME on the labelled finding SHAPES -- the gap 6/27 missed,
@@ -197,7 +211,7 @@ describe("Skeptic GATE outcome on the labelled finding shapes (the (C) regressio
         expect(onReject.outcome).toBe("ANNOTATED");
         expect(onReject.recommendation).toBe("ACT");
       } else {
-        // Non-strong (over-trigger / thin / single-authoritative / geo-disagree): the hard veto stands.
+        // Non-strong (over-trigger / thin / single-authoritative / geo-CONFLICT): the hard veto stands.
         expect(onReject.outcome).toBe("VETOED");
         expect(onReject.recommendation).toBe("NO_ACTION");
       }
