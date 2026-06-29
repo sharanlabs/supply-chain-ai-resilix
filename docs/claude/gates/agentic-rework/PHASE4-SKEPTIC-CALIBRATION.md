@@ -280,3 +280,58 @@ Codex confirmed the invariants held: fail-closed ordering (`errored` before `acc
 **OWNER-GATED follow-up surfaced (Codex [P1] #2 residual):** make a precise geo CONFLICT a critic-INDEPENDENT deterministic veto (NO_ACTION regardless of the critic's accept), so a likely-misclassification never acts even if the critic and a human would. Defensible now that CONFLICT is normalized/precise; held as the owner's call (it overrides a critic accept + the deterministic ACT decision). Until then, the human-approval backstop + the empirically-rejecting live critic cover the rare critic-accepts-a-conflict path.
 
 **CLOSURE PASS (Codex, gpt-5.5, resumed thread, on the FIXED diff): `VERDICT: APPROVED` — NO material findings.** Confirmed: the normalization is "sound for the scoped contract" (`normalizeCountryToIso` trims/ISO-validates/name-maps/`null`s blank+unknown; the Verifier normalizes both sides and only emits CONFLICT when both have a comparable country with no match; the +5 verifier tests cover the false-veto shape, true conflict, AGREES-precedence, blank/unknown→UNCONFIRMED, country-less chokepoint); the [P1] #2 inconsistency is "resolved as a policy boundary, not silently claimed as fixed" (U7 + the forced-accept test now aligned); and the invariants hold (errored-before-accepted, ANNOTATED⇒ACT via the unchanged-direction `isStrong`, schema comment correct). Re-verified after the fixes: **`npm run verify:full` GREEN first-hand — 723 passed / 27 skipped unit + 21 e2e + build + secrets, exit 0**, and the production-active waterfall re-confirmed **2/2 `ACT`+`ACCEPTED`+`LIVE_AI`** post-fix. **The (A) cross-model gate is DISCHARGED** (2 fixes adopted + 1 honest-boundary fix + a tracked owner-gated follow-up).
+
+---
+
+## (B) LOOP PROMOTION — `ENABLE_AGENT_LOOP` flipped default-ON (2026-06-29)
+
+Owner-greenlit ("complete all other steps except design"). The (A) geo split satisfied the
+precondition the handoff worried about (resolve the flagship caution BEFORE making the loop the
+default — (A) *is* that Verifier UNCONFIRMED-vs-CONFLICT split, done), so the flip is authorized.
+
+**The change (minimal):**
+- `lib/server/env-flags.ts` — `agentLoopEnabled()` now mirrors `skepticGateEnabled()`'s **opt-out**:
+  default-ON, `ENABLE_AGENT_LOOP=false` to run the deterministic waterfall. The waterfall stays the
+  **byte-for-byte opt-out path** — the authoritative-binding/parity MOAT is unchanged (same moat,
+  opposite default).
+- `evals/actionops-live-pipeline.test.ts` — the D.9 WATERFALL wiring suite (exactly-3-Gemini-calls +
+  cumulative-budget guard) now pins `ENABLE_AGENT_LOOP=false` in `beforeEach`, so it keeps exercising
+  the waterfall path it was written for now that the loop is the default.
+- Docs reconciled (no longer "ships dark / default-off"): `trajectory.ts`, `PHASE0-GRILL` (R6 condition
+  met), `PHASE3-GATE` (dated status banner), `README` (live-orchestration bullet), `Success_Criteria`
+  (per-run call count is now variable, bounded by the $5 cap), `actionops-live-real.test.ts` ((C) gate
+  reworded as the waterfall opt-out coverage).
+
+**BLAST RADIUS (empirically found, not just reasoned):** `verify:full` went RED on the first run after
+the flip — the D.9 live-wiring suite routed to the loop under the new default (`tool()` unmocked). That
+is the direct proof the default genuinely flipped to ON. Both consumers AND-gate on `&& live`
+(`index.ts:87`, `investigator.ts:180`), so non-live runs stay waterfall; the fix was to pin the
+waterfall-specific suite to the opt-out. No other test was affected (only one mocked-ai + live suite exists).
+
+**VERIFICATION:**
+- `npm run verify:full` GREEN first-hand after the flip+fix — typecheck + lint + **723 unit / 27
+  skipped** + build (compiled) + secrets (clean) + **21 e2e** (e2e re-run standalone to clear a
+  back-to-back webServer-boot timeout flake; 21/21).
+- **Live (G) promotion gate, loop default-on, 2 spaced runs** (`RUN_LIVE_AI_TESTS=true ENABLE_LIVE_AI=true
+  ENABLE_AGENT_LOOP=true … evals/actionops-investigator.test.ts`): **22/22 passed, 0 skipped** both runs
+  — the RUN_LIVE-gated (G) test asserts, on a live loop packet: `recommendation=ACT`,
+  `skepticGateOutcome !== VETOED`, an Investigator agent ran (the loop genuinely fired live),
+  `safetyRegressions=[]`, `withinBudget=true`, `promote=true`. The geo fix (proven live only on the
+  waterfall in (A)) is path-agnostic and now confirmed on the loop too. (vitest suppresses passing-test
+  `console.log`, so the greppable `[loop-promotion-evidence]` line wasn't captured this run; the gate
+  assertions above are the binding evidence. ACCEPTED-vs-ANNOTATED is an observation, not a gate.)
+
+**CODEX CROSS-MODEL GATE on the (B) promotion diff — VERDICT PASS (no P1/P2 findings).** gpt-5-codex,
+high effort, read-only, over `git diff HEAD`, aimed at the blast-radius (not the one-liner). Codex
+independently confirmed the flip introduces no unsafe route: the loop branch still AND-gates on
+`agentLoopEnabled() && live` (`index.ts:87`); the exported entry guard rejects non-orchestrated
+production calls (`investigator.ts:180`); live AI configuration requires secure-mode auth on mutation
+routes (`security.ts:46`); per-step budget hard-stops hold; a Gemini-only live deploy does NOT
+accidentally call Groq (`skeptic.ts:326` short-circuits to the deterministic Skeptic with no key);
+**non-live / key-off parity is preserved** (a `live:false` or no-key run makes `live` false, so
+default-on alone can never enter the loop; `ENABLE_AGENT_LOOP=false` routes live runs back to the
+unchanged waterfall); and the D.9 test pin preserves the exactly-3-Gemini-call waterfall coverage.
+The intended change — a live deploy with a Gemini key now routes into the loop by default — is exactly
+the promotion, with no fail-open. (Codex's read-only sandbox blocked vitest; the live execution was
+run first-hand here: verify:full GREEN + the (G) gate 22/22 across 2 live runs.) **The (B) cross-model
+gate is DISCHARGED.**

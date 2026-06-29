@@ -121,6 +121,7 @@ describe("D.9 live pipeline wiring (mocked SDK, no spend)", () => {
   // deterministically short-circuits to its affirmative pass (no Groq key -> no network), making
   // these Gemini-only wiring assertions independent of the runner's environment.
   const savedGroqKey = process.env.GROQ_API_KEY;
+  const savedAgentLoop = process.env.ENABLE_AGENT_LOOP;
 
   beforeEach(() => {
     generateObjectMock.mockReset();
@@ -128,6 +129,11 @@ describe("D.9 live pipeline wiring (mocked SDK, no spend)", () => {
     process.env.GEMINI_API_KEY = "test-key-not-real";
     delete process.env.GEMINI_MODEL; // resolve to the GA default the pricing table prices
     delete process.env.GROQ_API_KEY; // keep the cross-family Skeptic off this Gemini-only path
+    // D.9 is the WATERFALL orchestration guard (exactly-3-Gemini-calls + cumulative budget across
+    // Sentinel/Strategist/Dispatcher). Since the Investigator loop is now default-on (2026-06-29
+    // promotion), a live:true run would otherwise route to the loop; pin the opt-out so this suite
+    // keeps exercising the waterfall path it was written for (now reached via ENABLE_AGENT_LOOP=false).
+    process.env.ENABLE_AGENT_LOOP = "false";
   });
 
   afterEach(() => {
@@ -135,6 +141,8 @@ describe("D.9 live pipeline wiring (mocked SDK, no spend)", () => {
     delete process.env.GEMINI_API_KEY;
     if (savedGroqKey === undefined) delete process.env.GROQ_API_KEY;
     else process.env.GROQ_API_KEY = savedGroqKey;
+    if (savedAgentLoop === undefined) delete process.env.ENABLE_AGENT_LOOP;
+    else process.env.ENABLE_AGENT_LOOP = savedAgentLoop;
   });
 
   it("live:true routes the 3 LLM agents to LIVE_AI and threads the real per-call cost", async () => {

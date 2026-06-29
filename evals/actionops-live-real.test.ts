@@ -204,10 +204,12 @@ describe.skipIf(!LIVE)("D.9 live Gemini pass -- all scenarios (BILLS, gated)", (
   }
 });
 
-// (C) live re-calibration gate -- the PRODUCTION-ACTIVE path. The Investigator loop ships dark
-// (ENABLE_AGENT_LOOP default-OFF), so the path a live deployment actually hits today is the live
-// WATERFALL with the live cross-family Skeptic ON (a Groq key present). That is exactly where the
-// 2026-06-28 false-veto was first observed -- and the loop-scoped (G) gate in
+// (C) live re-calibration gate -- the WATERFALL opt-out path. Since the 2026-06-29 promotion the
+// Investigator loop is DEFAULT-ON, so a live deployment hits the LOOP by default; the deterministic
+// WATERFALL is now the byte-for-byte opt-out (ENABLE_AGENT_LOOP=false), and this gate covers it with
+// the live cross-family Skeptic ON (a Groq key present) -- set ENABLE_AGENT_LOOP=false to exercise it.
+// That waterfall path is exactly where the 2026-06-28 false-veto was first observed; the strength-aware
+// gate must hold on BOTH paths, and the loop-scoped (G) gate in
 // actionops-investigator.test.ts does NOT cover it (it asserts an Investigator run). The D.9 suite
 // above runs the live waterfall but INJECTS a Skeptic ACCEPT to decouple from stochastic flake, so
 // it never exercises the real critic's REJECT through the strength-aware gate. THIS gate closes that

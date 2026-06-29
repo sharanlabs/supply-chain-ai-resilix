@@ -31,12 +31,16 @@ export function skepticGateEnabled(): boolean {
 }
 
 // Phase 3 (the agentic rework capstone): route the run through the tool-using Investigator
-// LOOP instead of the deterministic waterfall. DEFAULT OFF -- the loop ships dark and is
-// promoted to default-on only by the owner once the P7 trajectory evals show it beats the
-// waterfall at acceptable cost. A flag-OFF run takes the unchanged waterfall, byte-for-byte.
-// NOTE: this only governs the ARCHITECTURE; the loop still AND-gates every billable call on
-// liveAiEnabled() (a flag-ON but key-OFF run has no model to drive the loop, so the
-// orchestrator routes to the waterfall -- see lib/agents/actionops/index.ts).
+// LOOP instead of the deterministic waterfall. DEFAULT ON -- promoted to default-on by the owner
+// (2026-06-29) once the P7 trajectory evals showed it ACTs on the corroborated authoritative
+// flagship and MEETS the documented promotion criterion (no safety regression, composite
+// same-or-better, within the $5 cap) live. Set ENABLE_AGENT_LOOP=false to run the deterministic
+// waterfall instead -- that opt-out path is BYTE-FOR-BYTE the pre-Phase-3 waterfall (the parity
+// moat is unchanged; only the default flipped). NOTE: this only governs the ARCHITECTURE; the loop
+// still AND-gates every billable call on liveAiEnabled() (a key-OFF run has no model to drive the
+// loop, so the orchestrator routes to the waterfall -- see lib/agents/actionops/index.ts).
 export function agentLoopEnabled(): boolean {
-  return envBool("ENABLE_AGENT_LOOP");
+  // Explicit opt-OUT wins; absent/empty -> on. (Symmetric with skepticGateEnabled / envBool's truthy set.)
+  const v = process.env.ENABLE_AGENT_LOOP?.trim().toLowerCase();
+  return !(v === "false" || v === "0" || v === "no" || v === "off");
 }

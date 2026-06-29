@@ -1,5 +1,13 @@
 # Phase 3 (Investigator loop) — independent cross-model gate
 
+> **STATUS UPDATE 2026-06-29 — loop PROMOTED to default-on.** Statements below describing the loop
+> as "flag-OFF / ships dark / does NOT run in production" were accurate AT GATE TIME. The loop has
+> since cleared its live promotion gate (ACT on the corroborated flagship, no safety regression,
+> composite same-or-better, within the $5 cap) and `ENABLE_AGENT_LOOP` is now **default-on (opt-out
+> via `=false`)**. The deterministic waterfall remains the byte-for-byte opt-out path — the MOAT/parity
+> guarantee is unchanged (same moat, opposite default). Owner-greenlit; promotion evidence in
+> `PHASE4-SKEPTIC-CALIBRATION.md` + HANDOFF.
+
 **2026-06-26, autopilot.** The capstone phase + the hand-applied batched-closure fixes (#3/#4) got their FIRST INDEPENDENT Codex gate here (the batched P2→P7 closure diffed `a3f1758..68a668d`, EXCLUDING P3, which landed after as `29141be`; the advisor's declaring-done check caught this maker≠judge gap). First attempt capped mid-review; re-run after the reset. Codex gpt-5.5, xhigh, over `git diff 68a668d..29141be -- lib/ app/`.
 
 ## VERDICT: REVISE — but the MOAT HELD (the headline)

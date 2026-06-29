@@ -1,9 +1,27 @@
 # HANDOFF — resume pointer (updated 2026-06-29)
 
-> ## ▶ RESUME HERE (next session) — (A) geo split DONE + GATE-DISCHARGED + PUSHED; NEXT = (B) promotion flip
+> ## ▶ RESUME HERE (next session) — (A) geo split + (B) promotion flip BOTH DONE + GATE-DISCHARGED (UNPUSHED); NEXT = transport (owner-gated) or design (deferred)
 >
 > Owner directive 2026-06-29: "complete all other steps except design in fresh session." Sequence is
 > **(A) geo split → (B) promotion flip → (transport: pause + confirm) → design deferred to a fresh session.**
+>
+> **(B) loop promotion is DONE + CODEX-DISCHARGED, COMMITTED, UNPUSHED (push is the owner gate).**
+> `ENABLE_AGENT_LOOP` flipped default-ON (opt-out mirror of `skepticGateEnabled`); the deterministic
+> waterfall is the byte-for-byte opt-out (`=false`) — MOAT unchanged. Reconciled the ships-dark docs
+> (env-flags, trajectory.ts, PHASE0-GRILL R6, PHASE3-GATE banner, README live-orchestration bullet,
+> Success_Criteria call-count, the (C) live-real gate comment) + pinned the D.9 waterfall suite to the
+> opt-out. **`verify:full` GREEN first-hand** (723/27 unit + 21 e2e + build + secrets; e2e re-run
+> standalone to clear a webServer-boot flake). **Live (G) gate, loop default-on, 2 spaced runs: 22/22,
+> ACT + `skepticGateOutcome != VETOED` + Investigator-ran + promote=true + regressions=[] + within
+> budget.** **Codex gate PASS, no P1/P2** (blast-radius reviewed: no fail-open; non-live/key-off parity
+> holds). Full evidence: `gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md` ((B) section).
+>
+> **NEXT (owner's call):**
+> - **PUSH** the (A)+(B) work to origin/main — owner-gated (every prior session pushed only on owner OK).
+> - **transport (Slack/SES/n8n behind the typed seam):** outward-facing + needs creds → PAUSE + confirm before building.
+> - **design (billable homepage re-capture: $-at-stake rank / per-line TTS):** DEFERRED to a fresh session. **Scope it DESKTOP/WEB ONLY — skip mobile entirely (owner 2026-06-29).**
+>
+> ----- prior (A) resume block below -----
 >
 > **(A) is DONE + GATE-DISCHARGED + PUSHED to `origin/main` (`edbadde` + `eda8101`, in sync)** — the
 > Verifier `UNCONFIRMED`-vs-`CONFLICT` geo split. It RESOLVED the flagship's permanent "caution"

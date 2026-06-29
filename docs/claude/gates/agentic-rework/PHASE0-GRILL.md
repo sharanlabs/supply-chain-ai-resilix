@@ -268,6 +268,14 @@ ships on waterfall + Skeptic + execution. **OWNER DECISION (recommended, not uni
 build P4 + P5 + the P1 domain wins **before** investing in P3, so value lands early and the loop is only
 attempted against a proven baseline. The locked plan's phase numbering is unchanged pending owner sign-off.
 
+> **UPDATE 2026-06-29 — R6 condition MET; loop PROMOTED to default-on.** The trajectory evals
+> demonstrated the loop beats the waterfall at acceptable cost: the live (G) gate
+> (`evals/actionops-investigator.test.ts`) shows ACT on the corroborated authoritative flagship, no
+> safety regression, composite same-or-better, within the $5 cap. `ENABLE_AGENT_LOOP` is now
+> **default-on (opt-out via `=false`)**; the deterministic waterfall remains the byte-for-byte opt-out
+> path (parity moat unchanged — same moat, opposite default). Owner-greenlit. See
+> `PHASE4-SKEPTIC-CALIBRATION.md` + HANDOFF for the full promotion evidence.
+
 **R7 — Skeptic input quarantined (`SkepticInputSchema`).** The cross-family Skeptic receives a typed object
 of **deterministic tool outputs, IDs, numbers, URLs, and sanitized digests ONLY**. It is schema-prohibited
 from raw news, Sentinel free-text summaries, Investigator prose, and tool-input strings. The Dual-LLM

@@ -1,10 +1,12 @@
 // Phase 7 -- the TRAJECTORY-EVAL HARNESS (Phase 3's promotion gate, built ahead of the loop).
 //
-// Phase 3 will replace the deterministic waterfall (Sentinel -> Verifier -> Atlas -> Simulator
+// Phase 3 replaces the deterministic waterfall (Sentinel -> Verifier -> Atlas -> Simulator
 // -> Skeptic -> decide -> Strategist -> Dispatcher) with a tool-using Investigator LOOP. The
-// loop is promoted to default-on ONLY if its trajectory evals BEAT the deterministic waterfall
-// at acceptable cost. The loop does NOT exist yet, so this builds the FRAMEWORK + METRICS it
-// will be scored by, and scores the CURRENT deterministic waterfall as the BASELINE it must beat.
+// loop was promoted to default-on (2026-06-29) once its trajectory evals BEAT the deterministic
+// waterfall at acceptable cost (the live (G) gate: ACT on the corroborated flagship, no safety
+// regression, composite same-or-better, within the $5 cap). This harness built the FRAMEWORK +
+// METRICS the loop was scored by, scoring the deterministic waterfall as the BASELINE it had to
+// beat -- which remains the byte-for-byte opt-out path (ENABLE_AGENT_LOOP=false).
 //
 // THE DESIGN TRAP this avoids (deliberately): scoring "right agents in order" as SEQUENCE-MATCH
 // against the 7-step waterfall would rig the gate against the loop -- a tool-user that decides
