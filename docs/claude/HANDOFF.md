@@ -19,7 +19,18 @@
 > **NEXT (owner's call):**
 > - **⚠️ `.env` check:** the CODE default is now on, but if a local/deploy `.env` still pins
 >   `ENABLE_AGENT_LOOP=false` (ships-dark leftover) the loop stays OFF there — remove that line wherever live AI runs.
-> - **transport (Slack/SES/n8n behind the typed seam):** outward-facing + needs creds → PAUSE + confirm before building.
+> - **▶ TRANSPORT — the agreed next build (FRESH SESSION, owner 2026-06-29):** build the concrete
+>   adapters behind the existing seam `lib/server/action-transport.ts` (the `ActionTransport` port +
+>   `TransportRegistry`; `NoopTransport` stays the safe default — nothing sends unless an operator wires
+>   a real one). **Do them ONE CHANNEL AT A TIME** (owner revised "all three at once" → one by one),
+>   **TEACH-FIRST**: walk the owner through each piece so they learn, then take over and implement
+>   ([[teach-first-then-takeover]]). Order TBD with owner (Slack is the named lead adapter — interactive
+>   approve/reject fits the human-approval spine; then Email via Resend free / SES enterprise; then n8n
+>   OSS webhook downstream of the gate). **Creds are PER-CHANNEL** (Slack bot token · Resend key · n8n
+>   webhook URL) — can build fully wire-ready + tested against injected fakes with ZERO real sends, then
+>   the owner flips live by dropping a key (matches the seam's operator-wires-at-runtime design). Confirm
+>   per-channel whether a real live smoke is wanted before any outward send.
+> - **design (billable homepage re-capture: $-at-stake rank / per-line TTS):** DEFERRED. **Desktop/web ONLY — skip mobile ([[resilix-web-desktop-only]]).**
 > - **design (billable homepage re-capture: $-at-stake rank / per-line TTS):** DEFERRED to a fresh session. **Scope it DESKTOP/WEB ONLY — skip mobile entirely (owner 2026-06-29).**
 >
 > ----- prior (A) resume block below -----
