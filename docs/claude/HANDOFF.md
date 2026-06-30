@@ -1,6 +1,31 @@
-# HANDOFF — resume pointer (updated 2026-06-29)
+# HANDOFF — resume pointer (updated 2026-06-30)
 
-> ## ▶ RESUME HERE (next session) — (A) geo split + (B) promotion flip BOTH DONE + GATE-DISCHARGED + PUSHED (`4bf960a`, origin/main in sync); NEXT = transport (owner-gated) or design (deferred)
+> ## ▶ RESUME HERE (next session) — TRANSPORT #1 (SLACK) BUILT + CODEX-DISCHARGED + LIVE-SMOKED; PR #1 OPEN into main (NOT merged); NEXT = merge PR, then EMAIL channel (then n8n), or design (deferred)
+>
+> **PUBLISH STATE (2026-06-30):** committed `6623750` on `feat/slack-transport`, pushed to origin. **PR #1 open** →
+> https://github.com/sharanlabs/supply-chain-ai-resilix/pull/1 — owner chose push-branch+PR (NOT direct-to-main). `main`/`origin/main`
+> still at `4bf960a` (untouched). **First next step: review + merge PR #1** (or pull the branch). A direct push to `main` is owner-gated.
+>
+> **Transport adapter #1 (SLACK) is DONE (2026-06-30, teach-first, owner-greenlit + live-smoked).** Real `fetch`-based
+> `createSlackTransport` behind the seam; env-gated `transportRegistryFromEnv()` (SLACK wired ONLY when BOTH
+> `SLACK_BOT_TOKEN`+`SLACK_ALERT_CHANNEL` set; default registry stays `{}` → moat byte-identical key-off). Fail-closed
+> trap complete (throws on non-2xx, `ok:false`, unparseable body, `ok:true`-no-`ts`, fetch+body-read timeout; sanitized
+> `error.name`, token only in the Authorization header). **Codex cross-model gate DISCHARGED (3 rounds: REVISE×2 → APPROVED,
+> all findings adopted).** `verify:full` GREEN first-hand (738 unit/27 skip + 21 e2e + build + secrets). **LIVE SMOKE confirmed:**
+> real ACT packet → SLACK `ROLE_OWNER_ALERT` → `dispatchGovernableAction` → EXECUTED/delivered=true, owner saw the message.
+> Files: `lib/server/transports/slack-transport.ts`, `action-transport.ts` (+factory), `evals/slack-transport.test.ts`,
+> `scripts/slack-smoke.ts`, `.env.example`. Full record: `gates/agentic-rework/PHASE5-GATE.md` (Transport adapter #1 section).
+>
+> **NEXT (owner's call):**
+> - **EMAIL channel** — Resend (free 3k/mo) / SES (enterprise), per-channel key, same fail-closed + env-gated pattern,
+>   teach-first + one-at-a-time. Then **n8n** (⚠️ `AGENTS.md:30` flags n8n legacy/out-of-core — reconcile that first).
+> - **Orchestrator wiring:** the live route still does NOT call `dispatchGovernableAction` — calling `transportRegistryFromEnv()`
+>   from the execute route is a separate, deliberate owner-gated step (ships-dark by design).
+> - **design (billable homepage re-capture):** DEFERRED. **Desktop/web ONLY — skip mobile ([[resilix-web-desktop-only]]).**
+>
+> ----- prior resume block (transport-was-next) below -----
+>
+> ## ▶ (prior) — (A) geo split + (B) promotion flip BOTH DONE + GATE-DISCHARGED + PUSHED (`4bf960a`, origin/main in sync); NEXT = transport (owner-gated) or design (deferred)
 >
 > Owner directive 2026-06-29: "complete all other steps except design in fresh session." Sequence is
 > **(A) geo split → (B) promotion flip → (transport: pause + confirm) → design deferred to a fresh session.**

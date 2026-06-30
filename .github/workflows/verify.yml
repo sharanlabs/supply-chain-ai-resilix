@@ -19,6 +19,12 @@ jobs:
   app:
     name: App Quality Gate
     runs-on: ubuntu-latest
+    # Pinned to the installed Playwright version (package-lock: 1.59.1). The image
+    # ships Chromium + OS deps pre-baked, so e2e needs NO browser download — the
+    # runner's egress to Playwright's browser CDN is blocked, which hung the old
+    # `playwright install` step until the job timed out. Bump this tag in lockstep
+    # with the @playwright/test version.
+    container: mcr.microsoft.com/playwright:v1.59.1-noble
     timeout-minutes: 25
 
     steps:
@@ -52,8 +58,7 @@ jobs:
       - name: Dependency audit
         run: npm audit --audit-level=high
 
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+      # No "playwright install" step: Chromium is pre-baked into the container image.
 
       - name: Playwright e2e + accessibility (axe / keyboard / WCAG 2.2)
         run: npm run test:e2e

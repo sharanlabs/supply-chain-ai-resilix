@@ -1,5 +1,6 @@
 import type { ActionChannel, GovernableActionType } from "@/lib/schemas";
 import { logger } from "@/lib/server/logger";
+import { createSlackTransport } from "@/lib/server/transports/slack-transport";
 
 // ---------------------------------------------------------------------------
 // Phase 5 -- the executor's TRANSPORT PORT (hexagonal): the seam between the
@@ -75,6 +76,26 @@ export type TransportRegistry = Partial<Record<ActionChannel, ActionTransport>>;
 // constructs a populated registry at runtime to enable real transports.
 export function defaultTransportRegistry(): TransportRegistry {
   return {};
+}
+
+// The OPERATOR wiring point: build the registry from environment. A real transport is
+// included ONLY when its per-channel credentials are present -- otherwise the channel
+// stays on the NoopTransport. This is what makes "nothing sends unless an operator
+// wires it" literally true: with no keys set this returns {} (identical to the default),
+// so a default deployment and the whole test suite never construct a real sender.
+//
+// SLACK: included only when BOTH SLACK_BOT_TOKEN and SLACK_ALERT_CHANNEL are set.
+// (EMAIL / N8N adapters land here in later channels, same per-channel-creds pattern.)
+export function transportRegistryFromEnv(
+  env: Record<string, string | undefined> = process.env
+): TransportRegistry {
+  const registry: TransportRegistry = {};
+  const slackToken = env.SLACK_BOT_TOKEN?.trim();
+  const slackChannel = env.SLACK_ALERT_CHANNEL?.trim();
+  if (slackToken && slackChannel) {
+    registry.SLACK = createSlackTransport({ botToken: slackToken, channel: slackChannel });
+  }
+  return registry;
 }
 
 // Resolve the transport for a channel, defaulting to Noop. This is the fail-safe:
