@@ -30,3 +30,18 @@ All six invariants HOLD with evidence: (1) auth boundary AIRTIGHT (401/503/422; 
 
 ## Disposition (primary-model-final)
 Committed LOCALLY; push HELD. The security boundary is airtight for the default (no-real-send) build; the one [Med] is closed at the seam. A batched Codex cross-model closure over P2+P4+P5 is banked for a checkpoint. **Owner action: review + push; wiring a real transport (Slack/SES/n8n) is a deliberate later owner step (the typed seam + the forward-guardrails above gate it).**
+
+---
+
+## Transport adapter #1 — SLACK (2026-06-30, owner-greenlit, teach-first build)
+
+The first REAL transport behind the seam. Owner picked Slack first (internal role-owner alert fits the human-approval spine) + authorized a live smoke.
+
+- **What it sends:** the `ROLE_OWNER_ALERT` (channel `SLACK`) — a **REVERSIBLE, INTERNAL** crisis alert. NOT the outbound supplier path (`SUPPLIER_EMAIL_SEND`→EMAIL stays irreversible/human-gated). Outbound-only: `deliver()` → `chat.postMessage` via raw `fetch` (no `@slack` SDK, per the seam's no-SDK rule).
+- **Files:** `lib/server/transports/slack-transport.ts` (NEW — `createSlackTransport`, `SlackTransportError`); `lib/server/action-transport.ts` (+`transportRegistryFromEnv()`); `evals/slack-transport.test.ts` (NEW, unit + executor-integration); `scripts/slack-smoke.ts` (NEW, dry/`--send`); `.env.example` (+`SLACK_BOT_TOKEN`/`SLACK_ALERT_CHANNEL`).
+- **"Nothing sends unless wired":** `transportRegistryFromEnv()` includes `SLACK` ONLY when BOTH env vars are set; `defaultTransportRegistry()` stays `{}`. Key-off behaviour is byte-identical (full suite parity) → the governance moat is untouched.
+- **Fail-closed trap (load-bearing):** Slack returns HTTP 200 on a LOGICAL failure (`{ok:false}`). `deliver()` throws on non-2xx, `ok!==true`, unparseable body, `ok:true`-without-`ts` (no fabricated ref), a fetch timeout AND a **body-read** timeout (one AbortController spans the whole call inside an outer finally). The only `return` is a genuine delivered receipt. Thrown `error.name` is a SANITIZED, length-capped code (`safeErrorCode` → `^slack_[a-z0-9_]{1,40}$` or `slack_unknown`) — never the token, never body prose. Token rides only the `Authorization` header.
+- **Codex cross-model gate — DISCHARGED (read-only, 3 rounds):** REVISE (6: no-timeout, raw-error-code, fabricated-ref, raw-parse-error, unbounded-digest, thin tests) → all adopted → REVISE (2: timer cleared before body read, unused catch binding) → both adopted → **APPROVED, no findings.**
+- **Verify:** `verify:full` GREEN first-hand (738 unit / 27 skipped + 21 e2e + build + secrets, exit 0). Typecheck + lint clean.
+- **LIVE SMOKE — confirmed (owner-go-gated, 2026-06-30):** real ACT packet → `deriveGovernableActions` → SLACK `ROLE_OWNER_ALERT` → `dispatchGovernableAction` through the moat primitive (reserve→deliver→finalize) → **EXECUTED, delivered=true**, Slack `ts=1782831496.987619` captured as the audit providerRef; owner confirmed the message appeared in their channel.
+- **NEXT channels (one at a time, same pattern):** EMAIL (Resend free / SES enterprise) → n8n (note: `AGENTS.md` flags n8n legacy/out-of-core — reconcile first). The live route still does not auto-fire `dispatchGovernableAction` (orchestrator wiring is a separate deliberate step).
