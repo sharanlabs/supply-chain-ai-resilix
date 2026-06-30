@@ -53,7 +53,22 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 12
+        run: |
+          # Per-attempt timeout: the download can HANG (not just fail), so each
+          # attempt is killed after 180s and retried, rather than blocking the job.
+          for attempt in 1 2 3; do
+            echo "::group::Playwright install (attempt $attempt/3)"
+            if timeout 180 npx playwright install --with-deps chromium; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "Playwright browser install failed/timed out on attempt $attempt; retrying in 15s..." >&2
+            sleep 15
+          done
+          echo "Playwright browser install failed after 3 attempts" >&2
+          exit 1
 
       - name: Playwright e2e + accessibility (axe / keyboard / WCAG 2.2)
         run: npm run test:e2e
