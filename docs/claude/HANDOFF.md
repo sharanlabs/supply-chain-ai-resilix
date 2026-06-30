@@ -1,6 +1,10 @@
 # HANDOFF — resume pointer (updated 2026-06-30)
 
-> ## ▶ RESUME HERE (next session) — TRANSPORT #1 (SLACK) BUILT + CODEX-DISCHARGED + LIVE-SMOKED + committed on `feat/slack-transport`; NEXT = EMAIL channel (then n8n), or design (deferred)
+> ## ▶ RESUME HERE (next session) — TRANSPORT #1 (SLACK) BUILT + CODEX-DISCHARGED + LIVE-SMOKED; PR #1 OPEN into main (NOT merged); NEXT = merge PR, then EMAIL channel (then n8n), or design (deferred)
+>
+> **PUBLISH STATE (2026-06-30):** committed `6623750` on `feat/slack-transport`, pushed to origin. **PR #1 open** →
+> https://github.com/sharanlabs/supply-chain-ai-resilix/pull/1 — owner chose push-branch+PR (NOT direct-to-main). `main`/`origin/main`
+> still at `4bf960a` (untouched). **First next step: review + merge PR #1** (or pull the branch). A direct push to `main` is owner-gated.
 >
 > **Transport adapter #1 (SLACK) is DONE (2026-06-30, teach-first, owner-greenlit + live-smoked).** Real `fetch`-based
 > `createSlackTransport` behind the seam; env-gated `transportRegistryFromEnv()` (SLACK wired ONLY when BOTH
