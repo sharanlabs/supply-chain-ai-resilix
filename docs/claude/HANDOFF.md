@@ -1,10 +1,14 @@
 # HANDOFF — resume pointer (updated 2026-06-30)
 
-> ## ▶ RESUME HERE (next session) — TRANSPORT #1 (SLACK) BUILT + CODEX-DISCHARGED + LIVE-SMOKED; PR #1 OPEN into main (NOT merged); NEXT = merge PR, then EMAIL channel (then n8n), or design (deferred)
+> ## ▶ RESUME HERE (next session) — TRANSPORT #1 (SLACK) MERGED to main (`0f39304`); CI gate fixed; NEXT = EMAIL channel (teach-first, one-at-a-time), then n8n, or design (deferred)
 >
-> **PUBLISH STATE (2026-06-30):** committed `6623750` on `feat/slack-transport`, pushed to origin. **PR #1 open** →
-> https://github.com/sharanlabs/supply-chain-ai-resilix/pull/1 — owner chose push-branch+PR (NOT direct-to-main). `main`/`origin/main`
-> still at `4bf960a` (untouched). **First next step: review + merge PR #1** (or pull the branch). A direct push to `main` is owner-gated.
+> **PUBLISH STATE (2026-06-30, updated):** **PR #1 MERGED** into `main` (merge commit `0f39304`, owner-approved). Slack adapter +
+> evals + smoke script are on `main`; `origin/main` in sync; `feat/slack-transport` branch deleted. **CI was red repo-wide** (the
+> `verify.yml` App Quality Gate "cancelled" at the Playwright-browser-install step on EVERY run, main included) — root cause was the
+> runner's egress to Playwright's browser CDN being blocked, hanging `playwright install` until the 25-min job timeout. **Fixed** by
+> running the job inside the official Playwright container image (`mcr.microsoft.com/playwright:v1.59.1-noble`, browsers pre-baked,
+> install step dropped) — gate now passes in ~2m WITH e2e actually running (commits `fc0b0e9` retry-attempt → `61dcd29` container).
+> Bump that image tag in lockstep with the `@playwright/test` version. See [[resilix-ci-playwright-cdn-fix]].
 >
 > **Transport adapter #1 (SLACK) is DONE (2026-06-30, teach-first, owner-greenlit + live-smoked).** Real `fetch`-based
 > `createSlackTransport` behind the seam; env-gated `transportRegistryFromEnv()` (SLACK wired ONLY when BOTH
