@@ -1,6 +1,54 @@
 # HANDOFF — resume pointer (updated 2026-06-30)
 
-> ## ▶ RESUME HERE (next session) — TRANSPORT #1 (SLACK) MERGED to main (`0f39304`); CI gate fixed; NEXT = EMAIL channel (teach-first, one-at-a-time), then n8n, or design (deferred)
+> ## ▶ RESUME HERE (next session) — TRANSPORT #2 (EMAIL/Resend) BUILT + CODEX-DISCHARGED, UNCOMMITTED on `feat/email-transport`; NEXT = owner decides commit/PR, then live-smoke with a real Resend key, then n8n or design (deferred)
+>
+> **STATE (2026-06-30):** EMAIL transport adapter built teach-first on `feat/email-transport` (branched off `main` at `3dc66f0`).
+> **NOT YET COMMITTED** — `git status` shows the 5 changed/new files unstaged. Owner decision owed: commit + PR (mirrors the
+> Slack #1 flow) vs. further changes first.
+>
+> **Scope decision (owner-confirmed via AskUserQuestion):** EMAIL is classified for `SUPPLIER_EMAIL_SEND`/`RFQ_DISPATCH`
+> (irreversible/outward), but those actions' digest is IDs-only (`messageId`/`supplierId`/`draftChannel`) — the real
+> subject/body prose stays server-side (quarantine boundary) and no recipient address is resolved anywhere. So this is
+> **mechanics-only scope**: `createEmailTransport` (Resend) sends the sanitized digest to an operator-owned inbox
+> (`RESEND_ALERT_EMAIL`), proving the transport end-to-end — NOT the real supplier-send. Extending the digest/lookup to carry
+> real subject/body/recipient is a separate, larger follow-up (touches the quarantine boundary) — NOT built this session.
+>
+> **What was built:** `lib/server/transports/email-transport.ts` (raw-fetch Resend adapter, `fetchImpl` injected, fail-closed
+> trap verified against Resend's CURRENT live docs 2026-06-30 — non-2xx status IS the failure signal, unlike Slack's HTTP-200-
+> but-logically-failed shape; also throws on timeout/malformed-json/200-without-`id`; sanitized `error.name`; Resend's native
+> `Idempotency-Key` header wired to `message.idempotencyKey`). `transportRegistryFromEnv()` extended: EMAIL wired ONLY when ALL
+> THREE of `RESEND_API_KEY`/`RESEND_FROM_EMAIL`/`RESEND_ALERT_EMAIL` are set (mirrors Slack's both-required pattern; default
+> registry stays `{}` → moat byte-identical key-off). `.env.example` documented. `evals/email-transport.test.ts` (14 tests,
+> fakes-only, zero network) — includes a regression test proving `dispatchGovernableAction` REFUSES to auto-dispatch
+> `SUPPLIER_EMAIL_SEND` even with a real EMAIL transport wired (EMAIL has NO auto-fire moat path, by design — outward execution
+> stays a separate, unbuilt, human-gated entry point). `scripts/email-smoke.ts` (DRY default; `--send` sends a SYNTHETIC smoke
+> message, not the real derived action — see Codex finding below).
+>
+> **Codex cross-model gate: DISCHARGED (2 rounds).** Round 1 found one **[P2]**: `email-smoke.ts --send` was calling
+> `transport.deliver()` directly on the REAL derived `SUPPLIER_EMAIL_SEND` action (real `idempotencyKey`+digest) — a live-send
+> path for an irreversible, audited action type with no executor reservation, no finalized row, no audit trail. **FIXED:**
+> `--send` now sends a synthetic message (`idempotencyKey` prefixed `SMOKE:`, digest `{smokeTest:true,source}`) — DRY mode
+> still prints the real derived action for visibility, but `--send` never transmits it. Round 2: Codex confirmed the fix closes
+> the finding, no further blocking issues. `npm run verify` GREEN first-hand after the fix (typecheck/lint/752 unit+27 skip/
+> build/secrets); `verify:full` (+21 e2e) GREEN earlier in the session (files unchanged since, re-run before commit as a matter
+> of course).
+>
+> **NOT done this session (honest gap vs. Slack #1):** no LIVE smoke with a real Resend API key — owner hasn't provided one.
+> DRY-mode smoke confirmed the real pipeline derives the action correctly; the transport itself is proven only against fakes
+> + Resend's documented contract, not a live send. Do that before calling EMAIL fully proven, same bar as Slack.
+>
+> **NEXT (owner's call):**
+> - **Commit + push `feat/email-transport`, open PR** (mirrors Slack #1's flow) — or make further changes first.
+> - **Live smoke with a real Resend key** (`RESEND_API_KEY`/`RESEND_FROM_EMAIL`/`RESEND_ALERT_EMAIL` in `.env`, then
+>   `node --env-file=.env --import tsx scripts/email-smoke.ts --send`) — confirms delivery end-to-end, same bar as Slack.
+> - **n8n** (⚠️ `AGENTS.md:30` flags n8n legacy/out-of-core — reconcile that flag first, small doc-only item).
+> - **Orchestrator wiring:** the live route still does NOT call `dispatchGovernableAction` — calling `transportRegistryFromEnv()`
+>   from the execute route is a separate, deliberate owner-gated step (ships-dark by design).
+> - **design (billable homepage re-capture):** DEFERRED. **Desktop/web ONLY — skip mobile ([[resilix-web-desktop-only]]).**
+>
+> ----- prior resume block (SLACK #1 merged) below -----
+>
+> ## ▶ (prior) RESUME HERE — TRANSPORT #1 (SLACK) MERGED to main (`0f39304`); CI gate fixed; NEXT = EMAIL channel (teach-first, one-at-a-time), then n8n, or design (deferred)
 >
 > **PUBLISH STATE (2026-06-30, updated):** **PR #1 MERGED** into `main` (merge commit `0f39304`, owner-approved). Slack adapter +
 > evals + smoke script are on `main`; `origin/main` in sync; `feat/slack-transport` branch deleted. **CI was red repo-wide** (the
@@ -19,13 +67,6 @@
 > real ACT packet → SLACK `ROLE_OWNER_ALERT` → `dispatchGovernableAction` → EXECUTED/delivered=true, owner saw the message.
 > Files: `lib/server/transports/slack-transport.ts`, `action-transport.ts` (+factory), `evals/slack-transport.test.ts`,
 > `scripts/slack-smoke.ts`, `.env.example`. Full record: `gates/agentic-rework/PHASE5-GATE.md` (Transport adapter #1 section).
->
-> **NEXT (owner's call):**
-> - **EMAIL channel** — Resend (free 3k/mo) / SES (enterprise), per-channel key, same fail-closed + env-gated pattern,
->   teach-first + one-at-a-time. Then **n8n** (⚠️ `AGENTS.md:30` flags n8n legacy/out-of-core — reconcile that first).
-> - **Orchestrator wiring:** the live route still does NOT call `dispatchGovernableAction` — calling `transportRegistryFromEnv()`
->   from the execute route is a separate, deliberate owner-gated step (ships-dark by design).
-> - **design (billable homepage re-capture):** DEFERRED. **Desktop/web ONLY — skip mobile ([[resilix-web-desktop-only]]).**
 >
 > ----- prior resume block (transport-was-next) below -----
 >

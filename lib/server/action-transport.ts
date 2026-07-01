@@ -1,13 +1,15 @@
 import type { ActionChannel, GovernableActionType } from "@/lib/schemas";
 import { logger } from "@/lib/server/logger";
 import { createSlackTransport } from "@/lib/server/transports/slack-transport";
+import { createEmailTransport } from "@/lib/server/transports/email-transport";
 
 // ---------------------------------------------------------------------------
 // Phase 5 -- the executor's TRANSPORT PORT (hexagonal): the seam between the
 // governed-execution core and the outside world. The core depends ONLY on this
 // interface; concrete adapters (the enterprise path) are pluggable behind it:
 //   - SLACK  -> Slack Web API (free; interactive approval buttons)   [enterprise]
-//   - EMAIL  -> Resend (free 3k/mo) or SMTP; SES is the enterprise path
+//   - EMAIL  -> Resend (free 3k/mo, wired -- mechanics-only/digest-to-operator
+//               scope, see email-transport.ts); SES is the enterprise path
 //   - N8N    -> an n8n webhook (OSS self-host) that fires an ERP exception case;
 //               managed n8n is the enterprise path. n8n stays DOWNSTREAM of the in-
 //               app gate -- it executes already-approved actions, never authorizes.
@@ -85,7 +87,10 @@ export function defaultTransportRegistry(): TransportRegistry {
 // so a default deployment and the whole test suite never construct a real sender.
 //
 // SLACK: included only when BOTH SLACK_BOT_TOKEN and SLACK_ALERT_CHANNEL are set.
-// (EMAIL / N8N adapters land here in later channels, same per-channel-creds pattern.)
+// EMAIL: included only when ALL of RESEND_API_KEY / RESEND_FROM_EMAIL / RESEND_ALERT_EMAIL
+// are set (mechanics-only scope -- see email-transport.ts header; sends a digest
+// notification to the operator's own inbox, not a real supplier recipient).
+// (N8N adapter lands here in a later channel, same per-channel-creds pattern.)
 export function transportRegistryFromEnv(
   env: Record<string, string | undefined> = process.env
 ): TransportRegistry {
@@ -94,6 +99,16 @@ export function transportRegistryFromEnv(
   const slackChannel = env.SLACK_ALERT_CHANNEL?.trim();
   if (slackToken && slackChannel) {
     registry.SLACK = createSlackTransport({ botToken: slackToken, channel: slackChannel });
+  }
+  const resendApiKey = env.RESEND_API_KEY?.trim();
+  const resendFromEmail = env.RESEND_FROM_EMAIL?.trim();
+  const resendAlertEmail = env.RESEND_ALERT_EMAIL?.trim();
+  if (resendApiKey && resendFromEmail && resendAlertEmail) {
+    registry.EMAIL = createEmailTransport({
+      apiKey: resendApiKey,
+      fromEmail: resendFromEmail,
+      toEmail: resendAlertEmail
+    });
   }
   return registry;
 }
