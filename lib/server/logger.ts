@@ -46,6 +46,13 @@ export const REDACT_PATHS = [
   "N8N_CALLBACK_SECRET",
   "callbackSecret",
   "*.callbackSecret",
+  // Phase 5 N8N transport adapter's operator-configured header-auth VALUE (n8n-transport.ts) --
+  // an arbitrary credential whose field/env-var name doesn't match the generic token/apiKey
+  // shapes above, so it needs its own explicit redaction path.
+  "N8N_ERP_WEBHOOK_HEADER_VALUE",
+  "headerValue",
+  "*.headerValue",
+  "err.N8N_ERP_WEBHOOK_HEADER_VALUE",
   // The pino `err` serializer is auto-enabled for the `err` key and copies an
   // Error's enumerable own-properties -- so a thrown error carrying request
   // headers or a config snapshot must be redacted under `err.*` too (the

@@ -2,6 +2,7 @@ import type { ActionChannel, GovernableActionType } from "@/lib/schemas";
 import { logger } from "@/lib/server/logger";
 import { createSlackTransport } from "@/lib/server/transports/slack-transport";
 import { createEmailTransport } from "@/lib/server/transports/email-transport";
+import { createN8nTransport } from "@/lib/server/transports/n8n-transport";
 
 // ---------------------------------------------------------------------------
 // Phase 5 -- the executor's TRANSPORT PORT (hexagonal): the seam between the
@@ -10,9 +11,10 @@ import { createEmailTransport } from "@/lib/server/transports/email-transport";
 //   - SLACK  -> Slack Web API (free; interactive approval buttons)   [enterprise]
 //   - EMAIL  -> Resend (free 3k/mo, wired -- mechanics-only/digest-to-operator
 //               scope, see email-transport.ts); SES is the enterprise path
-//   - N8N    -> an n8n webhook (OSS self-host) that fires an ERP exception case;
-//               managed n8n is the enterprise path. n8n stays DOWNSTREAM of the in-
-//               app gate -- it executes already-approved actions, never authorizes.
+//   - N8N    -> an n8n webhook (OSS self-host, wired -- see n8n-transport.ts) that
+//               fires an ERP exception case; managed n8n is the enterprise path.
+//               n8n stays DOWNSTREAM of the in-app gate -- it executes already-
+//               approved actions, never authorizes (AGENTS.md:30, reconciled).
 //   - TICKET/INTERNAL -> in-app ticket/log sinks.
 //
 // SAFETY INVARIANT: the DEFAULT transport is the NoopTransport -- it LOGS and never
@@ -90,7 +92,14 @@ export function defaultTransportRegistry(): TransportRegistry {
 // EMAIL: included only when ALL of RESEND_API_KEY / RESEND_FROM_EMAIL / RESEND_ALERT_EMAIL
 // are set (mechanics-only scope -- see email-transport.ts header; sends a digest
 // notification to the operator's own inbox, not a real supplier recipient).
-// (N8N adapter lands here in a later channel, same per-channel-creds pattern.)
+// N8N: included only when N8N_ERP_WEBHOOK_URL is set. Header auth
+// (N8N_ERP_WEBHOOK_HEADER_NAME/VALUE) is optional but BOTH-OR-NEITHER -- n8n's
+// Header Auth lets the operator pick both the header name AND value (no standard
+// scheme like Slack/Resend's Authorization: Bearer), so a partial pair is a
+// misconfiguration; fail closed by NOT wiring N8N rather than sending unauthenticated
+// or guessing which half is missing. Deliberately DISTINCT env names from the legacy
+// N8N_APPROVAL_WEBHOOK_URL/N8N_CALLBACK_SECRET (the predecessor's inbound callback
+// path, AGENTS.md:37, do-not-extend) -- this is a separate, new outbound integration.
 export function transportRegistryFromEnv(
   env: Record<string, string | undefined> = process.env
 ): TransportRegistry {
@@ -108,6 +117,17 @@ export function transportRegistryFromEnv(
       apiKey: resendApiKey,
       fromEmail: resendFromEmail,
       toEmail: resendAlertEmail
+    });
+  }
+  const n8nWebhookUrl = env.N8N_ERP_WEBHOOK_URL?.trim();
+  const n8nHeaderName = env.N8N_ERP_WEBHOOK_HEADER_NAME?.trim();
+  const n8nHeaderValue = env.N8N_ERP_WEBHOOK_HEADER_VALUE?.trim();
+  const n8nHeaderPairValid = Boolean(n8nHeaderName) === Boolean(n8nHeaderValue);
+  if (n8nWebhookUrl && n8nHeaderPairValid) {
+    registry.N8N = createN8nTransport({
+      webhookUrl: n8nWebhookUrl,
+      headerName: n8nHeaderName || undefined,
+      headerValue: n8nHeaderValue || undefined
     });
   }
   return registry;

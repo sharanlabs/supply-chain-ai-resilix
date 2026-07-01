@@ -47,7 +47,9 @@ describe("server logger (observability)", () => {
         DATABASE_URL: "postgres://user:LEAK_PW@host:5432/db",
         apiKey: "LEAK_API",
         GEMINI_API_KEY: "LEAK_GEMINI",
-        GROQ_API_KEY: "LEAK_GROQ"
+        GROQ_API_KEY: "LEAK_GROQ",
+        headerValue: "LEAK_N8N_HEADER",
+        N8N_ERP_WEBHOOK_HEADER_VALUE: "LEAK_N8N_HEADER_ENV"
       },
       "redaction probe"
     );
@@ -58,7 +60,9 @@ describe("server logger (observability)", () => {
       "LEAK_PW",
       "LEAK_API",
       "LEAK_GEMINI",
-      "LEAK_GROQ"
+      "LEAK_GROQ",
+      "LEAK_N8N_HEADER",
+      "LEAK_N8N_HEADER_ENV"
     ]) {
       expect(out, `leaked ${secret}`).not.toContain(secret);
     }

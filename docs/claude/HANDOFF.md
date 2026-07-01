@@ -1,6 +1,53 @@
 # HANDOFF — resume pointer (updated 2026-07-01)
 
-> ## ▶ RESUME HERE (next session) — TRANSPORT #2 (EMAIL/Resend) DONE + CODEX-DISCHARGED + LIVE-SMOKED; PR #2 OPEN into main (NOT merged); NEXT = merge PR, then n8n or design (deferred)
+> ## ▶ RESUME HERE (next session) — ALL THREE transport adapters (Slack, Email, N8N) BUILT + CODEX-DISCHARGED; N8N UNCOMMITTED on local `main`; NEXT = owner decides commit/PR, then N8N live-smoke (needs a real n8n instance), then orchestrator wiring or design (deferred)
+>
+> **STATE (2026-07-01):** Slack (#1) and Email (#2) are MERGED to `main` (PRs #1, #2), both live-smoke confirmed. N8N (#3) is
+> BUILT + Codex-gated but **NOT YET COMMITTED** — currently uncommitted changes on local `main` (branched off `main` at
+> `7eb3aa1`). Owner decision owed: commit + PR (mirrors #1/#2's flow) vs. further changes first.
+>
+> **N8N scope note (no owner decision needed — structural, not a choice):** `ERP_CASE` (the action type routed to `N8N`) is
+> classified in `action-taxonomy.ts` but **never actually derived** by `deriveGovernableActions()` — no ERP integration exists
+> in this MVP (`PLAN.md` anti-scope). So unlike Slack/Email, there's no real packet-derived action to smoke-test; the adapter
+> is proven mechanics-only against a synthetic message from the start (simpler than Email's case — no risk of a real audited
+> action leaking into a live send, since there isn't one).
+>
+> **What was built:** `lib/server/transports/n8n-transport.ts` (raw-fetch adapter, `fetchImpl` injected). Two structural
+> differences from Slack/Resend, verified live against n8n's CURRENT docs 2026-07-01: (1) an n8n Webhook-trigger response is
+> **entirely workflow-defined** (no `{ok:false}`/`{id}` envelope to trust) — the only fail-closed signal is HTTP status;
+> (2) n8n's Header Auth lets the OPERATOR pick both the header NAME and VALUE (no standard `Authorization: Bearer`), so config
+> is `N8N_ERP_WEBHOOK_URL` (required) + `N8N_ERP_WEBHOOK_HEADER_NAME`/`_VALUE` (optional, both-or-neither). Deliberately DISTINCT
+> env names from the LEGACY `N8N_APPROVAL_WEBHOOK_URL`/`N8N_CALLBACK_SECRET` (predecessor's inbound callback path,
+> `AGENTS.md:37`, do-not-extend). `evals/n8n-transport.test.ts` (16 tests) + `scripts/n8n-smoke.ts` (dry/`--send`, synthetic
+> message only). `AGENTS.md:30` reconciled in its own small commit (`7eb3aa1`, pushed to main by owner authorization) —
+> clarified the n8n-legacy flag excludes n8n from APPROVAL/decision logic, not this outbound-only downstream channel.
+>
+> **Codex cross-model gate: DISCHARGED, 6 ROUNDS — a genuine design lesson, worth reading before touching this file again.**
+> Rounds 1-4 each found a progressively narrower way a workflow-echoed response-body value (an `id` field, then the configured
+> header secret itself, then a truncated echo of a long secret) could leak into `providerRef` → `auditDetail`. **Round 4 is
+> where continued pattern-matching was abandoned as the wrong axis** (an unwinnable fix — no threshold for "how much overlap
+> counts as leaking" is non-arbitrary) in favor of a **design change**: `providerRef` is now ALWAYS synthetic
+> (`n8n-<idempotencyKey>`); the adapter never reads response body CONTENT at all, closing the whole leak class by
+> construction. Rounds 5 found the redesign's body-drain was awaited (could hang past timeout) and skipped on the failure
+> path — fixed with a fire-and-forget `drainBodyFireAndForget()` on both paths. **Round 6: confirmed clean, no remaining
+> issue.** Full blow-by-blow in `PHASE5-GATE.md` (Transport adapter #3 section) — read it before extending this adapter.
+> `npm run verify` GREEN first-hand (768 unit/27 skip + typecheck + lint + build + secrets); `verify:full` (+21 e2e) GREEN.
+>
+> **NOT done this session (honest gap, same as Email's initial state):** no live smoke — needs a running n8n instance + a real
+> Webhook-trigger URL, which the owner doesn't have set up (unlike Email, this is an infra gap, not just a missing key).
+>
+> **NEXT (owner's call):**
+> - **Commit + push, open PR** for N8N (mirrors #1/#2's flow) — or make further changes first.
+> - **N8N live smoke** — needs a running n8n instance (self-hosted or n8n cloud) with a Webhook-trigger node, then
+>   `node --env-file=.env --import tsx scripts/n8n-smoke.ts --send`.
+> - **Orchestrator wiring:** the live route still does NOT call `dispatchGovernableAction` — calling `transportRegistryFromEnv()`
+>   from the execute route is a separate, deliberate owner-gated step (ships-dark by design). All three transports being built
+>   makes this the natural next big step once N8N is merged.
+> - **design (billable homepage re-capture):** DEFERRED. **Desktop/web ONLY — skip mobile ([[resilix-web-desktop-only]]).**
+>
+> ----- prior resume block (EMAIL #2 merged) below -----
+>
+> ## ▶ (prior) RESUME HERE — TRANSPORT #2 (EMAIL/Resend) DONE + CODEX-DISCHARGED + LIVE-SMOKED; PR #2 OPEN into main (NOT merged); NEXT = merge PR, then n8n or design (deferred)
 >
 > **PUBLISH STATE (2026-07-01):** committed `c3b199a` on `feat/email-transport`, pushed to origin. **PR #2 open** →
 > https://github.com/sharanlabs/supply-chain-ai-resilix/pull/2 (owner chose push-branch+PR, mirrors Slack #1's flow). `main`/
@@ -13,39 +60,12 @@
 > real → `delivered=true`, `providerRef=1df6a737-7a6b-4c84-b81d-fc810d25b941` → owner confirmed the email arrived with the
 > exact digest text. Parity with Slack #1's live-smoke bar now met. `PHASE5-GATE.md` updated with the confirmation.
 >
-> **Scope decision (owner-confirmed via AskUserQuestion):** EMAIL is classified for `SUPPLIER_EMAIL_SEND`/`RFQ_DISPATCH`
-> (irreversible/outward), but those actions' digest is IDs-only (`messageId`/`supplierId`/`draftChannel`) — the real
-> subject/body prose stays server-side (quarantine boundary) and no recipient address is resolved anywhere. So this is
-> **mechanics-only scope**: `createEmailTransport` (Resend) sends the sanitized digest to an operator-owned inbox
-> (`RESEND_ALERT_EMAIL`), proving the transport end-to-end — NOT the real supplier-send. Extending the digest/lookup to carry
-> real subject/body/recipient is a separate, larger follow-up (touches the quarantine boundary) — NOT built this session.
->
-> **What was built:** `lib/server/transports/email-transport.ts` (raw-fetch Resend adapter, `fetchImpl` injected, fail-closed
-> trap verified against Resend's CURRENT live docs 2026-06-30 — non-2xx status IS the failure signal, unlike Slack's HTTP-200-
-> but-logically-failed shape; also throws on timeout/malformed-json/200-without-`id`; sanitized `error.name`; Resend's native
-> `Idempotency-Key` header wired to `message.idempotencyKey`). `transportRegistryFromEnv()` extended: EMAIL wired ONLY when ALL
-> THREE of `RESEND_API_KEY`/`RESEND_FROM_EMAIL`/`RESEND_ALERT_EMAIL` are set (mirrors Slack's both-required pattern; default
-> registry stays `{}` → moat byte-identical key-off). `.env.example` documented. `evals/email-transport.test.ts` (14 tests,
-> fakes-only, zero network) — includes a regression test proving `dispatchGovernableAction` REFUSES to auto-dispatch
-> `SUPPLIER_EMAIL_SEND` even with a real EMAIL transport wired (EMAIL has NO auto-fire moat path, by design — outward execution
-> stays a separate, unbuilt, human-gated entry point). `scripts/email-smoke.ts` (DRY default; `--send` sends a SYNTHETIC smoke
-> message, not the real derived action — see Codex finding below).
->
 > **Codex cross-model gate: DISCHARGED (2 rounds).** Round 1 found one **[P2]**: `email-smoke.ts --send` was calling
 > `transport.deliver()` directly on the REAL derived `SUPPLIER_EMAIL_SEND` action (real `idempotencyKey`+digest) — a live-send
 > path for an irreversible, audited action type with no executor reservation, no finalized row, no audit trail. **FIXED:**
 > `--send` now sends a synthetic message (`idempotencyKey` prefixed `SMOKE:`, digest `{smokeTest:true,source}`) — DRY mode
 > still prints the real derived action for visibility, but `--send` never transmits it. Round 2: Codex confirmed the fix closes
-> the finding, no further blocking issues. `npm run verify` GREEN first-hand after the fix (typecheck/lint/752 unit+27 skip/
-> build/secrets); `verify:full` (+21 e2e) GREEN earlier in the session (files unchanged since, re-run before commit as a matter
-> of course).
->
-> **NEXT (owner's call):**
-> - **Review + merge PR #2**, same as Slack #1.
-> - **n8n** (⚠️ `AGENTS.md:30` flags n8n legacy/out-of-core — reconcile that flag first, small doc-only item).
-> - **Orchestrator wiring:** the live route still does NOT call `dispatchGovernableAction` — calling `transportRegistryFromEnv()`
->   from the execute route is a separate, deliberate owner-gated step (ships-dark by design).
-> - **design (billable homepage re-capture):** DEFERRED. **Desktop/web ONLY — skip mobile ([[resilix-web-desktop-only]]).**
+> the finding, no further blocking issues. `npm run verify` GREEN first-hand after the fix; `verify:full` (+21 e2e) GREEN.
 >
 > ----- prior resume block (SLACK #1 merged) below -----
 >
