@@ -1,10 +1,17 @@
-# HANDOFF — resume pointer (updated 2026-06-30)
+# HANDOFF — resume pointer (updated 2026-07-01)
 
-> ## ▶ RESUME HERE (next session) — TRANSPORT #2 (EMAIL/Resend) BUILT + CODEX-DISCHARGED, UNCOMMITTED on `feat/email-transport`; NEXT = owner decides commit/PR, then live-smoke with a real Resend key, then n8n or design (deferred)
+> ## ▶ RESUME HERE (next session) — TRANSPORT #2 (EMAIL/Resend) DONE + CODEX-DISCHARGED + LIVE-SMOKED; PR #2 OPEN into main (NOT merged); NEXT = merge PR, then n8n or design (deferred)
 >
-> **STATE (2026-06-30):** EMAIL transport adapter built teach-first on `feat/email-transport` (branched off `main` at `3dc66f0`).
-> **NOT YET COMMITTED** — `git status` shows the 5 changed/new files unstaged. Owner decision owed: commit + PR (mirrors the
-> Slack #1 flow) vs. further changes first.
+> **PUBLISH STATE (2026-07-01):** committed `c3b199a` on `feat/email-transport`, pushed to origin. **PR #2 open** →
+> https://github.com/sharanlabs/supply-chain-ai-resilix/pull/2 (owner chose push-branch+PR, mirrors Slack #1's flow). `main`/
+> `origin/main` untouched. **First next step: review + merge PR #2** (or pull the branch).
+>
+> **LIVE SMOKE — confirmed (2026-07-01), closing the one gap PR #2 shipped with.** Owner signed up to Resend with a personal
+> email (no verified domain) — confirmed via Resend's error reference that a non-account `to` 403s without a verified domain,
+> so used the documented unverified-domain path: `RESEND_FROM_EMAIL=onboarding@resend.dev` + `RESEND_ALERT_EMAIL=<the account's
+> own signup email>`. Ran `node --env-file=.env --import tsx scripts/email-smoke.ts --send`: synthetic smoke message sent for
+> real → `delivered=true`, `providerRef=1df6a737-7a6b-4c84-b81d-fc810d25b941` → owner confirmed the email arrived with the
+> exact digest text. Parity with Slack #1's live-smoke bar now met. `PHASE5-GATE.md` updated with the confirmation.
 >
 > **Scope decision (owner-confirmed via AskUserQuestion):** EMAIL is classified for `SUPPLIER_EMAIL_SEND`/`RFQ_DISPATCH`
 > (irreversible/outward), but those actions' digest is IDs-only (`messageId`/`supplierId`/`draftChannel`) — the real
@@ -33,14 +40,8 @@
 > build/secrets); `verify:full` (+21 e2e) GREEN earlier in the session (files unchanged since, re-run before commit as a matter
 > of course).
 >
-> **NOT done this session (honest gap vs. Slack #1):** no LIVE smoke with a real Resend API key — owner hasn't provided one.
-> DRY-mode smoke confirmed the real pipeline derives the action correctly; the transport itself is proven only against fakes
-> + Resend's documented contract, not a live send. Do that before calling EMAIL fully proven, same bar as Slack.
->
 > **NEXT (owner's call):**
-> - **Commit + push `feat/email-transport`, open PR** (mirrors Slack #1's flow) — or make further changes first.
-> - **Live smoke with a real Resend key** (`RESEND_API_KEY`/`RESEND_FROM_EMAIL`/`RESEND_ALERT_EMAIL` in `.env`, then
->   `node --env-file=.env --import tsx scripts/email-smoke.ts --send`) — confirms delivery end-to-end, same bar as Slack.
+> - **Review + merge PR #2**, same as Slack #1.
 > - **n8n** (⚠️ `AGENTS.md:30` flags n8n legacy/out-of-core — reconcile that flag first, small doc-only item).
 > - **Orchestrator wiring:** the live route still does NOT call `dispatchGovernableAction` — calling `transportRegistryFromEnv()`
 >   from the execute route is a separate, deliberate owner-gated step (ships-dark by design).
