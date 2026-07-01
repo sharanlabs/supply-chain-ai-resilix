@@ -1,10 +1,63 @@
-# HANDOFF — resume pointer (updated 2026-06-30)
+# HANDOFF — resume pointer (updated 2026-07-01)
 
-> ## ▶ RESUME HERE (next session) — TRANSPORT #1 (SLACK) BUILT + CODEX-DISCHARGED + LIVE-SMOKED; PR #1 OPEN into main (NOT merged); NEXT = merge PR, then EMAIL channel (then n8n), or design (deferred)
+> ## ▶ RESUME HERE (next session) — TRANSPORT #2 (EMAIL/Resend) DONE + CODEX-DISCHARGED + LIVE-SMOKED; PR #2 OPEN into main (NOT merged); NEXT = merge PR, then n8n or design (deferred)
 >
-> **PUBLISH STATE (2026-06-30):** committed `6623750` on `feat/slack-transport`, pushed to origin. **PR #1 open** →
-> https://github.com/sharanlabs/supply-chain-ai-resilix/pull/1 — owner chose push-branch+PR (NOT direct-to-main). `main`/`origin/main`
-> still at `4bf960a` (untouched). **First next step: review + merge PR #1** (or pull the branch). A direct push to `main` is owner-gated.
+> **PUBLISH STATE (2026-07-01):** committed `c3b199a` on `feat/email-transport`, pushed to origin. **PR #2 open** →
+> https://github.com/sharanlabs/supply-chain-ai-resilix/pull/2 (owner chose push-branch+PR, mirrors Slack #1's flow). `main`/
+> `origin/main` untouched. **First next step: review + merge PR #2** (or pull the branch).
+>
+> **LIVE SMOKE — confirmed (2026-07-01), closing the one gap PR #2 shipped with.** Owner signed up to Resend with a personal
+> email (no verified domain) — confirmed via Resend's error reference that a non-account `to` 403s without a verified domain,
+> so used the documented unverified-domain path: `RESEND_FROM_EMAIL=onboarding@resend.dev` + `RESEND_ALERT_EMAIL=<the account's
+> own signup email>`. Ran `node --env-file=.env --import tsx scripts/email-smoke.ts --send`: synthetic smoke message sent for
+> real → `delivered=true`, `providerRef=1df6a737-7a6b-4c84-b81d-fc810d25b941` → owner confirmed the email arrived with the
+> exact digest text. Parity with Slack #1's live-smoke bar now met. `PHASE5-GATE.md` updated with the confirmation.
+>
+> **Scope decision (owner-confirmed via AskUserQuestion):** EMAIL is classified for `SUPPLIER_EMAIL_SEND`/`RFQ_DISPATCH`
+> (irreversible/outward), but those actions' digest is IDs-only (`messageId`/`supplierId`/`draftChannel`) — the real
+> subject/body prose stays server-side (quarantine boundary) and no recipient address is resolved anywhere. So this is
+> **mechanics-only scope**: `createEmailTransport` (Resend) sends the sanitized digest to an operator-owned inbox
+> (`RESEND_ALERT_EMAIL`), proving the transport end-to-end — NOT the real supplier-send. Extending the digest/lookup to carry
+> real subject/body/recipient is a separate, larger follow-up (touches the quarantine boundary) — NOT built this session.
+>
+> **What was built:** `lib/server/transports/email-transport.ts` (raw-fetch Resend adapter, `fetchImpl` injected, fail-closed
+> trap verified against Resend's CURRENT live docs 2026-06-30 — non-2xx status IS the failure signal, unlike Slack's HTTP-200-
+> but-logically-failed shape; also throws on timeout/malformed-json/200-without-`id`; sanitized `error.name`; Resend's native
+> `Idempotency-Key` header wired to `message.idempotencyKey`). `transportRegistryFromEnv()` extended: EMAIL wired ONLY when ALL
+> THREE of `RESEND_API_KEY`/`RESEND_FROM_EMAIL`/`RESEND_ALERT_EMAIL` are set (mirrors Slack's both-required pattern; default
+> registry stays `{}` → moat byte-identical key-off). `.env.example` documented. `evals/email-transport.test.ts` (14 tests,
+> fakes-only, zero network) — includes a regression test proving `dispatchGovernableAction` REFUSES to auto-dispatch
+> `SUPPLIER_EMAIL_SEND` even with a real EMAIL transport wired (EMAIL has NO auto-fire moat path, by design — outward execution
+> stays a separate, unbuilt, human-gated entry point). `scripts/email-smoke.ts` (DRY default; `--send` sends a SYNTHETIC smoke
+> message, not the real derived action — see Codex finding below).
+>
+> **Codex cross-model gate: DISCHARGED (2 rounds).** Round 1 found one **[P2]**: `email-smoke.ts --send` was calling
+> `transport.deliver()` directly on the REAL derived `SUPPLIER_EMAIL_SEND` action (real `idempotencyKey`+digest) — a live-send
+> path for an irreversible, audited action type with no executor reservation, no finalized row, no audit trail. **FIXED:**
+> `--send` now sends a synthetic message (`idempotencyKey` prefixed `SMOKE:`, digest `{smokeTest:true,source}`) — DRY mode
+> still prints the real derived action for visibility, but `--send` never transmits it. Round 2: Codex confirmed the fix closes
+> the finding, no further blocking issues. `npm run verify` GREEN first-hand after the fix (typecheck/lint/752 unit+27 skip/
+> build/secrets); `verify:full` (+21 e2e) GREEN earlier in the session (files unchanged since, re-run before commit as a matter
+> of course).
+>
+> **NEXT (owner's call):**
+> - **Review + merge PR #2**, same as Slack #1.
+> - **n8n** (⚠️ `AGENTS.md:30` flags n8n legacy/out-of-core — reconcile that flag first, small doc-only item).
+> - **Orchestrator wiring:** the live route still does NOT call `dispatchGovernableAction` — calling `transportRegistryFromEnv()`
+>   from the execute route is a separate, deliberate owner-gated step (ships-dark by design).
+> - **design (billable homepage re-capture):** DEFERRED. **Desktop/web ONLY — skip mobile ([[resilix-web-desktop-only]]).**
+>
+> ----- prior resume block (SLACK #1 merged) below -----
+>
+> ## ▶ (prior) RESUME HERE — TRANSPORT #1 (SLACK) MERGED to main (`0f39304`); CI gate fixed; NEXT = EMAIL channel (teach-first, one-at-a-time), then n8n, or design (deferred)
+>
+> **PUBLISH STATE (2026-06-30, updated):** **PR #1 MERGED** into `main` (merge commit `0f39304`, owner-approved). Slack adapter +
+> evals + smoke script are on `main`; `origin/main` in sync; `feat/slack-transport` branch deleted. **CI was red repo-wide** (the
+> `verify.yml` App Quality Gate "cancelled" at the Playwright-browser-install step on EVERY run, main included) — root cause was the
+> runner's egress to Playwright's browser CDN being blocked, hanging `playwright install` until the 25-min job timeout. **Fixed** by
+> running the job inside the official Playwright container image (`mcr.microsoft.com/playwright:v1.59.1-noble`, browsers pre-baked,
+> install step dropped) — gate now passes in ~2m WITH e2e actually running (commits `fc0b0e9` retry-attempt → `61dcd29` container).
+> Bump that image tag in lockstep with the `@playwright/test` version. See [[resilix-ci-playwright-cdn-fix]].
 >
 > **Transport adapter #1 (SLACK) is DONE (2026-06-30, teach-first, owner-greenlit + live-smoked).** Real `fetch`-based
 > `createSlackTransport` behind the seam; env-gated `transportRegistryFromEnv()` (SLACK wired ONLY when BOTH
@@ -15,13 +68,6 @@
 > real ACT packet → SLACK `ROLE_OWNER_ALERT` → `dispatchGovernableAction` → EXECUTED/delivered=true, owner saw the message.
 > Files: `lib/server/transports/slack-transport.ts`, `action-transport.ts` (+factory), `evals/slack-transport.test.ts`,
 > `scripts/slack-smoke.ts`, `.env.example`. Full record: `gates/agentic-rework/PHASE5-GATE.md` (Transport adapter #1 section).
->
-> **NEXT (owner's call):**
-> - **EMAIL channel** — Resend (free 3k/mo) / SES (enterprise), per-channel key, same fail-closed + env-gated pattern,
->   teach-first + one-at-a-time. Then **n8n** (⚠️ `AGENTS.md:30` flags n8n legacy/out-of-core — reconcile that first).
-> - **Orchestrator wiring:** the live route still does NOT call `dispatchGovernableAction` — calling `transportRegistryFromEnv()`
->   from the execute route is a separate, deliberate owner-gated step (ships-dark by design).
-> - **design (billable homepage re-capture):** DEFERRED. **Desktop/web ONLY — skip mobile ([[resilix-web-desktop-only]]).**
 >
 > ----- prior resume block (transport-was-next) below -----
 >
