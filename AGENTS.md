@@ -27,7 +27,7 @@ audit trail records
 - Synthetic enterprise data must remain clearly disclosed.
 - No real Apple, Amazon, FedEx, supplier, carrier, customer, or private ERP data may be claimed.
 - LLM outputs must not be authoritative for numeric calculations, IDs, option scoring, or approval decisions.
-- n8n is legacy and NOT in the core loop (PLAN.md out-of-scope); approval is an atomic, audited in-app operation. Core calculations and agent validation stay in the app.
+- n8n is legacy and NOT in the core loop (PLAN.md out-of-scope); approval is an atomic, audited in-app operation. Core calculations and agent validation stay in the app. **Reconciled 2026-07-01:** this excludes n8n from APPROVAL/decision logic, not from the Phase-5 transport seam's outbound `N8N` channel (`lib/server/action-transport.ts`) — that channel only fires an already-approved `ERP_CASE` webhook DOWNSTREAM of the in-app gate; it never authorizes anything, so building it is not "n8n in the core loop." It is a distinct integration from the (Legacy) inbound callback path below — do not conflate the two.
 - `DATABASE_URL` switches packet state from the in-memory demo store to Postgres via Drizzle. Target driver is node-postgres on local PostgreSQL (Phase 2); the current salvage code still uses the Neon HTTP driver until that swap.
 
 ## Security Rules
