@@ -16,13 +16,24 @@
 > UFLPA detention response. The defense core stays un-owned; the encroachment clock is REAL — re-check at
 > every major gate.
 >
-> **THIS SESSION'S REMAINING WORK (the plan stage):** (1) `docs/claude/PLAN-CUSTOMS-DEFENSE-2026-07-02.md` —
-> declarative plan walking portfolio **§11 register 38/38 item-by-item** (traceability table; success criteria
-> + acceptance tests + verification; dual register). (2) Gates: **grill-me-codex** on the design (front) +
-> **Codex re-test from scratch of the whitespace claim / 15-player falsifier list / EO 14411 status** (the
-> recorded deferred-≠-pass obligation) + **acceptance-gate** SHIP/BLOCK. (3) Wrap: owner-action queue
-> (interviews = THE kill-gate BEFORE build commitment; browser-only queue §9A end; flagged videos; push;
-> `/autopilot` once kill-gate clears) + HANDOFF/todo sync.
+> **DONE THIS SESSION (2026-07-02 night):** (1) Goal fixed + Caspian tripwire discharged (above). (2) Research/
+> portfolio docs COMMITTED to main (`7ab55f8`; push owner-gated). (3) **Plan artifact WRITTEN:
+> `docs/claude/PLAN-CUSTOMS-DEFENSE-2026-07-02.md` v1.0 DRAFT** — declarative spec (9 success criteria SC1–SC9 +
+> acceptance tests), spine mapping (built module → customs counterpart), 4-mode data strategy (CATAIR-Rev-106
+> synthetic; edge-case matrix = coverage doc = generator = eval suite), D0–D7 phases (evals-first; ALL blocked
+> behind the interview kill-gate), §11 register traceability **38/38 mapped**, hard requirement re-affirmed by
+> owner in-session: **desktop web ONLY, no mobile**. Owner then called wrap ("wrap it up here").
+>
+> **▶ NEXT (FRESH session): GATE THE PLAN — it is DRAFT, not SHIPPED. Deferral ≠ pass.**
+> 1. **grill-me-codex** on `PLAN-CUSTOMS-DEFENSE-2026-07-02.md` — Act 1 is INTERACTIVE (owner answers the grill
+>    one question at a time; that's why it moved to a fresh session), then Act 2 Codex adversarial rounds.
+> 2. **Same Codex session — the recorded obligation:** re-test FROM SCRATCH the whitespace claim, the 15-player
+>    falsifier list, and EO 14411 status (portfolio §11 item 25). Supply out-of-repo context (memory conventions)
+>    per the 2026-06-24 lesson; dispose primary-model-final.
+> 3. **acceptance-gate** on the plan → SHIP/BLOCK; record verdicts in the plan's §9 gate-evidence log (currently
+>    all ⏳ pending — never pre-stamp); commit the gated plan.
+> 4. Then the **owner-action queue** (plan §10): practitioner interviews = THE kill-gate BEFORE any build; browser
+>    verification queue (§9A end); flagged videos; push decision; `/autopilot` once the kill-gate clears.
 >
 > ----- prior resume block (2026-07-02 evening, portfolio shipped) below -----
 >

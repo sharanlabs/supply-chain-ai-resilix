@@ -30,12 +30,16 @@ run-of-the-mill vertical AI; the existing RESILIX build is the ASSET, the positi
   Trade-IQ acquired Jun 2026 → "full-lifecycle trade advisory"; still ZERO prior-disclosure/penalty-mitigation/EAPA/
   Form-28-29/UFLPA-defense on the product surface). Owner also approved: commit research+portfolio docs to main
   (push stays owner-gated).
-- [ ] **▶ NEXT: plan stage (in progress this session) — `docs/claude/PLAN-CUSTOMS-DEFENSE-2026-07-02.md`**: walk
-  portfolio §11 register 38/38 item-by-item (declarative: success criteria + acceptance tests + verification); gates =
-  grill-me-codex on the design + Codex re-test of whitespace/falsifiers/EO-14411 from scratch (recorded obligation) +
-  acceptance-gate SHIP. Build starts ONLY after the owner-led interview kill-gate (§11 item 26). Remaining owner
-  validation unchanged: browser-only queue (portfolio §9A end), practitioner interviews, flagged videos via
-  `video-research`.
+- [x] **Plan artifact WRITTEN 2026-07-02 (night) — `docs/claude/PLAN-CUSTOMS-DEFENSE-2026-07-02.md` v1.0 DRAFT.**
+  Declarative spec: SC1–SC9 success criteria + acceptance tests; spine mapping; 4-mode data strategy (synthetic vs
+  CATAIR Rev-106; edge-case matrix triple-duty); phases D0–D7 (evals-first) ALL blocked behind the interview
+  kill-gate; §11 register traceability 38/38; desktop-web-ONLY re-affirmed by owner in-session as a hard requirement.
+  Session wrapped at owner's call before the gates ran.
+- [ ] **▶ NEXT (FRESH session): gate the plan — it is DRAFT until gated.** (1) grill-me-codex (Act 1 interactive
+  with owner) on the plan; (2) same Codex session re-tests whitespace claim + 15-player falsifier list + EO 14411
+  from scratch (recorded obligation, §11 item 25); (3) acceptance-gate SHIP/BLOCK; record verdicts in plan §9;
+  commit. THEN the owner queue (plan §10): practitioner interviews = kill-gate BEFORE build; browser-only
+  verification queue; flagged videos; push decision; `/autopilot` after the kill-gate.
 
 ## ⚠️ SUPERSEDING POINTER (2026-06-25) — NEW INITIATIVE: agentic rework
 
