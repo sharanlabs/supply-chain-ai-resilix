@@ -36,3 +36,6 @@ design/shots/
 
 # Unfinished design concepts / MCP scratch -- not for public ship
 samples/
+
+# customs corpus cache (re-fetchable; the committed record is data/customs/corpus-manifest.json)
+data/customs/cache/

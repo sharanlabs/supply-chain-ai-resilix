@@ -1,0 +1,48 @@
+{
+  "note": "Per-door corpus record. Cache files are gitignored; this manifest is the committed as-of trail (plan §4 C18).",
+  "doors": {
+    "fr": {
+      "status": "ok",
+      "asOf": "2026-07-02T22:22:13.225Z",
+      "count": 129,
+      "files": [
+        "data/customs/cache/fr/2026-07-02-eo-14411-doc.json",
+        "data/customs/cache/fr/2026-07-02-cbp-documents.json",
+        "data/customs/cache/fr/2026-07-02-eapa-term-documents.json"
+      ],
+      "source": "https://www.federalregister.gov/api/v1/",
+      "note": "EO 14411 primary doc + latest CBP agency docs + EAPA-term docs"
+    },
+    "opensanctions": {
+      "status": "ok",
+      "asOf": "2026-07-02T22:22:13.225Z",
+      "count": 304,
+      "files": [
+        "data/customs/cache/opensanctions/2026-07-02-uflpa-entities.ftm.ndjson"
+      ],
+      "source": "https://data.opensanctions.org/artifacts/us_dhs_uflpa/20260702185701-kzq/entities.ftm.json",
+      "note": "dataset 'us_dhs_uflpa' resolved from the live index"
+    },
+    "hts": {
+      "status": "ok",
+      "asOf": "2026-07-02T22:22:53.013Z",
+      "count": 412,
+      "files": [
+        "data/customs/cache/hts/2026-07-02-search-solar.json",
+        "data/customs/cache/hts/2026-07-02-search-electric-motor.json"
+      ],
+      "source": "https://hts.usitc.gov/reststop/search?keyword=<term>",
+      "note": "keyword slices: solar, electric motor"
+    },
+    "courtlistener": {
+      "status": "ok",
+      "asOf": "2026-07-02T22:22:13.225Z",
+      "count": 20,
+      "files": [
+        "data/customs/cache/courtlistener/2026-07-02-eapa-opinions-search.json"
+      ],
+      "source": "https://www.courtlistener.com/api/rest/v4/search/?type=o&q=%22Enforce%20and%20Protect%20Act%22&court=cit%20cafc&order_by=dateFiled%20desc",
+      "note": "EAPA-related CIT/CAFC opinion search page 1"
+    }
+  }
+}
