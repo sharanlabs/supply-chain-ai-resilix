@@ -1,4 +1,26 @@
-# HANDOFF — resume pointer (updated 2026-07-02, late night — plan GATED)
+# HANDOFF — resume pointer (updated 2026-07-02, late night — plan GATED; D0 BUILT + GATED same night)
+
+> ## ▶ RESUME HERE — D0 COMPLETE (2026-07-02, "full liberty" session): corpus + matrix + generator + 24-case golden set + graders, ALL gated
+>
+> **STATE:** owner said "continue all take full liberty use own judgement" → D0 executed end-to-end and PASSED
+> its phase gate (`gates/customsdesk/D0-GATE.md`): 5 machine doors live (FR/OpenSanctions/HTS/CourtListener/
+> CATAIR-PDF; committed as-of manifest), edge-case matrix v1 (36 flagship + 4 CF-28 cells), CATAIR **Rev-108**
+> generator (plan said Rev 106 — 108 is the live revision, deviation logged; check digit verified against
+> hand-derived + Codex-re-derived oracles), 24 provenance-tagged golden cases (NO adjudicated-insufficiency
+> claims at D0 by policy), SC1 citation grader, golden suite runnable-red (`npm run customs:golden`, 24/24
+> NOT_IMPLEMENTED at the declared seam). **Codex phase gate: R1 REVISE ×5 (all accepted+fixed) → R2 APPROVED.**
+> `npm run verify` green first-hand throughout; existing product untouched (additive `lib/agents/customsdesk/`).
+> Commits: `1bebf58` · `59e14e4` · `9d3deca` · gate-record commit. Also this session: plan-docs push
+> (`155affa..9e29f46`), interview kit (`INTERVIEW-KIT-2026-07-02.md`, pushed `31a058e`).
+>
+> **▶ NEXT:**
+> 1. **The §6.1 interview kill-gate is now THE only blocker for D1+** — owner runs it with the kit
+>    (time-box 2026-08-15; outreach should start NOW, recruiting is the long pole).
+> 2. Browser verification queue (plan §10.2) — owner.
+> 3. Later D0.1 increments (CSMS/GovDelivery door; GovInfo needs a free owner key) — buildable any session.
+> 4. On kill-gate PROCEED → `/autopilot` for D1+ (owner toggle).
+>
+> ----- prior resume block (2026-07-02 late night, plan gated) below -----
 
 > **UPDATE (2026-07-02, resume session):** owner-action queue progress — (a) **PUSH DONE** (`155affa..9e29f46`
 > published, origin/main in sync — queue item 4 closed); (b) **interview kit WRITTEN**:
