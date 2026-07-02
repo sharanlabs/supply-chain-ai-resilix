@@ -1,6 +1,47 @@
-# HANDOFF — resume pointer (updated 2026-07-02, late night — plan GATED; D0 BUILT + GATED same night)
+# HANDOFF — resume pointer (updated 2026-07-02: D0 GATED → owner sanctioned FULL PROCEED D1–D5 + PUBLISH; D1 started)
 
-> ## ▶ RESUME HERE — D0 COMPLETE (2026-07-02, "full liberty" session): corpus + matrix + generator + 24-case golden set + graders, ALL gated
+> ## ▶ RESUME HERE — BUILD THE WORKING PROTOTYPE (owner directive 2026-07-02: "build working prototype, do what it takes" + "publish as well")
+>
+> **THE SANCTION (recorded in plan §9, supersedes the earlier D1–D4-only choice):** FULL PROCEED-AT-RISK
+> **D1–D5 + publish** — end-to-end working prototype of the PRIOR-DISCLOSURE flagship (intake → evidence
+> sufficiency → deterministic penalty math → cited packet OR the "do-not-disclose-yet" refusal → counsel gate →
+> desktop surface), **deterministic-first/key-off/synthetic+public data ONLY** (SC6 = the whole demo runs with
+> zero API keys, $0). Boundaries that STAND: §6.3 legal gate blocks real-customer data/use; synthetic-vs-real
+> stated on the glass; interviews run in parallel and keep PIVOT/KILL authority over direction (time-box
+> 2026-08-15; kit: `INTERVIEW-KIT-2026-07-02.md`). "Publish" = push (done continuously) + a deployable public
+> demo — deploy target/auth is an owner step to surface at D5 ([[resilix-public-ship-readiness]] residuals).
+>
+> **WHERE D1 STOPPED (mid-stride, lossless):** primary source located but NOT yet fetched/extracted —
+> CBP ICP "Customs Administrative Enforcement Process: Fines, Penalties, Forfeitures and Liquidated Damages"
+> PDF at `https://www.cbp.gov/sites/default/files/assets/documents/2020-Feb/ICP-Fines-Penalties-Forfeitures-Liq-Damages-2004-Final.pdf`
+> (found via the ICP index; the separate "Mitigation Guidelines" ICP page is
+> `/trade/publications/informed-compliance-publication-mitigation-guidelines-fines-penalties-forfeitures-and` —
+> its PDF link still to be located on that page). cbp.gov answers plain curl (proven: CATAIR door). NOTHING of
+> D1 is coded yet.
+>
+> **▶ THE RESUME LADDER (execute in order, teach-first, commit per piece, verify green each):**
+> 1. **D1a** — add an `icp` door to `scripts/customs-corpus-ingest.mjs` (fetch BOTH penalty ICPs → cache +
+>    manifest); extract the 19 USC 1592 culpability framework + prior-disclosure treatment + mitigation
+>    factors via pdf-parse (scratchpad pattern, proven on CATAIR); every figure cited to page/section —
+>    VERIFY-OVER-MEMORY, never encode penalty math from model memory.
+> 2. **D1b** — `lib/agents/customsdesk/policy-table.ts`: 3-layer (`operative` from the ICP/statute as
+>    extracted / `directed_pending` EO-14411 floors / `scenario_only`) + divergence/rollback tests (plan D1).
+> 3. **D1c** — `penalty-exposure.ts`: BOUNDED estimates + cited assumptions (culpability tier × prior
+>    disclosure × cooperation), never "the" penalty; entry-population scoper + deadline clocks; hand-derived
+>    oracle tests, two independent derivations (P1 discipline).
+> 4. **D2** — evidence sufficiency predicates (per-workflow, deterministic booleans off `SyntheticCase`
+>    meta/exhibits) + per-exhibit quarantine (model on, don't reuse, `quarantine.ts`; prompt-boundary tests).
+> 5. **D3** — `CustomsDefensePacket` contract + assembly + refusal wiring → REPLACE `pipeline-stub.ts` and
+>    TURN THE 24-CASE GOLDEN SUITE GREEN (`npm run customs:golden` — that flip IS the prototype's engine).
+> 6. **D4** — Skeptic evidence-chain checks deterministic key-off (cross-family LLM seam stays dark until
+>    keys); counsel-approval gate on `DEFENSE_PACKET_EXPORT`/`COUNSEL_PACKET_REVIEW` action types.
+> 7. **D5** — desktop-ONLY defense-desk surface behind `ENABLE_CUSTOMS_DESK` (design bar:
+>    [[resilix-design-bar]] white/steel/Geist/narrative-first; replay-first $0 demo; synthetic stated on
+>    glass) + layman doc + publish prep (deploy story = owner step, surface exact commands).
+> 8. Codex gate batched at D1-complete, D3-complete (golden-green), and D5-complete checkpoints.
+>
+> **State:** all D0 work + interview kit PUSHED (`c355abd`); the sanction edit to plan §9 commits with this
+> handoff update. Existing ActionOps product remains byte-untouched (customs code additive only).
 >
 > **STATE:** owner said "continue all take full liberty use own judgement" → D0 executed end-to-end and PASSED
 > its phase gate (`gates/customsdesk/D0-GATE.md`): 5 machine doors live (FR/OpenSanctions/HTS/CourtListener/

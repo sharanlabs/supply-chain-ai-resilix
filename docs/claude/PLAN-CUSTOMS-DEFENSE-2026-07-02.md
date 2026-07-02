@@ -346,7 +346,18 @@ no owner-approved exceptions needed.)*
   portfolio "~90% shared" retired same-stroke). Route-back applied → re-gate **SHIP** (fresh reads; residual
   grep clean; judge withdrew its own header-tally sub-claim on re-read). Design substance passed all gates
   both passes.
-- **Interview kill-gate:** OPEN — owner-led, blocks all D-phases.
+- **D0 phase gate:** ✅ **PASS** 2026-07-02 — exit bar walked item-by-item + Codex code gate (R1 REVISE ×5,
+  all accepted+fixed → R2 APPROVED; check-digit oracles independently re-derived). Record:
+  `gates/customsdesk/D0-GATE.md`. Live-revision correction logged: CATAIR **Rev 108** binds (plan's Rev-106
+  was the research-time revision).
+- **Interview kill-gate:** OPEN — owner-led. **Owner decision 2026-07-02 (recorded, explicit sanction —
+  superseded within the hour by the owner's direct directive "i want to build working prototype so do what it
+  takes" + "i want to publish as well"): FULL PROCEED-AT-RISK D1–D5** — working end-to-end prototype
+  (deterministic-first, key-off, public/synthetic data ONLY) + publish. Boundaries that STAND: the §6.3
+  legal-review gate still blocks any REAL-customer use/data; the published prototype states synthetic-vs-real
+  on the glass; interviews still run in parallel with PIVOT/KILL authority over the product DIRECTION (code
+  written does not soften the verdict — the pre-D0 sunk-cost guard extends to everything). Recruitment
+  time-box 2026-08-15 unchanged.
 - **Legal-review gate:** OPEN — blocks deployment, not prototyping.
 
 ## 10. Owner-action queue (surfaced, not performed by the agent)
