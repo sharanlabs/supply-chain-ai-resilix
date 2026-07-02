@@ -3,6 +3,40 @@
 ## Idea (2026-06-11 21:20)
 > RESILIX ActionOps — crisis-to-action war room: live disruption signal + supplier CSV → evidence-cited, human-approved action packet in under 5 minutes
 
+## ⚠️ SUPERSEDING POINTER (2026-07-02) — RESEARCH REOPENED + REFRAMED: find the real high-value industry problem
+
+Owner directive 2026-07-02 (via `/claude-os`, plan-mode approved): supersede the mid-market-procurement wedge as the
+anchor. New frame: **US supply-chain/logistics industry problem at the Amazon/Apple/FedEx/Grubhub-class tier,
+company-agnostic, July 2026 — where a governed vertical-AI prototype adds value existing solutions don't; exclude
+run-of-the-mill vertical AI; the existing RESILIX build is the ASSET, the positioning is not fixed.**
+
+- [x] **Research stage — DONE 2026-07-02, acceptance-gate SHIP.** 3 quarantined threads (giant-tier evidenced loops ·
+  whitespace map w/ 7-seed verify-or-kill · 15-player falsifier hunt + primary hardening). Artifact:
+  `docs/claude/RESEARCH-problem-shortlist-2026-07-02.md` (+ evidence appendix `RESEARCH-threads-digests-2026-07-02.md`).
+  **Ranked: #1 customs enforcement-defense/origin-evidence copilot (NOT falsified; EO 14411 2026-06-03 is the dated
+  why-now; trust spine maps 1:1; prototypable on public CBP corpora) · #2 ocean D&D dispute adjudicator ·
+  #3 freight-claims sliver (attach-only) · #4 force-majeure verification (module of existing build) · #5 IEEPA/CAPE
+  integrity (door-opener only).** Codex leg deliberately deferred (owner batching doctrine) → the plan-stage Codex gate
+  MUST re-test the whitespace claim + falsifier list from scratch. Scan-log seeded (`~/claude-os/tasks/opportunity-log.md`).
+- [x] **Portfolio + gap-fill — DONE 2026-07-02 (evening).** `docs/claude/USE-CASE-PORTFOLIO-2026-07-02.md` v1.0:
+  all 5 use cases as a standing buildable portfolio (owner directive), 3 sweeps merged (competitors/workflow ·
+  data sources · insider-demand), insider-practitioner lens applied (owner directive), "Adversarial Twin" proposal
+  PARKED in §8. Verdict delivered: **HOLD #1** (insider sweep independently reproduced the ranking) with recorded
+  nuances: counsel-LEVERAGE positioning; avoid classification/refund adjacency (Amazon in-house + Flexport free
+  agents); ⚠ Caspian falsifier salience raised (tripwire). *WSC v. FMC* scope RESOLVED (only §541.4 vacated).
+- [x] **Owner gate CLEARED 2026-07-02 (plan-mode session): GOAL FIXED = #1 customs enforcement-defense copilot
+  (counsel-LEVERAGE, importer side) + #5 IEEPA/CAPE door-opener + #4 force-majeure module; #2 D&D = named fallback.**
+  Pre-gate Caspian tripwire re-checked live same session: whitespace HOLDS, salience raised (Protests + PSCs shipped;
+  Trade-IQ acquired Jun 2026 → "full-lifecycle trade advisory"; still ZERO prior-disclosure/penalty-mitigation/EAPA/
+  Form-28-29/UFLPA-defense on the product surface). Owner also approved: commit research+portfolio docs to main
+  (push stays owner-gated).
+- [ ] **▶ NEXT: plan stage (in progress this session) — `docs/claude/PLAN-CUSTOMS-DEFENSE-2026-07-02.md`**: walk
+  portfolio §11 register 38/38 item-by-item (declarative: success criteria + acceptance tests + verification); gates =
+  grill-me-codex on the design + Codex re-test of whitespace/falsifiers/EO-14411 from scratch (recorded obligation) +
+  acceptance-gate SHIP. Build starts ONLY after the owner-led interview kill-gate (§11 item 26). Remaining owner
+  validation unchanged: browser-only queue (portfolio §9A end), practitioner interviews, flagged videos via
+  `video-research`.
+
 ## ⚠️ SUPERSEDING POINTER (2026-06-25) — NEW INITIATIVE: agentic rework
 
 A new owner-locked initiative is underway, **ADDITIVE** on the shipped ActionOps product below: turn RESILIX into a **governed multi-agent system** (tool-using Investigator + cross-family Skeptic + governed action execution). **Phase 0 (design-grill) DISCHARGED 2026-06-25 — Codex APPROVED in 3 rounds, zero code.** Owner decisions: **REORDER** (value-first/loop-last-gated) + **`/autopilot`**. **NEXT: `/autopilot` → Phase 1 = the P1 domain wins.** Full resume context: `docs/claude/HANDOFF.md` (top "CURRENT RESUME (2026-06-25)" block) + `~/.claude/plans/read-last-handoff-and-keen-globe.md` + gate artifacts `docs/claude/gates/agentic-rework/`. The ActionOps status below remains the working baseline the rework builds on.

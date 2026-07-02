@@ -1,6 +1,114 @@
-# HANDOFF — resume pointer (updated 2026-07-01)
+# HANDOFF — resume pointer (updated 2026-07-02, night)
 
-> ## ▶ RESUME HERE (next session) — ALL THREE transport adapters (Slack, Email, N8N) MERGED to main + Codex-gated + LIVE-SMOKE CONFIRMED; NEXT = orchestrator wiring or design (deferred)
+> ## ▶ RESUME HERE — GOAL FIXED (owner, 2026-07-02 plan-mode session): #1 CUSTOMS ENFORCEMENT-DEFENSE COPILOT (+#5 door-opener, +#4 module; #2 fallback); PLAN STAGE IN PROGRESS
+>
+> **STATE (2026-07-02, night session, `/claude-os resume`):** The owner cleared THE gate. **Goal fixed:
+> #1 customs enforcement-defense copilot (importer side, counsel-LEVERAGE never counsel-replacement) + #5
+> IEEPA/CAPE refund-integrity as time-boxed door-opener + #4 force-majeure verification as a module of the
+> existing build; #2 D&D adjudicator = the named fallback.** Owner also approved committing the research/
+> portfolio docs to main (push remains owner-gated). Approved session plan: `~/.claude/plans/resume-iterative-glacier.md`.
+>
+> **Pre-gate obligation discharged (§11 item 28): ⚠ Caspian tripwire re-checked LIVE 2026-07-02 before the
+> goal fix — whitespace HOLDS, salience raised another notch.** meetcaspian.com now ships **Protests**
+> (challenging CBP determinations) + **PSCs**, and acquired **Trade-IQ (June 2026)** — "expanding from duty
+> recovery into full-lifecycle trade advisory" (VP of Trade Advisory hired). Still ZERO on the product
+> surface: prior disclosure, penalty mitigation/response, EAPA/AD-CVD defense, Form 28/29 response,
+> UFLPA detention response. The defense core stays un-owned; the encroachment clock is REAL — re-check at
+> every major gate.
+>
+> **THIS SESSION'S REMAINING WORK (the plan stage):** (1) `docs/claude/PLAN-CUSTOMS-DEFENSE-2026-07-02.md` —
+> declarative plan walking portfolio **§11 register 38/38 item-by-item** (traceability table; success criteria
+> + acceptance tests + verification; dual register). (2) Gates: **grill-me-codex** on the design (front) +
+> **Codex re-test from scratch of the whitespace claim / 15-player falsifier list / EO 14411 status** (the
+> recorded deferred-≠-pass obligation) + **acceptance-gate** SHIP/BLOCK. (3) Wrap: owner-action queue
+> (interviews = THE kill-gate BEFORE build commitment; browser-only queue §9A end; flagged videos; push;
+> `/autopilot` once kill-gate clears) + HANDOFF/todo sync.
+>
+> ----- prior resume block (2026-07-02 evening, portfolio shipped) below -----
+>
+> ## ▶ (prior) — USE-CASE PORTFOLIO v1.0 SHIPPED (3 gap-fill sweeps merged); RECOMMENDATION #1 HELD + STRENGTHENED; NEXT = OWNER PICKS → goal fix → plan stage (FRESH session, plan mode)
+>
+> **STATE (2026-07-02, evening session):** Owner directed: (a) keep all 5 use cases as a standing buildable
+> PORTFOLIO (each near-future buildable), (b) apply the **insider-practitioner lens** (how a professional
+> inside a giant-tier company would choose + champion an AI proposal), (c) **verify-over-memory** standing
+> discipline, (d) full delegation of judgment ("your call — guide me once research is done"). Memory updated
+> (`resilix-industry-problem-reframe`, `cognitive-partner-not-mirror`).
+>
+> **→ ARTIFACT: `docs/claude/USE-CASE-PORTFOLIO-2026-07-02.md` (v1.0)** — 5 use cases in dual register
+> (plain + industry terms), each with: today's workflow + inefficiency, competitors as-of 2026-07-02, AI
+> solution shape, insider's business case (L1–L4), qual+quant data sources, honest gaps; plus §8 the PARKED
+> "Adversarial Twin" (owner set aside — continuous self-audit stance), §9A machine-door data-access pattern +
+> gaps + horizon finds, §10 glossary. Three sweeps merged (competitor gap-fill · data-source inventory ·
+> insider-demand evidence; ~100 live checks total, all dated).
+>
+> **THE VERDICT (delivered to owner):** HOLD **#1 customs enforcement-defense copilot** — all three sweeps
+> strengthened it; the insider sweep independently reproduced the ranking (#1 populated all 5 evidence
+> classes; #4 absent in all). Decisive nuances now on record: sell as **counsel-LEVERAGE not
+> counsel-replacement** (no job req names prior-disclosure work — the champion pays outside counsel); stay
+> OFF classification/refund adjacency as product core (Amazon builds "trade intelligence" in-house; Flexport
+> ships FREE customs-audit agents — build-gravity + price-zero); ⚠ **Caspian falsifier salience RAISED**
+> (now "Duty Recovery Platform" + Refund Advance claims finance — one step from defense; tripwire recorded).
+> #2 D&D = fallback (whitespace narrower: BlueCargo/Windward/Flexport shipped; un-owned slice = adjudication-
+> grade packets + the post-§541.4 privity lever; *WSC v. FMC* scope RESOLVED: only §541.4 vacated, 13 invoice
+> fields + nonpayment lever stand; Maersk $1.9M FMC settlement May 2026).
+>
+> **LATE-SESSION ADDITIONS (all in the portfolio doc):** ✅ **EO 14411 PRIMARY-VERIFIED** against the Federal
+> Register (doc 2026-11595; §4(c) 50%-floor quoted verbatim; liquidated-damages floor has NO percentage;
+> §4(a) NEW: broker due-diligence penalties → brokers = second buyer). ✅ **Rule-level implementation checked
+> live: NOT yet published** (zero FR agency docs citing the EO; no CSMS guidance; 90-day window to ~2026-09-01;
+> wording discipline: "directed, not yet codified"). **§3 Legal posture** (assessment + 4-item counsel-review
+> checklist: UPL, 19 CFR 111, no-evasion, ToS). **§11 STANDING REQUIREMENTS REGISTER — 38 items (A–G)** the
+> plan MUST map item-by-item (owner completeness directive). **Efficiency & sustainability section** (owner
+> standing requirement). Adoption-ladder realism recorded: brokers → sub-giant importers → giants last
+> (giants = showcase, not first invoice; FedEx-as-broker = closest early-buyer profile).
+>
+> **NEXT (owner's gate):** owner picks (recommendation: #1 + #5 door-opener + #4 module, #2 fallback) → goal
+> fixed → **plan stage in a FRESH session (plan mode; walk portfolio §11 register item-by-item)**. Plan-stage
+> obligations already recorded: Codex gate re-tests whitespace + falsifier list from scratch; **interview
+> kill-gate before build commitment**; browser-only verification queue (portfolio §9A end): CBP dashboards/
+> EAPA stats, EDGAR full-text, FOIA reading room, Caspian/Gaia roadmap checks (⚠ tripwire), practitioner
+> interviews (owner). Portfolio doc + research docs remain UNCOMMITTED (owner's call).
+>
+> ----- prior resume block (2026-07-02 morning, shortlist shipped) below -----
+>
+> ## ▶ (prior) RESUME HERE — RESEARCH REOPENED + REFRAMED (owner pivot) → RANKED PROBLEM SHORTLIST SHIPPED (acceptance-gate SHIP); NEXT = OWNER PICKS A CANDIDATE → goal re-fix → plan stage (FRESH session)
+>
+> **STATE (2026-07-02):** Owner superseded the mid-market-procurement wedge via `/claude-os` (plan approved): find a
+> **real, high-value US supply-chain/logistics industry problem at the Amazon/Apple/FedEx/Grubhub-class tier,
+> company-agnostic, July 2026**, where a governed vertical-AI prototype adds value existing solutions don't — the
+> RESILIX build is the ASSET, the positioning is not fixed. Research stage executed (3 quarantined threads: giant-tier
+> evidenced loops · whitespace map, 7 seeds verify-or-kill · 15-player falsifier hunt + primary-source hardening) and
+> the stage-exit artifact SHIPPED through the acceptance-gate:
+>
+> **→ `docs/claude/RESEARCH-problem-shortlist-2026-07-02.md`** (ranked shortlist; evidence appendix with the full URL
+> trail: `RESEARCH-threads-digests-2026-07-02.md`).
+>
+> **The ranking:** **#1 customs enforcement-defense / origin-evidence copilot** (importer side; EO 14411 2026-06-03
+> penalty-mitigation squeeze + record CBP enforcement = a 29-day-old dated why-now; 15-player falsifier hunt found NO
+> AI on the defense side — nearest encroacher Sayari ships one UFLPA slice; hardness = liability-grade accuracy +
+> adversarial cross-org evidence + counsel-gated output → the RESILIX trust spine maps 1:1; prototypable on public
+> CBP corpora: 221k CROSS rulings, EAPA case PDFs, FA questionnaires, ICP-052, CATAIR schema) · **#2 ocean D&D dispute
+> adjudicator** (FMC-primary-verified $15.4B pool; fallback if #1's falsifiers break) · #3 freight-claims sliver
+> (attach-only) · #4 force-majeure verification (module of the existing product, not a company) · #5 IEEPA/CAPE
+> refund integrity (door-opener into #1's customer only).
+>
+> **NEXT (owner's gate — the session stops at the research boundary by design):**
+> 1. **Owner picks a candidate** (recommendation: #1, carry #5 as door-opener, keep #4 as module) → that becomes the
+>    fixed goal → **plan stage in a FRESH session**.
+> 2. **Standing obligation for the plan-stage Codex gate (recorded by the acceptance-gate):** adversarially re-test
+>    THIS research's load-bearing claims (whitespace claim, 15-player falsifier list, EO 14411 status) from scratch —
+>    the cross-model leg was deliberately deferred here per owner batching doctrine; deferral ≠ pass.
+> 3. **Owner-validation items** (shortlist §5): practitioner interviews; CBP dashboard + EAPA stats via a browser
+>    session (cbp.gov 403-blocks fetchers); Caspian/Gaia roadmap falsifier checks; *WSC v. FMC* vacatur scope; flagged
+>    videos via `video-research`.
+> 4. The research doc + appendix are UNCOMMITTED — commit is the owner's call.
+>
+> **Unchanged from 2026-07-01:** all three transports merged + live-smoke-proven; orchestrator wiring and the design
+> re-capture remain owner-gated (below).
+>
+> ----- prior resume block (2026-07-01, transports complete) below -----
+>
+> ## ▶ (prior) RESUME HERE — ALL THREE transport adapters (Slack, Email, N8N) MERGED to main + Codex-gated + LIVE-SMOKE CONFIRMED; NEXT = orchestrator wiring or design (deferred)
 >
 > **STATE (2026-07-01):** Slack (#1), Email (#2), and N8N (#3) are ALL merged to `main` (PRs #1/#2/#3), all three built
 > teach-first, all three Codex-gated, and — as of this session — **all three live-smoke confirmed against a real endpoint.**
