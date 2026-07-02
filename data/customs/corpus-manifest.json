@@ -25,14 +25,15 @@
     },
     "hts": {
       "status": "ok",
-      "asOf": "2026-07-02T22:22:53.013Z",
-      "count": 412,
+      "asOf": "2026-07-02T22:33:53.518Z",
+      "count": 426,
       "files": [
         "data/customs/cache/hts/2026-07-02-search-solar.json",
+        "data/customs/cache/hts/2026-07-02-search-photovoltaic.json",
         "data/customs/cache/hts/2026-07-02-search-electric-motor.json"
       ],
       "source": "https://hts.usitc.gov/reststop/search?keyword=<term>",
-      "note": "keyword slices: solar, electric motor"
+      "note": "keyword slices: solar, photovoltaic, electric motor"
     },
     "courtlistener": {
       "status": "ok",
@@ -43,6 +44,16 @@
       ],
       "source": "https://www.courtlistener.com/api/rest/v4/search/?type=o&q=%22Enforce%20and%20Protect%20Act%22&court=cit%20cafc&order_by=dateFiled%20desc",
       "note": "EAPA-related CIT/CAFC opinion search page 1"
+    },
+    "catair": {
+      "status": "ok",
+      "asOf": "2026-07-02T22:33:02.042Z",
+      "count": 1,
+      "files": [
+        "data/customs/cache/catair/2026-07-02-entry-summary-rev108.pdf"
+      ],
+      "source": "https://www.cbp.gov/sites/default/files/2025-10/ace_catair_entry_summary_create-update_ae-ax_2025-09-09_rev_108_508.pdf",
+      "note": "ACE CATAIR Entry Summary Create/Update Rev 108 (2025-09-09) -- primary schema source"
     }
   }
 }

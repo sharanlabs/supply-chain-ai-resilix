@@ -107,7 +107,7 @@ async function doorOpensanctions() {
 async function doorHts() {
   // /reststop/search is the endpoint that actually answers (exportList 400s as of 2026-07-02).
   // Representative keyword slices prove the door; targeted pulls come later as cases need them.
-  const keywords = ["solar", "electric motor"]; // AD/CVD- and EAPA-heavy product areas
+  const keywords = ["solar", "photovoltaic", "electric motor"]; // AD/CVD- and EAPA-heavy product areas
   const files = [];
   let count = 0;
   for (const keyword of keywords) {
@@ -143,11 +143,36 @@ async function doorCourtlistener() {
   };
 }
 
+// --- Door: CATAIR Entry Summary spec (cbp.gov answers a plain GET as of 2026-07-02) ---
+// The Rev-108 PDF is the PRIMARY source for lib/agents/customsdesk/catair.ts; if this
+// door ever starts 403ing, the PDF moves to the owner browser queue -- never spoof past it.
+async function doorCatair() {
+  const url =
+    "https://www.cbp.gov/sites/default/files/2025-10/ace_catair_entry_summary_create-update_ae-ax_2025-09-09_rev_108_508.pdf";
+  const res = await fetch(url, { headers: UA, cache: "no-store" });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${url} (owner browser queue if 403)`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length < 1_000_000 || !buf.subarray(0, 5).toString().startsWith("%PDF")) {
+    throw new Error(`response is not the expected PDF (${buf.length} bytes)`);
+  }
+  const dir = path.join(CACHE_ROOT, "catair");
+  mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `${DAY}-entry-summary-rev108.pdf`);
+  writeFileSync(file, buf);
+  return {
+    count: 1,
+    files: [path.relative(process.cwd(), file)],
+    source: url,
+    note: "ACE CATAIR Entry Summary Create/Update Rev 108 (2025-09-09) -- primary schema source",
+  };
+}
+
 const DOORS = {
   fr: doorFr,
   opensanctions: doorOpensanctions,
   hts: doorHts,
   courtlistener: doorCourtlistener,
+  catair: doorCatair,
 };
 
 async function main() {

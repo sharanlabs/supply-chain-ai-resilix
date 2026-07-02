@@ -20,6 +20,7 @@
     "verify:live": "RUN_LIVE_SIGNAL_TESTS=true vitest run evals/live-signals.test.ts",
     "record:signals": "node scripts/record-gdelt-fixture.mjs",
     "customs:ingest": "node scripts/customs-corpus-ingest.mjs",
+    "customs:golden": "RUN_CUSTOMS_GOLDEN=true vitest run evals/customs-golden.test.ts",
     "secrets:scan": "node scripts/secret-scan.mjs",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run secrets:scan",
     "verify:full": "npm run verify && npm run test:e2e",
