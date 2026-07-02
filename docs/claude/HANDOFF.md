@@ -1,6 +1,40 @@
-# HANDOFF — resume pointer (updated 2026-07-02, night)
+# HANDOFF — resume pointer (updated 2026-07-02, late night — plan GATED)
 
-> ## ▶ RESUME HERE — GOAL FIXED (owner, 2026-07-02 plan-mode session): #1 CUSTOMS ENFORCEMENT-DEFENSE COPILOT (+#5 door-opener, +#4 module; #2 fallback); PLAN STAGE IN PROGRESS
+> ## ▶ RESUME HERE — PLAN GATED + SHIPPED (2026-07-02): all three plan gates PASSED; NEXT = OWNER-ACTION QUEUE (interview kill-gate blocks D1+; D0 exempt)
+>
+> **STATE (2026-07-02, late-night session, `/claude-os resume`):** the customs-defense plan
+> (`PLAN-CUSTOMS-DEFENSE-2026-07-02.md`, now **v1.3 GATED**) cleared all three recorded gates this session:
+> 1. **grill-me-codex Act 1** (owner-interactive): 6 contestable decisions resolved + applied (D0 exempt from
+>    kill-gate + PROCEED/PIVOT/KILL template pre-written · prior-disclosure = flagship demo · SC2 full-strength
+>    golden-set precondition (≥40, ≥15 under-evidenced, real-EAPA-weighted, holdout+mutations) · ONE
+>    workflow-first desktop surface · enterprise-tier recalibration before any pilot · kill-gate recruitment
+>    time-box **2026-08-15**).
+> 2. **grill-me-codex Act 2** (Codex, 2 rounds): R1 REVISE ×16 — all disposed primary-model-final (13 accepted /
+>    3 narrowed with logged reasons; headline: the spine's *disciplines* transfer, its *implementations* are
+>    disruption-shaped — the new-build list grew: evidence-ingestion design, `CustomsDefensePacket`,
+>    per-workflow sufficiency predicates, 3-layer policy table, bounded penalty estimates, data-protection
+>    precondition, domain telemetry). R2 **APPROVED**. Full argument: `PLAN-CUSTOMS-REVIEW-LOG-2026-07-02.md`.
+> 3. **Research re-test (the deferral≠pass obligation), BOTH legs:** Codex evidence-trail leg (whitespace
+>    wording tightened to "not falsified on scanned surfaces"; falsifier CLASS expansion) + live leg (Caspian
+>    re-fetch: still zero defense-core; **EO 14411 re-confirmed** vs FR PDF 2026-11595 — rules unpublished,
+>    ~Sep-2026 window; **Trava added falsifier #16** ADJACENT-ONLY; **Amari salience raised** — protest
+>    generation, sells to brokers, our first buyer rung). Whitespace **HOLDS**. Log: portfolio §12.
+> 4. **acceptance-gate:** first pass BLOCK (narrow doc-consistency ×3: §8 pointer drift, disposal-tally
+>    arithmetic, stale portfolio "~90%") → fixes applied → re-gate **SHIP**.
+>
+> **▶ NEXT = the OWNER-ACTION QUEUE (plan §10) — the session's gate work is done; these are yours:**
+> 1. **Practitioner interviews — THE kill-gate (§6.1), blocks D1+.** Three roles (broker / importer compliance /
+>    trade counsel), ≥2-of-3 positive signal; time-box: <3 interviews by **2026-08-15** convenes a decision.
+>    **D0 (corpus + edge-case matrix + golden set) is EXEMPT and buildable now** — say the word and it starts.
+> 2. **Browser verification queue** (plan §10.2, expanded): CBP dashboards/EAPA stats · EDGAR · FOIA · Caspian
+>    careers · CAPE-rejection primary · NEW: Amari + Trava surface checks + the expanded falsifier classes.
+> 3. **Flagged videos** via `video-research`.
+> 4. **Push decision** — commits are LOCAL-ONLY (`7ab55f8` + this session's plan-gate commit); push is owner-gated.
+> 5. **`/autopilot` engagement** for the D-phases once the kill-gate clears (owner toggle) — or D0 alone now.
+>
+> ----- prior resume block (2026-07-02 night, plan drafted) below -----
+>
+> ## ▶ (prior) — GOAL FIXED (owner, 2026-07-02 plan-mode session): #1 CUSTOMS ENFORCEMENT-DEFENSE COPILOT (+#5 door-opener, +#4 module; #2 fallback); PLAN STAGE IN PROGRESS
 >
 > **STATE (2026-07-02, night session, `/claude-os resume`):** The owner cleared THE gate. **Goal fixed:
 > #1 customs enforcement-defense copilot (importer side, counsel-LEVERAGE never counsel-replacement) + #5

@@ -576,7 +576,9 @@ owner directives (this date), project memory, and the research above.*
 - Commit decision for the research/portfolio docs (owner's call — currently uncommitted).
 
 ## Efficiency & sustainability (standing owner requirement, 2026-07-02)
-**Efficiency:** build = reuse of the gated RESILIX spine (~90% shared with any candidate here) + free/free-tier
+**Efficiency:** build = reuse of the gated RESILIX spine (the *disciplines* transfer near-wholesale; the
+*implementations* transfer partially — the "~90% shared" shorthand was retired at the plan gate, Codex R1 #1;
+honest new-build accounting: plan §3) + free/free-tier
 stack, Gemini the only paid meter (past live runs cost cents: $0.002–$0.05 per calibration set); runtime =
 deterministic-first (LLM only where judgment is needed; math/decisions in code; replay-first $0 demos; budget
 guards in code); data = free machine-door APIs (§9A), no scraping overhead; process = batched cross-model
@@ -604,6 +606,22 @@ Plan artifact: `PLAN-CUSTOMS-DEFENSE-2026-07-02.md`. Build commitment remains be
   detention response — the enforcement-defense core stays un-owned. Read: they are circling from the
   recovery side (Protests is one procedural door away); the why-now window is real but not infinite.
   Careers-page deep check remains on the browser-only owner queue (§9A end).
+- **2026-07-02 (plan-gate live re-test — the recorded deferral-≠-pass obligation, live leg):** whitespace
+  **HOLDS after from-scratch re-search.** (1) meetcaspian.com re-fetched: surface = drawback/refunds, Trade
+  Audit, Trade Compliance, PSCs, Protests, Classifications, Refund Advance, ACE integration, tariff-policy
+  monitoring — still ZERO defense-core items (prior disclosure, penalty response, EAPA/AD-CVD defense,
+  CF-28/29, UFLPA response). (2) **EO 14411 re-confirmed** (Wiley/MoFo/Hogan Lovells/EY alerts + FR PDF
+  2026-11595): signed 2026-06-03; §4(c) ≥50% mitigation floor directed; broker max-penalty exposure;
+  implementing rules NOT yet published — 90-day measures expected ~early Sep 2026; "directed, not yet
+  codified" wording stands. (3) **Falsifier-list delta:** ⚠ **Amari salience RAISED** — press now describes
+  it "generating protest filings when duties are assessed" (agentic actions one door from defense, AND it
+  sells to brokers = our first buyer rung; was listed as "broker declaration ops ADJACENT-ONLY"); **Trava
+  ADDED as player #16** (usetrava.com, YC '25, Pushkar Lanka): entry-audit + classification + duty recovery
+  for importers, explicitly "not a broker… we don't file… we audit filings and provide defensible evidence
+  your broker can act on" — **ADJACENT-ONLY**, and further top-of-funnel evidence (another find-the-error
+  tool generating prior-disclosure decisions no product serves). Net read: the adjacent cohort keeps
+  GROWING while the defense core stays un-owned — the whitespace claim is strengthened, and the
+  encroachment clock (Caspian, now Amari) keeps ticking.
 
 ## Provenance & maintenance
 Distilled from `RESEARCH-problem-shortlist-2026-07-02.md` (acceptance-gate SHIP) + evidence appendix
