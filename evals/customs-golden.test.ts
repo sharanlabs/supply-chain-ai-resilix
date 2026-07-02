@@ -72,16 +72,29 @@ describe("golden set structure (D0 bar)", () => {
     for (const goldenCase of CUSTOMS_GOLDEN_CASES) {
       const cell = findCell(goldenCase.matrixCellId)!;
       const generated = generateCase(cell, goldenCase.seed);
+      // MISSING:* gaps must match the generated omissions EXACTLY, both directions --
+      // a partial oracle silently under-specifies the refusal (Codex D0 R1 #2).
+      const oracleMissing = goldenCase.oracle.expectedGaps
+        .filter((g) => g.startsWith("MISSING:"))
+        .map((g) => g.slice("MISSING:".length))
+        .sort();
+      expect(oracleMissing, goldenCase.id).toEqual([...generated.meta.missingExhibits].sort());
       for (const gap of goldenCase.oracle.expectedGaps) {
-        if (gap.startsWith("MISSING:")) {
-          expect(generated.meta.missingExhibits, goldenCase.id).toContain(gap.slice("MISSING:".length));
-        }
         if (gap === "CONTRADICTION:ORIGIN") {
           expect(generated.exhibits.some((e) => !e.consistentWithEntry), goldenCase.id).toBe(true);
         }
         if (gap === "INELIGIBLE:INVESTIGATION_COMMENCED") {
           expect(generated.meta.investigationCommenced, goldenCase.id).toBe(true);
         }
+      }
+      // ...and the reverse direction for the structural gap kinds:
+      if (generated.exhibits.some((e) => !e.consistentWithEntry)) {
+        expect(goldenCase.oracle.expectedGaps, goldenCase.id).toContain("CONTRADICTION:ORIGIN");
+      }
+      if (generated.meta.investigationCommenced) {
+        expect(goldenCase.oracle.expectedGaps, goldenCase.id).toContain(
+          "INELIGIBLE:INVESTIGATION_COMMENCED"
+        );
       }
       // Every golden case's entry data must itself be CATAIR-valid.
       for (const entry of generated.entries) {
@@ -117,6 +130,15 @@ describe("citation-coverage grader (D0.5)", () => {
     expect(result.blocked).toBe(true);
     expect(result.violations.some((v) => v.includes("no backing citation"))).toBe(true);
     expect(result.violations.some((v) => v.includes("empty sourceRef"))).toBe(true);
+  });
+
+  it("catches an uncited numeral hiding in a section HEADING", () => {
+    const result = gradeCustomsCitationCoverage({
+      sections: [{ heading: "14 entries / $0 exposure", text: "Ready for counsel review." }],
+      citedFigures: [],
+    });
+    expect(result.blocked).toBe(true);
+    expect(result.violations.some((v) => v.includes("no backing citation"))).toBe(true);
   });
 
   it("fails closed on unparseable figure forms", () => {

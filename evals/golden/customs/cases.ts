@@ -253,7 +253,10 @@ export const CUSTOMS_GOLDEN_CASES: GoldenCustomsCase[] = [
     labelClass: "under-evidenced",
     labelProvenance: "omitted-record-synthetic",
     narrative: "Plain-vanilla origin claim but the load-bearing records are simply not in the file.",
-    oracle: { disposition: "REFUSE", expectedGaps: ["MISSING:PRODUCTION_RECORD"] },
+    oracle: {
+      disposition: "REFUSE",
+      expectedGaps: ["MISSING:PRODUCTION_RECORD", "MISSING:BILL_OF_MATERIALS"],
+    },
   },
   {
     id: "G17-under-complete-but-lapsed",

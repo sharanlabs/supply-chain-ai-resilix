@@ -56,10 +56,19 @@ describe("edge-case matrix v1 (declared coverage)", () => {
 });
 
 describe("check digit (CATAIR AE Table 1)", () => {
-  it("is stable, single-digit, and sensitive to any sequence change", () => {
+  it("matches hand-derived AE Table 1 oracle values (independent of the implementation)", () => {
+    // Derived by hand from the Rev-108 six-step procedure (Codex D0 R1 #4: a wrong
+    // but self-consistent algorithm must not be able to bless itself):
+    //   RSX(9,2,7)+1234567: even ones 4+2+6+1+5=18, odd 9+7+2+4+6=28, 46 -> 4
+    //   ABC(1,2,3)+9999999: even ones 4+9+9+9+9=40, odd 1+3+9+9+9=31, 71 -> 9
+    //   XYZ(7,8,9)+0000000: even ones 7+0+0+0+0=7,  odd 7+9+0+0+0=16, 23 -> 7
+    expect(entryNumberCheckDigit("RSX", "1234567")).toBe(4);
+    expect(entryNumberCheckDigit("ABC", "9999999")).toBe(9);
+    expect(entryNumberCheckDigit("XYZ", "0000000")).toBe(7);
+  });
+
+  it("is stable and sensitive to any sequence change", () => {
     const d = entryNumberCheckDigit("RSX", "1234567");
-    expect(d).toBeGreaterThanOrEqual(0);
-    expect(d).toBeLessThanOrEqual(9);
     expect(entryNumberCheckDigit("RSX", "1234567")).toBe(d);
     expect(entryNumberCheckDigit("RSX", "1234568")).not.toBe(d);
   });
@@ -122,17 +131,28 @@ describe("synthetic-entry generator (D0 exit VERIFY)", () => {
     expect(complete.exhibits.every((e) => e.consistentWithEntry)).toBe(true);
   });
 
-  it("transshipment cells carry the origin-vs-export mismatch the evidence must resolve", () => {
+  it("transshipment cells carry the declared-vs-questioned origin tension explicitly", () => {
     const cell = MATRIX_CELLS.find(
       (c) => c.origin === "TRANSSHIPMENT_PATTERN" && c.posture === "COMPLETE" && c.deadline === "AMPLE"
     )!;
     const testCase = generateCase(cell, 11);
-    // Declared origin on the entry is the transshipment country, never CN itself --
-    // the mismatch is what a real EAPA allegation asserts and evidence must answer.
+    // The entry declares the transshipment country (consistently, as a real filer
+    // would); the case META carries the questioned actual origin. The tension must
+    // be explicit and non-degenerate (Codex D0 R1 #1).
+    expect(testCase.meta.questionedOrigin).toBe("CN");
+    expect(testCase.meta.declaredOrigin).not.toBe(testCase.meta.questionedOrigin);
     for (const entry of testCase.entries) {
       for (const line of entry.lines) {
-        expect(line.lineItem.slice(8, 10)).not.toBe("CN");
+        expect(line.lineItem.slice(8, 10)).toBe(testCase.meta.declaredOrigin);
       }
     }
+  });
+
+  it("non-transshipment cells carry no origin allegation (declared == questioned)", () => {
+    const cell = MATRIX_CELLS.find(
+      (c) => c.origin === "SINGLE_COUNTRY" && c.posture === "COMPLETE" && c.deadline === "AMPLE"
+    )!;
+    const testCase = generateCase(cell, 11);
+    expect(testCase.meta.declaredOrigin).toBe(testCase.meta.questionedOrigin);
   });
 });

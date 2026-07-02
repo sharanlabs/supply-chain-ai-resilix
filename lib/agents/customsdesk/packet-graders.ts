@@ -32,7 +32,11 @@ export function gradeCustomsCitationCoverage(packet: CustomsPacketDraft): Custom
     .filter((n): n is number => n !== null);
 
   for (const section of packet.sections) {
-    const { figures, unparseable } = extractSourceableNumerals(section.text);
+    // Headings are packet-visible prose too -- a numeral there must be cited the
+    // same as body text (Codex D0 R1 #5: "14 entries / $0 exposure" as a heading).
+    const { figures, unparseable } = extractSourceableNumerals(
+      `${section.heading}\n${section.text}`
+    );
     for (const raw of unparseable) {
       violations.push(`[${section.heading}] unparseable figure form '${raw}' (fail-closed)`);
     }

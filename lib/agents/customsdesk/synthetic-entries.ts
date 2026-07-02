@@ -65,6 +65,12 @@ export interface SyntheticCase {
     investigationCommenced: boolean; // LAPSED -> disclosure-ineligible
     enforcementSignal: boolean; // IMMINENT -> a CF-28/audit signal exists
     missingExhibits: ExhibitKind[];
+    // The transshipment tension, carried EXPLICITLY (Codex D0 R1 #1): the entry
+    // declares `declaredOrigin`; for TRANSSHIPMENT_PATTERN cells the question the
+    // evidence must answer is whether the goods are actually `questionedOrigin`.
+    // For other origins the two are equal (no allegation in play).
+    declaredOrigin: string;
+    questionedOrigin: string;
   };
 }
 
@@ -171,6 +177,8 @@ export function generateCase(cellFull: MatrixCell, seed: number): SyntheticCase 
       investigationCommenced: cellFull.deadline === "LAPSED",
       enforcementSignal: cellFull.deadline !== "AMPLE",
       missingExhibits: missing,
+      declaredOrigin,
+      questionedOrigin: origin,
     },
   };
 }

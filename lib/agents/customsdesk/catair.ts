@@ -234,7 +234,7 @@ export function validate50Record(line: string): RecordViolation[] {
   checkPattern(v, "50", "dutyAmountCents", line.slice(13, 23), /^\d{10}$/, "10N implied 2dp");
   checkPattern(v, "50", "valueOfGoodsUsd", line.slice(24, 34), /^\d{10}$/, "10N whole USD");
   checkPattern(v, "50", "quantity1", line.slice(35, 47), /^(\d{12}| {12})$/, "12N implied 2dp or space fill");
-  checkPattern(v, "50", "unitOfMeasure1", line.slice(47, 50), /^[A-Z.]{1,3} *$/, "3AN per HTS");
+  checkPattern(v, "50", "unitOfMeasure1", line.slice(47, 50), /^[A-Z0-9.]{1,3} *$/, "3AN per HTS");
   return v;
 }
 
