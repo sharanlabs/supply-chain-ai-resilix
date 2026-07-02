@@ -1,5 +1,14 @@
 # HANDOFF — resume pointer (updated 2026-07-02, late night — plan GATED)
 
+> **UPDATE (2026-07-02, resume session):** owner-action queue progress — (a) **PUSH DONE** (`155affa..9e29f46`
+> published, origin/main in sync — queue item 4 closed); (b) **interview kit WRITTEN**:
+> `INTERVIEW-KIT-2026-07-02.md` (recruiting channels, outreach templates, per-role scripts, scoring sheet,
+> the pre-written PROCEED/PIVOT/KILL rule) — the §6.1 kill-gate is ready for the owner to RUN (time-box
+> 2026-08-15); (c) owner directive recorded ([[plain-english-finalize-before-build]]): plain-English
+> finalization of all solutions + plan + next steps BEFORE any build — **D0 NOT started by owner choice**;
+> the plain-English brief was delivered in-session. Remaining owner queue: run the interviews · browser
+> verification queue (§10.2) · flagged videos · D0 go / `/autopilot` after the brief sign-off.
+
 > ## ▶ RESUME HERE — PLAN GATED + SHIPPED (2026-07-02): all three plan gates PASSED; NEXT = OWNER-ACTION QUEUE (interview kill-gate blocks D1+; D0 exempt)
 >
 > **STATE (2026-07-02, late-night session, `/claude-os resume`):** the customs-defense plan
