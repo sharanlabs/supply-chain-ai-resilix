@@ -44,3 +44,11 @@ export function agentLoopEnabled(): boolean {
   const v = process.env.ENABLE_AGENT_LOOP?.trim().toLowerCase();
   return !(v === "false" || v === "0" || v === "no" || v === "off");
 }
+
+// D5 (the customs enforcement-defense DESKTOP SURFACE): whether the /customs route is
+// mounted at all. DEFAULT OFF -- the surface is purely additive and flag-gated, so an
+// unset deploy is byte-identical to the pre-D5 product (the route simply 404s). Uses the
+// shared envBool truthy set; set ENABLE_CUSTOMS_DESK=true (/1/yes/on) to expose the desk.
+export function customsDeskEnabled(): boolean {
+  return envBool("ENABLE_CUSTOMS_DESK");
+}
