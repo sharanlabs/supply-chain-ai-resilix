@@ -214,32 +214,46 @@ export function CounselGate({ packet }: { packet: CustomsDefensePacket }) {
               </p>
             ) : null}
 
-            <div className="mt-3 flex gap-2">
-              <Button variant="secondary" size="sm" onClick={onCopy}>
-                {copied ? (
-                  <Check className="size-4" aria-hidden="true" />
-                ) : (
-                  <Copy className="size-4" aria-hidden="true" />
-                )}
-                {copied ? "Copied" : "Copy"}
-              </Button>
-              <Button variant="secondary" size="sm" onClick={onDownload}>
-                <Download className="size-4" aria-hidden="true" />
-                Download .txt
-              </Button>
-            </div>
+            {exportText === null ? (
+              // Approved, but the export DOOR itself refused (e.g. the citation guard
+              // caught an uncited numeral in the reviewer free text). Honest surface:
+              // the door's real reason, no artifact, no buttons.
+              <div className="mt-3 flex items-start gap-2 rounded-md border border-line bg-sink px-3 py-2.5 text-[0.75rem] leading-relaxed text-ink-muted">
+                <Lock className="mt-0.5 size-3.5 shrink-0 text-ink-faint" aria-hidden="true" />
+                <span>
+                  <span className="font-medium text-ink">Export blocked.</span> {blockedReason}
+                </span>
+              </div>
+            ) : (
+              <div className="mt-3 flex gap-2">
+                <Button variant="secondary" size="sm" onClick={onCopy}>
+                  {copied ? (
+                    <Check className="size-4" aria-hidden="true" />
+                  ) : (
+                    <Copy className="size-4" aria-hidden="true" />
+                  )}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+                <Button variant="secondary" size="sm" onClick={onDownload}>
+                  <Download className="size-4" aria-hidden="true" />
+                  Download .txt
+                </Button>
+              </div>
+            )}
 
             {/* tabIndex + region role: the packet text overflows max-h-80, making
                 this a scrollable region -- it must be keyboard-focusable (WCAG
                 2.1.1 / axe scrollable-region-focusable) and carry a name. */}
-            <pre
-              role="region"
-              tabIndex={0}
-              aria-label="Exported defense packet text"
-              className="panel-sunken mt-3 max-h-80 overflow-auto rounded-md p-3 font-mono text-[0.75rem] leading-relaxed whitespace-pre-wrap text-ink"
-            >
-              {exportText}
-            </pre>
+            {exportText !== null ? (
+              <pre
+                role="region"
+                tabIndex={0}
+                aria-label="Exported defense packet text"
+                className="panel-sunken mt-3 max-h-80 overflow-auto rounded-md p-3 font-mono text-[0.75rem] leading-relaxed whitespace-pre-wrap text-ink"
+              >
+                {exportText}
+              </pre>
+            ) : null}
 
             <div className="mt-3 border-t border-line pt-3">
               <Button variant="ghost" size="sm" onClick={onReset}>

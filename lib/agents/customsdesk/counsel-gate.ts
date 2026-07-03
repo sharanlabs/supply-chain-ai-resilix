@@ -5,6 +5,7 @@
 
 import type { CustomsDefensePacket } from "./defense-packet";
 import { renderPacketText } from "./defense-packet";
+import { gradeCustomsCitationCoverage } from "./packet-graders";
 
 export type ApprovalState =
   | { state: "PENDING_COUNSEL_REVIEW" }
@@ -49,13 +50,34 @@ export function reject(
 // The ONLY outward door. DEFENSE_PACKET_EXPORT is the irreversible action class --
 // it exists solely behind an APPROVED state.
 export function exportPacket(reviewable: ReviewablePacket): string {
-  if (reviewable.approval.state !== "APPROVED_FOR_EXPORT") {
+  const approval = reviewable.approval;
+  if (approval.state !== "APPROVED_FOR_EXPORT") {
     throw new Error(
-      `DEFENSE_PACKET_EXPORT blocked: approval state is ${reviewable.approval.state} (no outward artifact without explicit counsel approval)`
+      `DEFENSE_PACKET_EXPORT blocked: approval state is ${approval.state} (no outward artifact without explicit counsel approval)`
     );
   }
-  return (
+  // Codex D6 #2: never trust the SHAPE of the approval object -- a hand-built
+  // `{ state: "APPROVED_FOR_EXPORT" }` must not export with an undefined reviewer.
+  // An approved state is only honored when it carries what approve() would have set.
+  const reviewerOk = typeof approval.reviewer === "string" && approval.reviewer.trim().length > 0;
+  const dateOk = typeof approval.approvedOn === "string" && /^\d{4}-\d{2}-\d{2}$/.test(approval.approvedOn);
+  if (!reviewerOk || !dateOk) {
+    throw new Error(
+      "DEFENSE_PACKET_EXPORT blocked: approved state lacks a named reviewer and ISO approval date (forged or malformed approval object)"
+    );
+  }
+  const artifact =
     renderPacketText(reviewable.packet) +
-    `\n\n-- Approved for export by ${reviewable.approval.reviewer} on ${reviewable.approval.approvedOn} --`
-  );
+    `\n\n-- Approved for export by ${approval.reviewer} on ${approval.approvedOn} --`;
+  // Codex D6 #3, outward-door leg: grade the EXACT final artifact. Free-text
+  // reviewer digits ("Counsel 999") would otherwise smuggle an uncited numeral past
+  // the produce-time guard, which graded the packet before the approval line existed.
+  const grade = gradeCustomsCitationCoverage({
+    sections: [{ heading: "EXPORTED_ARTIFACT", text: artifact }],
+    citedFigures: reviewable.packet.citedFigures,
+  });
+  if (grade.blocked) {
+    throw new Error(`DEFENSE_PACKET_EXPORT blocked by citation guard: ${grade.violations.join(" | ")}`);
+  }
+  return artifact;
 }

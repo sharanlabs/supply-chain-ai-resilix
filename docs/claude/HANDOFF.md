@@ -1,6 +1,23 @@
-# HANDOFF — resume pointer (updated 2026-07-03 late: D5 COMPLETE — surface + a11y/e2e + explainer + README shipped; NEXT = owner deploy + D6 Codex pass)
+# HANDOFF — resume pointer (updated 2026-07-03 late: D5+D6 COMPLETE — prototype done, Codex gate APPROVED; ONLY REMAINING = owner deploy)
 
-> ## ▶ RESUME HERE — D5 COMPLETE (2026-07-03, second session). PROTOTYPE IS DONE END-TO-END.
+> ## ▶ RESUME HERE — INCREMENT COMPLETE (2026-07-03). D6 Codex gate CLOSED CLEAN (R6 APPROVED).
+>
+> **D6 (the ONE batched cross-model pass, per the right-size memory) ran and closed:** 6 rounds,
+> 10 findings (5 HIGH / 4 MED / 1 mechanical), ALL disposed primary-model-final — record:
+> `gates/customsdesk/D6-CODEX-PASS.md`. Net hardening: Skeptic = full re-derivation + allowlist +
+> fresh-render equality + whole-outcome deterministic backstop; citation guard covers exact
+> rendered/exported text at both doors; export door validates approval shape + grades the final
+> artifact; Unicode/ASCII minus fail-closed in the shared extractor; customs:golden now in the
+> default `verify` chain; explainer+README fraud-tier qualification. Suites first-hand:
+> unit 853 green (12 new teeth tests), golden 34/34, verify:full 41/41.
+>
+> **THE ONLY REMAINING STEP — owner deploy (Vercel free tier):**
+> `npx vercel` → `npx vercel env add ENABLE_CUSTOMS_DESK production` (value `true`) →
+> `npx vercel --prod`. Hosted-demo auth decision = owner ([[resilix-public-ship-readiness]]).
+>
+> ----- prior top block (D5-complete) below -----
+
+> ## ▶ (superseded) D5 COMPLETE (2026-07-03, second session). PROTOTYPE IS DONE END-TO-END.
 >
 > **D5 shipped this session** (orchestration: Fable final-judge, Opus builders per owner routing decision):
 > `eb245a7` D5.1 flag (`ENABLE_CUSTOMS_DESK`, default OFF, byte-identical deploy) + `/customs` scaffold ·

@@ -26,8 +26,11 @@ export interface CustomsDefenseOutcome {
 
 // Demo-scenario constants -- explicit, labeled, deterministic. Synthetic cases carry
 // no calendar dates, so the demo pins them; the packet states every assumption.
-const DEMO_NOTICE_MAILED_ON = "2026-06-15";
-const DEMO_INTEREST = { annualRatePct: 6, days: 365 };
+// Exported: the Skeptic re-derives the full figure set from raw inputs under the
+// same declared demo model (the model is the packet's stated assumption; the
+// COMPUTATION is what the Skeptic refuses to trust).
+export const DEMO_NOTICE_MAILED_ON = "2026-06-15";
+export const DEMO_INTEREST = { annualRatePct: 6, days: 365 };
 
 function centsToUsdText(cents: number): string {
   const usd = cents / 100;
@@ -84,6 +87,10 @@ export function runCustomsDefenseCase(input: SyntheticCase): CustomsDefenseOutco
     : [];
 
   const citedFigures: CitedFigure[] = [
+    // The seed appears in the rendered provenance line ("cellId:seed"), and the
+    // guard now grades the FULL rendered text (Codex D6 #3) -- so the seed is a
+    // first-class cited figure, sourced to the case generator input.
+    { value: input.seed, sourceKind: "TOOL_RETURN", sourceRef: "case-generator#seed" },
     { value: scope.entryCount, sourceKind: "TOOL_RETURN", sourceRef: "entry-scoper#entryCount" },
     { value: scope.lineCount, sourceKind: "TOOL_RETURN", sourceRef: "entry-scoper#lineCount" },
     { value: scope.totalEnteredValueCents / 100, sourceKind: "TOOL_RETURN", sourceRef: "entry-scoper#totalEnteredValue" },
@@ -198,6 +205,7 @@ function refuse(
       },
     ],
     citedFigures: [
+      { value: input.seed, sourceKind: "TOOL_RETURN", sourceRef: "case-generator#seed" },
       { value: quarantined.length, sourceKind: "TOOL_RETURN", sourceRef: "exhibit-quarantine#count" },
     ],
     namedGaps: gaps,
@@ -218,8 +226,14 @@ function refuse(
 
 // Produce-time output-safety check (Codex plan-gate R1 #3): the citation grader runs
 // AT PACKET PRODUCTION, not only in evals. A packet that fails does not exist.
+// Codex D6 #3: the guard grades the EXACT text the renderer emits -- header,
+// provenance, and named-gap lines included -- not only the section bodies, so no
+// rendered numeral can ride outside the graded surface.
 function failClosedOnUncitedNumerals(packet: CustomsDefensePacket): void {
-  const grade = gradeCustomsCitationCoverage({ sections: packet.sections, citedFigures: packet.citedFigures });
+  const grade = gradeCustomsCitationCoverage({
+    sections: [...packet.sections, { heading: "RENDERED_PACKET_TEXT", text: renderPacketText(packet) }],
+    citedFigures: packet.citedFigures,
+  });
   if (grade.blocked) {
     throw new Error(`packet failed produce-time citation coverage: ${grade.violations.join(" | ")}`);
   }

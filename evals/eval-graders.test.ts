@@ -124,6 +124,35 @@ describe("extractSourceableNumerals", () => {
     expect(out.unparseable).toEqual(["1e6"]);
   });
 
+  // Codex D6 #4: a minus-signed figure parsed as positive would validate a
+  // sign-flipped claim ("-5%" backed by cited 5). Fail closed on true minus signs;
+  // in-word hyphens and ranges keep working.
+  it("fails CLOSED on minus-signed figures rather than reading them positive", () => {
+    const out = extractSourceableNumerals("margin moved -5% on a -$300 adjustment");
+    expect(out.figures).toEqual([]);
+    expect(out.unparseable).toContain("-5%");
+    expect(out.unparseable).toContain("-$300");
+  });
+
+  it("does NOT flag range/in-word hyphens as minus signs", () => {
+    const out = extractSourceableNumerals("expect 5-10 days for the top-5 suppliers");
+    expect(out.unparseable).toEqual([]);
+    expect(out.figures).toContain(10);
+    expect(out.figures).toContain(5);
+  });
+
+  // Codex D6 R2 #3: the Unicode minus sign (U+2212) and dash look-alikes must get
+  // the same fail-closed treatment as the ASCII hyphen-minus.
+  it("fails CLOSED on Unicode minus/dash sign forms before digits", () => {
+    const minus = extractSourceableNumerals("margin moved −5% this quarter");
+    expect(minus.figures).toEqual([]);
+    expect(minus.unparseable).toContain("−5%");
+
+    const enDash = extractSourceableNumerals("adjustment of –$300 was recorded");
+    expect(enDash.figures).toEqual([]);
+    expect(enDash.unparseable).toContain("–$300");
+  });
+
   // Fix #3: a quantity written as a NUMBER-WORD next to a unit ("within seven days",
   // "five thousand units") bypasses the ASCII FIGURE regex. It must be flagged as
   // unparseable (fail-closed -- a draft asserts figures in plain ASCII with a backing

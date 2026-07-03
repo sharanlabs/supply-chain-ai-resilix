@@ -42,6 +42,18 @@ const ID_TOKEN = /\b[A-Z][A-Z0-9]*-[A-Za-z0-9][A-Za-z0-9-]*\b/g;
 // Runs AFTER masking, so dates/ratios/sci/ids are already gone.
 const FIGURE = /(?<![A-Za-z0-9_$./])\$?\d[\d,]*(?:\.\d+)?[KMBkmb]?%?(?![A-Za-z0-9_$])/g;
 
+// A true MINUS-SIGNED figure ("-5%", "loss of -$300"): the sign position (start of
+// text, after whitespace, or after an opening bracket) is where a hyphen can only
+// mean negation. Parsing it with FIGURE would silently validate "-5%" against a
+// cited positive 5 -- a sign-flipped claim passing the grader. Fail-closed instead:
+// signed quantities are surfaced as unparseable and must be rewritten with the
+// direction in words ("a decrease of 5%") backed by a claim. In-word hyphens and
+// ranges ("5-10 days", "top-5") are untouched -- their hyphen follows a word char.
+// The sign class covers the Unicode look-alikes too (minus sign U+2212, en/em dash,
+// hyphen variants, fullwidth/small hyphen-minus): "−5%" must not read as 5 (Codex
+// D6 R2 #3 -- same digit-script-bypass stance the non-ASCII digit check takes).
+const MINUS_FIGURE = /(?<=^|[\s([{])[-−–—‐‑﹣－]\$?\d[\d,]*(?:\.\d+)?[KMBkmb]?%?(?![A-Za-z0-9_$])/g;
+
 const MAGNITUDE: Record<string, number> = { k: 1e3, m: 1e6, b: 1e9 };
 
 // Non-ASCII decimal digits: any Unicode "decimal number" (\p{Nd}) that is NOT an
@@ -149,9 +161,16 @@ export function extractSourceableNumerals(text: string): ExtractedNumerals {
     unparseable.push(phrase);
   }
 
-  const masked = text
-    .replace(ISO_DATE, " ")
-    .replace(SCIENTIFIC, " ")
+  // Minus-signed figures: flagged unparseable (fail-closed -- a "-5%" parsed as 5
+  // would validate a sign-flipped claim), then masked so FIGURE cannot re-read the
+  // digits as a positive quantity. Runs after SCIENTIFIC so "-1e6" is already gone.
+  const preMasked = text.replace(ISO_DATE, " ").replace(SCIENTIFIC, " ");
+  for (const signed of preMasked.match(MINUS_FIGURE) ?? []) {
+    unparseable.push(signed);
+  }
+
+  const masked = preMasked
+    .replace(MINUS_FIGURE, " ")
     .replace(SLASH_RATIO, " ")
     .replace(ID_TOKEN, " ");
 
