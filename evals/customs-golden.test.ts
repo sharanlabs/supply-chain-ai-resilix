@@ -13,7 +13,7 @@ import { CUSTOMS_GOLDEN_CASES } from "@/evals/golden/customs/cases";
 import { findCell } from "@/lib/agents/customsdesk/edge-case-matrix";
 import { validateEntrySummary } from "@/lib/agents/customsdesk/catair";
 import { generateCase } from "@/lib/agents/customsdesk/synthetic-entries";
-import { runCustomsDefenseCase } from "@/lib/agents/customsdesk/pipeline-stub";
+import { runCustomsDefenseCase } from "@/lib/agents/customsdesk/pipeline";
 import { gradeCustomsCitationCoverage } from "@/lib/agents/customsdesk/packet-graders";
 
 const PIPELINE_LEG = process.env.RUN_CUSTOMS_GOLDEN === "true";
@@ -151,20 +151,32 @@ describe("citation-coverage grader (D0.5)", () => {
   });
 });
 
-describe.runIf(PIPELINE_LEG)("golden pipeline leg (RED until D1-D3; the D0 exit bar is runnable-red)", () => {
+describe.runIf(PIPELINE_LEG)("golden pipeline leg (was runnable-red at D0; green = D3 exit)", () => {
   for (const goldenCase of CUSTOMS_GOLDEN_CASES) {
     it(`${goldenCase.id} -- oracle ${goldenCase.oracle.disposition}`, () => {
       const cell = findCell(goldenCase.matrixCellId)!;
       const generated = generateCase(cell, goldenCase.seed);
-      const outcome = runCustomsDefenseCase(generated); // throws NOT_IMPLEMENTED today
+      const outcome = runCustomsDefenseCase(generated);
       expect(outcome.disposition).toBe(goldenCase.oracle.disposition);
       for (const gap of goldenCase.oracle.expectedGaps) {
         expect(outcome.namedGaps).toContain(gap);
       }
+      // ...and no gaps beyond the oracle's (exactness both ways).
+      expect([...outcome.namedGaps].sort()).toEqual([...goldenCase.oracle.expectedGaps].sort());
       for (const tripwire of goldenCase.oracle.mustNotContain ?? []) {
         expect(outcome.packetText).not.toContain(tripwire);
       }
-      expect(gradeCustomsCitationCoverage({ sections: [{ heading: "packet", text: outcome.packetText }], citedFigures: [] }).blocked).toBe(false);
+      // Injected exhibit bodies must never surface in the packet.
+      expect(outcome.packetText).not.toContain("IGNORE ALL PRIOR INSTRUCTIONS");
+      // SC1: the packet's prose numerals are fully covered by its OWN cited figures.
+      const grade = gradeCustomsCitationCoverage({
+        sections: outcome.packet.sections,
+        citedFigures: outcome.packet.citedFigures,
+      });
+      expect(grade.violations).toEqual([]);
+      // No outward artifact without approval: the packet is born pending review.
+      expect(outcome.packet.provenance.approvalState).toBe("PENDING_COUNSEL_REVIEW");
+      expect(outcome.packet.provenance.synthetic).toBe(true);
     });
   }
 });
