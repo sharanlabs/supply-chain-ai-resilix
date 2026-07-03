@@ -1,4 +1,32 @@
-# HANDOFF — resume pointer (updated 2026-07-02: D0 GATED → owner sanctioned FULL PROCEED D1–D5 + PUBLISH; D1 started)
+# HANDOFF — resume pointer (updated 2026-07-03: ENGINE COMPLETE D1–D4, golden 24/24 GREEN; NEXT = D5 surface + publish)
+
+> ## ▶ RESUME HERE — D5: THE DESKTOP SURFACE + PUBLISH (the last piece of the working prototype)
+>
+> **ENGINE DONE (2026-07-03, pushed `c8c9548`):** D1 deterministic core (policy-table/penalty-exposure/
+> deadline-clocks/entry-scoper — every figure primary-sourced: ICP-1592 F(2)+(f) verbatim, eCFR 162.78/171.2
+> point-in-time, EO-14411 as labeled directed_pending scenario w/ divergence+rollback tests) · D2 evidence
+> layer (exhibit-quarantine: bodies never cross; evidence-sufficiency predicates decide disposition in code) ·
+> D3 CustomsDefensePacket + refusal pipeline — **golden suite 24/24 GREEN** (`npm run customs:golden`),
+> produce-time citation check fails closed (it caught its own author's statutory digits — moved to structured
+> policyCitations) · D4 counsel-gate state machine (export only behind named approval) + deterministic Skeptic
+> (re-derives everything from raw inputs; catches tampered dispositions/figures/quarantine breaches). 20+34+7
+> customs tests green inside `npm test`; `verify` green throughout; existing product byte-untouched.
+> **Posture: personal/showcase project ([[resilix-personal-project-rightsize]]) — no gates ceremony, ONE Codex
+> pass at the end.**
+>
+> **▶ D5 (fresh session, teach-first): the defense-desk SURFACE + PUBLISH.**
+> 1. Desktop-web-ONLY route (e.g. `app/customs/`) — design bar: [[resilix-design-bar]] (white/no-green, steel
+>    accent, Geist, narrative-first, anti-cliché). Flow: pick a golden scenario → watch the pipeline stages
+>    (quarantine → sufficiency → figures → packet/refusal) → the packet with per-figure citation chips → the
+>    Skeptic verdict → the counsel approve/reject gate (exportPacket only after approval). Replay-first, $0,
+>    zero keys: everything calls the deterministic engine directly. "Synthetic data — demonstration" on the
+>    glass. Use `runCustomsDefenseCase(generateCase(findCell(id), seed))` + `skepticReview` + counsel-gate fns.
+> 2. Layman explainer doc (SC8) — the plain-English walkthrough already drafted in-chat 2026-07-02 (the
+>    "paranoid AI paralegal" framing) is the seed.
+> 3. **Publish:** push (continuous) + hosted demo — deploy story is the owner step (Vercel free tier fits;
+>    surface exact commands; [[resilix-public-ship-readiness]] residuals apply). README section for the
+>    customs desk.
+> 4. **ONE Codex review pass over the whole customsdesk increment** (D1–D5 batched, per the right-size memory).
 
 > **⚠ POSTURE RESET (owner, 2026-07-02, FINAL word — overrides the governance prose below):** "It is personal
 > project need not have to go so deep." → RESILIX is a PERSONAL/SHOWCASE project. The interview/kill-gate/
