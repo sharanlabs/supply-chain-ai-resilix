@@ -11,6 +11,9 @@
 > default `verify` chain; explainer+README fraud-tier qualification. Suites first-hand:
 > unit 853 green (12 new teeth tests), golden 34/34, verify:full 41/41.
 >
+> **Ship-report artifact (shareable one-pager, default-private):**
+> https://claude.ai/code/artifact/62bd813e-5f68-4748-9ad3-e169cb7cc97d
+>
 > **THE ONLY REMAINING STEP — owner deploy (Vercel free tier):**
 > `npx vercel` → `npx vercel env add ENABLE_CUSTOMS_DESK production` (value `true`) →
 > `npx vercel --prod`. Hosted-demo auth decision = owner ([[resilix-public-ship-readiness]]).
