@@ -1,5 +1,7 @@
 # RESILIX in plain English — the companion guide
 
+> **The standalone layman explainer for the Customs Defense Desk now lives at [`docs/CUSTOMS-DESK-EXPLAINER.md`](../CUSTOMS-DESK-EXPLAINER.md)** — that is the zero-background walkthrough of the customs product. This companion below remains the plain-English mirror of the wider RESILIX build-and-governance process.
+
 > **What this is.** A plain-language mirror of how this project is built and governed. It uses simple *words*, not simple *thinking* — the substance is the same as the technical docs (`PROCESS-CHARTER.md`, `PLAN.md`, `Success_Criteria.md`, `ALIGNMENT-AUDIT.md`), just readable by anyone. It is kept current as the work moves.
 >
 > **Last updated:** 2026-06-17 (Stage 0 — setting up the process + governance).
