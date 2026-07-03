@@ -1,5 +1,12 @@
 # HANDOFF — resume pointer (updated 2026-07-02: D0 GATED → owner sanctioned FULL PROCEED D1–D5 + PUBLISH; D1 started)
 
+> **⚠ POSTURE RESET (owner, 2026-07-02, FINAL word — overrides the governance prose below):** "It is personal
+> project need not have to go so deep." → RESILIX is a PERSONAL/SHOWCASE project. The interview/kill-gate/
+> legal-ceremony apparatus in this block and plan §9 is DROPPED (kept on paper only in case it ever turns
+> commercial). What binds now: **build the working prototype (resume ladder below, D1a→D5), make it sharp,
+> publish it (GitHub + hosted demo, "synthetic data — demo" on the glass), ONE Codex pass at the end.**
+> Memory: [[resilix-personal-project-rightsize]].
+>
 > ## ▶ RESUME HERE — BUILD THE WORKING PROTOTYPE (owner directive 2026-07-02: "build working prototype, do what it takes" + "publish as well")
 >
 > **THE SANCTION (recorded in plan §9, supersedes the earlier D1–D4-only choice):** FULL PROCEED-AT-RISK

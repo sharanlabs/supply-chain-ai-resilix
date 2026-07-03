@@ -358,7 +358,16 @@ no owner-approved exceptions needed.)*
   on the glass; interviews still run in parallel with PIVOT/KILL authority over the product DIRECTION (code
   written does not soften the verdict — the pre-D0 sunk-cost guard extends to everything). Recruitment
   time-box 2026-08-15 unchanged.
-- **Legal-review gate:** OPEN — blocks deployment, not prototyping.
+- **Interview gate RE-SCOPED (owner decision 2026-07-02, third revision — recorded):** validation moves
+  **DEMO-FIRST**. (a) A web real-voices evidence sweep (real practitioners speaking in public: forums, court
+  records, job postings, conference/podcast material — evidence for the PAIN leg, explicitly NOT for the
+  trust/willingness-to-pay leg) runs NOW → `RESEARCH-REAL-VOICES-2026-07-02.md`. (b) The human conversations
+  happen AFTER the prototype exists, WITH the demo in hand, merged into the mandatory §6.3 pre-pilot legal
+  check (the counsel conversation was never skippable). The 2026-08-15 alarm now reads: if by that date no
+  demo-in-hand conversation has happened, convene the owner decision. PIVOT/KILL authority over direction is
+  retained at that merged checkpoint.
+- **Legal-review gate:** OPEN — blocks deployment, not prototyping. Now ALSO carries the demo-in-hand
+  practitioner validation (see re-scope above).
 
 ## 10. Owner-action queue (surfaced, not performed by the agent)
 
