@@ -167,12 +167,78 @@ async function doorCatair() {
   };
 }
 
+// --- Door: CBP penalty ICPs (the deterministic calculator's PRIMARY sources) ---------
+async function doorIcp() {
+  const docs = [
+    {
+      name: "mitigation-guidelines-1592",
+      url: "https://www.cbp.gov/sites/default/files/assets/documents/2017-Nov/Mitigation%20Guidelines_12%20PENALTIES%20-%20Fraud%2C%20Gross%20Negligence%2C%20Negligence%20%281592%29.pdf",
+      note: "Mitigation Guidelines: Fraud, Gross Negligence, Negligence (19 USC 1592)",
+    },
+    {
+      name: "enforcement-process-icp",
+      url: "https://www.cbp.gov/sites/default/files/assets/documents/2020-Feb/ICP-Fines-Penalties-Forfeitures-Liq-Damages-2004-Final.pdf",
+      note: "ICP: Customs Administrative Enforcement Process (fines/penalties/forfeitures/LD)",
+    },
+  ];
+  const dir = path.join(CACHE_ROOT, "icp");
+  mkdirSync(dir, { recursive: true });
+  const files = [];
+  for (const doc of docs) {
+    const res = await fetch(doc.url, { headers: UA, cache: "no-store" });
+    if (!res.ok) throw new Error(`${res.status} for ${doc.url}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length < 50_000 || !buf.subarray(0, 5).toString().startsWith("%PDF")) {
+      throw new Error(`'${doc.name}' response is not the expected PDF (${buf.length} bytes)`);
+    }
+    const file = path.join(dir, `${DAY}-${doc.name}.pdf`);
+    writeFileSync(file, buf);
+    files.push(path.relative(process.cwd(), file));
+  }
+  return {
+    count: docs.length,
+    files,
+    source: docs.map((d) => d.url).join(" | "),
+    note: docs.map((d) => d.note).join(" ; "),
+  };
+}
+
+// --- Door: eCFR (the live regulations the deadline clocks cite) ----------------------
+async function doorEcfr() {
+  const sections = [
+    { part: "162", section: "162.78", note: "prepenalty response window (30 days)" },
+    { part: "171", section: "171.2", note: "petition windows (60 days penalties)" },
+    { part: "162", section: "162.74", note: "prior disclosure" },
+  ];
+  const dir = path.join(CACHE_ROOT, "ecfr");
+  mkdirSync(dir, { recursive: true });
+  const files = [];
+  for (const s of sections) {
+    const url = `https://www.ecfr.gov/api/versioner/v1/full/2026-07-01/title-19.xml?part=${s.part}&section=${s.section}`;
+    const res = await fetch(url, { headers: UA, cache: "no-store" });
+    if (!res.ok) throw new Error(`${res.status} for ${url}`);
+    const xml = await res.text();
+    if (!xml.includes(s.section)) throw new Error(`eCFR response missing section ${s.section}`);
+    const file = path.join(dir, `${DAY}-19cfr-${s.section}.xml`);
+    writeFileSync(file, xml);
+    files.push(path.relative(process.cwd(), file));
+  }
+  return {
+    count: sections.length,
+    files,
+    source: "https://www.ecfr.gov/api/versioner/v1/ (title 19, point-in-time 2026-07-01)",
+    note: sections.map((s) => `${s.section}: ${s.note}`).join(" ; "),
+  };
+}
+
 const DOORS = {
   fr: doorFr,
   opensanctions: doorOpensanctions,
   hts: doorHts,
   courtlistener: doorCourtlistener,
   catair: doorCatair,
+  icp: doorIcp,
+  ecfr: doorEcfr,
 };
 
 async function main() {

@@ -54,6 +54,29 @@
       ],
       "source": "https://www.cbp.gov/sites/default/files/2025-10/ace_catair_entry_summary_create-update_ae-ax_2025-09-09_rev_108_508.pdf",
       "note": "ACE CATAIR Entry Summary Create/Update Rev 108 (2025-09-09) -- primary schema source"
+    },
+    "icp": {
+      "status": "ok",
+      "asOf": "2026-07-03T01:07:37.043Z",
+      "count": 2,
+      "files": [
+        "data/customs/cache/icp/2026-07-03-mitigation-guidelines-1592.pdf",
+        "data/customs/cache/icp/2026-07-03-enforcement-process-icp.pdf"
+      ],
+      "source": "https://www.cbp.gov/sites/default/files/assets/documents/2017-Nov/Mitigation%20Guidelines_12%20PENALTIES%20-%20Fraud%2C%20Gross%20Negligence%2C%20Negligence%20%281592%29.pdf | https://www.cbp.gov/sites/default/files/assets/documents/2020-Feb/ICP-Fines-Penalties-Forfeitures-Liq-Damages-2004-Final.pdf",
+      "note": "Mitigation Guidelines: Fraud, Gross Negligence, Negligence (19 USC 1592) ; ICP: Customs Administrative Enforcement Process (fines/penalties/forfeitures/LD)"
+    },
+    "ecfr": {
+      "status": "ok",
+      "asOf": "2026-07-03T01:16:21.461Z",
+      "count": 3,
+      "files": [
+        "data/customs/cache/ecfr/2026-07-03-19cfr-162.78.xml",
+        "data/customs/cache/ecfr/2026-07-03-19cfr-171.2.xml",
+        "data/customs/cache/ecfr/2026-07-03-19cfr-162.74.xml"
+      ],
+      "source": "https://www.ecfr.gov/api/versioner/v1/ (title 19, point-in-time 2026-07-01)",
+      "note": "162.78: prepenalty response window (30 days) ; 171.2: petition windows (60 days penalties) ; 162.74: prior disclosure"
     }
   }
 }
