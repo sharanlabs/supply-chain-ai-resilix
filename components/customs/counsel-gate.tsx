@@ -8,7 +8,7 @@ import {
   approve,
   reject,
   exportPacket,
-  type ReviewablePacket,
+  type ReviewablePacket
 } from "@/lib/agents/customsdesk/counsel-gate";
 import type { CustomsDefensePacket } from "@/lib/agents/customsdesk/defense-packet";
 
@@ -21,7 +21,7 @@ import type { CustomsDefensePacket } from "@/lib/agents/customsdesk/defense-pack
 const STATE_LABEL: Record<string, string> = {
   PENDING_COUNSEL_REVIEW: "Pending counsel review",
   APPROVED_FOR_EXPORT: "Approved for export",
-  REJECTED: "Rejected",
+  REJECTED: "Rejected"
 };
 
 function today(): string {
@@ -110,7 +110,10 @@ export function CounselGate({ packet }: { packet: CustomsDefensePacket }) {
       <div className="border-t-2 border-accent" />
       <div className="p-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 id="gate-h" className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase">
+          <h2
+            id="gate-h"
+            className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase"
+          >
             Counsel gate
           </h2>
           <span
@@ -128,8 +131,8 @@ export function CounselGate({ packet }: { packet: CustomsDefensePacket }) {
         </div>
 
         <p className="mt-3 text-[0.8125rem] leading-relaxed text-ink-muted">
-          This packet is a draft until a named reviewer approves it. Approval is the only path to an exportable
-          artifact — there is no bypass parameter.
+          This packet is a draft until a named reviewer approves it. Approval is the only path to an
+          exportable artifact — there is no bypass parameter.
         </p>
 
         {pending ? (
@@ -145,7 +148,10 @@ export function CounselGate({ packet }: { packet: CustomsDefensePacket }) {
                 onChange={(e) => setReviewer(e.target.value)}
                 placeholder="e.g. J. Okafor, trade counsel"
                 autoComplete="off"
-                className="h-10 w-full rounded-lg border border-line-strong bg-surface px-3 text-sm text-ink shadow-[var(--shadow-e1)] placeholder:text-ink-faint"
+                // border-runway-edge: the sanctioned hue-independent boundary token
+                // (>=3:1 vs every surface). The field is white-on-white, so its
+                // border IS the component boundary (SC 1.4.11 non-text contrast).
+                className="h-10 w-full rounded-lg border border-runway-edge bg-surface px-3 text-sm text-ink shadow-[var(--shadow-e1)] placeholder:text-ink-faint"
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -158,7 +164,8 @@ export function CounselGate({ packet }: { packet: CustomsDefensePacket }) {
                 onChange={(e) => setNote(e.target.value)}
                 rows={2}
                 placeholder="Required to reject; optional as an approval note."
-                className="w-full resize-none rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink shadow-[var(--shadow-e1)] placeholder:text-ink-faint"
+                // Same SC 1.4.11 boundary token as the reviewer input.
+                className="w-full resize-none rounded-lg border border-runway-edge bg-surface px-3 py-2 text-sm text-ink shadow-[var(--shadow-e1)] placeholder:text-ink-faint"
               />
             </div>
 
@@ -173,11 +180,18 @@ export function CounselGate({ packet }: { packet: CustomsDefensePacket }) {
                 <Check className="size-4" aria-hidden="true" />
                 Approve for export
               </Button>
-              <Button variant="secondary" onClick={onReject} disabled={!nameOk || !reasonOk} className="w-full">
+              <Button
+                variant="secondary"
+                onClick={onReject}
+                disabled={!nameOk || !reasonOk}
+                className="w-full"
+              >
                 Reject — record a reason
               </Button>
               {!nameOk ? (
-                <p className="text-center text-[0.6875rem] text-ink-faint">A named reviewer is required to decide.</p>
+                <p className="text-center text-[0.6875rem] text-ink-faint">
+                  A named reviewer is required to decide.
+                </p>
               ) : !reasonOk ? (
                 <p className="text-center text-[0.6875rem] text-ink-faint">
                   Approve is ready. A reason is required to reject.
@@ -195,12 +209,18 @@ export function CounselGate({ packet }: { packet: CustomsDefensePacket }) {
               <span className="font-mono">{reviewable.approval.approvedOn}</span>.
             </p>
             {reviewable.approval.note ? (
-              <p className="mt-1 text-[0.8125rem] text-ink-muted">Note: {reviewable.approval.note}</p>
+              <p className="mt-1 text-[0.8125rem] text-ink-muted">
+                Note: {reviewable.approval.note}
+              </p>
             ) : null}
 
             <div className="mt-3 flex gap-2">
               <Button variant="secondary" size="sm" onClick={onCopy}>
-                {copied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
+                {copied ? (
+                  <Check className="size-4" aria-hidden="true" />
+                ) : (
+                  <Copy className="size-4" aria-hidden="true" />
+                )}
                 {copied ? "Copied" : "Copy"}
               </Button>
               <Button variant="secondary" size="sm" onClick={onDownload}>
@@ -209,7 +229,12 @@ export function CounselGate({ packet }: { packet: CustomsDefensePacket }) {
               </Button>
             </div>
 
+            {/* tabIndex + region role: the packet text overflows max-h-80, making
+                this a scrollable region -- it must be keyboard-focusable (WCAG
+                2.1.1 / axe scrollable-region-focusable) and carry a name. */}
             <pre
+              role="region"
+              tabIndex={0}
               aria-label="Exported defense packet text"
               className="panel-sunken mt-3 max-h-80 overflow-auto rounded-md p-3 font-mono text-[0.75rem] leading-relaxed whitespace-pre-wrap text-ink"
             >
@@ -231,7 +256,9 @@ export function CounselGate({ packet }: { packet: CustomsDefensePacket }) {
               Rejected by <span className="font-medium">{reviewable.approval.reviewer}</span> on{" "}
               <span className="font-mono">{reviewable.approval.rejectedOn}</span>.
             </p>
-            <p className="mt-1 text-[0.8125rem] text-ink-muted">Reason: {reviewable.approval.reason}</p>
+            <p className="mt-1 text-[0.8125rem] text-ink-muted">
+              Reason: {reviewable.approval.reason}
+            </p>
             <div className="mt-3 flex items-center gap-2 rounded-md border border-line bg-sink px-3 py-2 text-[0.75rem] text-ink-muted">
               <Lock className="size-3.5 shrink-0 text-ink-faint" aria-hidden="true" />
               No artifact is produced — export stays blocked in the rejected state.

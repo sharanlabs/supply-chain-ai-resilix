@@ -8,7 +8,10 @@ import { customsDeskEnabled } from "@/lib/server/env-flags";
 import { CUSTOMS_GOLDEN_CASES } from "@/evals/golden/customs/cases";
 import { MATRIX_CELLS, findCell } from "@/lib/agents/customsdesk/edge-case-matrix";
 import { generateCase } from "@/lib/agents/customsdesk/synthetic-entries";
-import { runCustomsDefenseCase, type CustomsDefenseOutcome } from "@/lib/agents/customsdesk/pipeline";
+import {
+  runCustomsDefenseCase,
+  type CustomsDefenseOutcome
+} from "@/lib/agents/customsdesk/pipeline";
 import { skepticReview } from "@/lib/agents/customsdesk/skeptic-check";
 
 import { SyntheticChip, LabelClassBadge, MatrixCellDims } from "@/components/customs/parts";
@@ -23,7 +26,7 @@ import { CounselGate } from "@/components/customs/counsel-gate";
 export const metadata: Metadata = {
   title: "Customs Defense Desk — RESILIX",
   description:
-    "Deterministic, replay-first demonstration of the customs enforcement-defense engine. Synthetic data; zero API keys.",
+    "Deterministic, replay-first demonstration of the customs enforcement-defense engine. Synthetic data; zero API keys."
 };
 
 // D5.2 -- the full `/customs` desktop surface.
@@ -62,8 +65,8 @@ function CustomsMasthead() {
 function DisclaimerLine() {
   return (
     <p className="mt-4 text-[0.8125rem] leading-relaxed text-ink-faint">
-      Synthetic data — demonstration. Every figure derives from the frozen engine over synthetic entries valid against
-      the real CATAIR layout; no live services, no model calls, zero API keys.
+      Synthetic data — demonstration. Every figure derives from the frozen engine over synthetic
+      entries valid against the real CATAIR layout; no live services, no model calls, zero API keys.
     </p>
   );
 }
@@ -79,9 +82,10 @@ function PickerLanding() {
           Pick a case. Watch the engine show its work, then hold or file it.
         </h1>
         <p className="mt-3 max-w-[60ch] text-[0.9375rem] leading-relaxed text-ink-muted">
-          Each scenario runs the same deterministic spine: quarantine every exhibit, decide the disposition in code,
-          bind every figure to a tool return, then produce a filing-grade packet — or refuse and name the gaps. The
-          Skeptic re-derives it independently, and nothing exports without a named counsel approval.
+          Each scenario runs the same deterministic spine: quarantine every exhibit, decide the
+          disposition in code, bind every figure to a tool return, then produce a filing-grade
+          packet — or refuse and name the gaps. The Skeptic re-derives it independently, and nothing
+          exports without a named counsel approval.
         </p>
         <p className="tnum mt-5 font-mono text-[0.8125rem] font-medium text-accent-strong">
           {CUSTOMS_GOLDEN_CASES.length} replay cases · {MATRIX_CELLS.length} matrix cells
@@ -95,18 +99,24 @@ function PickerLanding() {
 
 function EmptyState({ requested }: { requested: string }) {
   return (
-    <section className="reveal panel rounded-(--radius-card) p-8" style={{ "--d": 40 } as React.CSSProperties}>
+    <section
+      className="reveal panel rounded-(--radius-card) p-8"
+      style={{ "--d": 40 } as React.CSSProperties}
+    >
       <div className="flex items-start gap-3">
         <SearchX className="mt-0.5 size-5 shrink-0 text-ink-faint" aria-hidden="true" />
         <div>
           <h1 className="text-[1.125rem] font-semibold text-ink">No case matches that link</h1>
           <p className="mt-2 max-w-[60ch] text-[0.875rem] leading-relaxed text-ink-muted">
             No golden case is registered under{" "}
-            <span className="font-mono text-ink">{requested}</span>. It may be mistyped or from an older link.
+            <span className="font-mono text-ink">{requested}</span>. It may be mistyped or from an
+            older link.
           </p>
+          {/* min-h-6: SC 2.5.8 target size -- a bare text-line link measures under
+              24px tall; the 1.5rem floor keeps the target compliant. */}
           <Link
             href="/customs"
-            className="mt-4 inline-flex items-center gap-1.5 text-[0.875rem] font-medium text-accent-strong hover:underline"
+            className="mt-4 inline-flex min-h-6 items-center gap-1.5 text-[0.875rem] font-medium text-accent-strong hover:underline"
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
             Back to all cases
@@ -119,10 +129,11 @@ function EmptyState({ requested }: { requested: string }) {
 }
 
 function BackLink() {
+  // min-h-6: SC 2.5.8 target size (same 24px floor as the empty-state back link).
   return (
     <Link
       href="/customs"
-      className="mb-5 inline-flex items-center gap-1.5 text-[0.8125rem] font-medium text-ink-muted hover:text-accent-strong"
+      className="mb-5 inline-flex min-h-6 items-center gap-1.5 text-[0.8125rem] font-medium text-ink-muted hover:text-accent-strong"
     >
       <ArrowLeft className="size-4" aria-hidden="true" />
       All cases
@@ -132,8 +143,13 @@ function BackLink() {
 
 function TerminalRailNote({ kind }: { kind: "refuse" | "guard" }) {
   return (
-    <section className="reveal panel rounded-(--radius-card) p-5" style={{ "--d": 440 } as React.CSSProperties}>
-      <h2 className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase">Counsel gate</h2>
+    <section
+      className="reveal panel rounded-(--radius-card) p-5"
+      style={{ "--d": 440 } as React.CSSProperties}
+    >
+      <h2 className="text-[0.6875rem] font-semibold tracking-[0.08em] text-ink-faint uppercase">
+        Counsel gate
+      </h2>
       <p className="mt-3 text-[0.8125rem] leading-relaxed text-ink-muted">
         {kind === "refuse"
           ? "Nothing to export. The engine withheld the disclosure, so no filing-grade packet exists to approve — the gate is only reached when there is an artifact to release."
@@ -144,7 +160,7 @@ function TerminalRailNote({ kind }: { kind: "refuse" | "guard" }) {
 }
 
 export default async function CustomsDeskPage({
-  searchParams,
+  searchParams
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
@@ -181,7 +197,7 @@ export default async function CustomsDeskPage({
 // frozen engine for the selected case and lays out the war room.
 function CaseView({
   case: selected,
-  cell,
+  cell
 }: {
   case: (typeof CUSTOMS_GOLDEN_CASES)[number];
   cell: NonNullable<ReturnType<typeof findCell>>;
@@ -205,7 +221,9 @@ function CaseView({
 
       <header className="reveal mb-6" style={{ "--d": 40 } as React.CSSProperties}>
         <div className="flex flex-wrap items-center gap-2.5">
-          <span className="font-mono text-[0.8125rem] font-medium text-ink-muted">{selected.id}</span>
+          <span className="font-mono text-[0.8125rem] font-medium text-ink-muted">
+            {selected.id}
+          </span>
           <LabelClassBadge labelClass={selected.labelClass} />
         </div>
         <h1 className="mt-3 max-w-[48rem] text-[1.5rem] leading-snug font-semibold tracking-[-0.01em] text-ink">
@@ -218,7 +236,8 @@ function CaseView({
             <span className="font-mono">
               {selected.patternSource.court} {selected.patternSource.docket}
             </span>{" "}
-            (courtlistener, fetched {selected.patternSource.fetchedAsOf}). Realism attribution, not an outcome claim.
+            (courtlistener, fetched {selected.patternSource.fetchedAsOf}). Realism attribution, not
+            an outcome claim.
           </p>
         ) : null}
         <MatrixCellDims cell={cell} />
