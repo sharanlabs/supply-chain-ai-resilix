@@ -1,6 +1,26 @@
-# HANDOFF — resume pointer (updated 2026-07-03: ENGINE COMPLETE D1–D4, golden 24/24 GREEN; NEXT = D5 surface + publish)
+# HANDOFF — resume pointer (updated 2026-07-03 late: D5 COMPLETE — surface + a11y/e2e + explainer + README shipped; NEXT = owner deploy + D6 Codex pass)
 
-> ## ▶ RESUME HERE — D5: THE DESKTOP SURFACE + PUBLISH (the last piece of the working prototype)
+> ## ▶ RESUME HERE — D5 COMPLETE (2026-07-03, second session). PROTOTYPE IS DONE END-TO-END.
+>
+> **D5 shipped this session** (orchestration: Fable final-judge, Opus builders per owner routing decision):
+> `eb245a7` D5.1 flag (`ENABLE_CUSTOMS_DESK`, default OFF, byte-identical deploy) + `/customs` scaffold ·
+> `3e238ab` D5.2 the defense-desk surface (24-case picker → 4-stage pipeline walk → packet w/ figure-provenance
+> ledger OR refusal w/ named gaps → Skeptic verdict → counsel gate as a client island on the REAL pure state
+> machine; desktop-only, design-bar-true, synthetic disclaimer on every state) · `a6f394b` D5.3
+> `evals/e2e/customs.spec.ts` (20 tests, WCAG 2.2 AA at the a11y.spec.ts bar; **verify:full GREEN 41/41
+> first-hand**) · `4d50517` D5.4 `docs/CUSTOMS-DESK-EXPLAINER.md` (SC8 fresh-eyes behavioral read-back PASSED,
+> reader-flagged gaps fixed) · D5.5 README module section + push.
+>
+> **REMAINING (only two things):**
+> 1. **Owner deploy** (D5.5 owner step): Vercel free tier — `npx vercel` in the repo, set env
+>    `ENABLE_CUSTOMS_DESK=true` in the Vercel project (Production), deploy. Public-ship residuals
+>    ([[resilix-public-ship-readiness]]): hosted-demo auth decision is the owner's.
+> 2. **D6 — the ONE batched Codex pass** over the whole customsdesk increment D1–D5 (per
+>    [[resilix-personal-project-rightsize]]); dispose findings primary-model-final; final push.
+>
+> ----- prior top block (2026-07-03 morning, engine-complete) below -----
+
+> ## ▶ (superseded) D5: THE DESKTOP SURFACE + PUBLISH (the last piece of the working prototype)
 >
 > **ENGINE DONE (2026-07-03, pushed `c8c9548`):** D1 deterministic core (policy-table/penalty-exposure/
 > deadline-clocks/entry-scoper — every figure primary-sourced: ICP-1592 F(2)+(f) verbatim, eCFR 162.78/171.2

@@ -2,6 +2,15 @@
 
 **Crisis-to-action disruption response for supply-chain teams.** One live disruption signal plus your supplier list becomes an **evidence-cited, human-approved action packet** — a classified threat, which of *your* suppliers are exposed, a runway/revenue-at-risk simulation, role playbooks, and drafted supplier emails where **every number traces to a source**.
 
+## The Customs Defense Desk (`/customs`) — the newest module
+
+A second surface on the same trust spine: a **customs enforcement-defense copilot** for the moment an importer discovers a filing error and has to decide whether to tell CBP first (a **prior disclosure**, 19 CFR 162.74 — the penalty collapses to roughly interest, but only before an investigation opens). The engine quarantines every evidence document (bodies never reach the reasoning — injection-proof by construction), decides the file-or-refuse call **in code**, computes bounded penalty exposure with **every figure bound to a deterministic tool return and a primary-source citation** (19 USC 1592 · CBP ICP penalty guidelines · eCFR, point-in-time), then assembles a filing-grade packet — **or refuses and names the gaps**. A deterministic Skeptic re-derives everything independently, and export literally throws until a **named counsel approval** lands.
+
+- **Run it:** `ENABLE_CUSTOMS_DESK=true npm run dev` → `http://localhost:3000/customs`. Pick one of 24 replay cases (sound / under-evidenced / adversarial) and watch the four stages, the packet or refusal, the Skeptic verdict, and the counsel gate. **$0, zero API keys, fully deterministic** — same case, same result, every time.
+- **The demo's proudest states are the refusals and the attacks:** under-evidenced cases produce "do not disclose yet" with the missing records named; adversarial cases carry a prompt-injection payload inside an exhibit — the quarantine flags it for audit and the disposition doesn't move.
+- **Plain-English walkthrough:** [docs/CUSTOMS-DESK-EXPLAINER.md](docs/CUSTOMS-DESK-EXPLAINER.md) — the "paranoid paralegal" story, no customs or AI background needed.
+- **Synthetic data — demonstration.** Every case is made up; it says so on every screen. Not legal advice. The flag is **off by default**, so a deploy without it is byte-identical to the ActionOps product below.
+
 ## Why this exists — and how it's different (2026)
 
 Mid-market procurement teams in 2026 don't lack alerts. They lack **operationalization**: turning a disruption into a response. Enterprise risk platforms (Resilinc, Everstream, Interos, Exiger, project44) integrate that loop — at enterprise prices and enterprise onboarding. Below them, the de-facto tool in hour zero is *pasting your supplier list into ChatGPT* — which always answers, never corroborates, does unverifiable math, leaves no audit trail, and **cannot refuse**.
