@@ -1,6 +1,31 @@
-# HANDOFF — resume pointer (updated 2026-07-03 late: D5+D6 COMPLETE — prototype done, Codex gate APPROVED; ONLY REMAINING = owner deploy)
+# HANDOFF — resume pointer (updated 2026-07-06 mid-run: showcase expansion REVISED — legibility-first ladder, deploy last, design in scope)
 
-> ## ▶ RESUME HERE — INCREMENT COMPLETE (2026-07-03). D6 Codex gate CLOSED CLEAN (R6 APPROVED).
+> ## ▶ RESUME HERE — SHOWCASE EXPANSION EXECUTING (2026-07-06). Goal fixed + owner-approved (revised); autopilot running the ladder.
+>
+> **Owner directive (2026-07-06, via `/claude-os` rerun):** RESILIX is the ASSET; make it a full-spectrum
+> applied-AI showcase **a 90-second reviewer can read** — "bigger without artificial bloat"; every capability
+> needs a named in-product consumer. Synthesis of project-advisor (toolset/sequence) + blindspot-scout
+> (unknowns: the deficit is LEGIBILITY, not depth — packaging debt, no rework); Fable final call.
+> **Plan: `PLAN-SHOWCASE-2026-07-06.md`** (this dir) — per-increment SC/AT, risks, working set.
+>
+> **Owner decisions locked:** ONE flagship (ActionOps; customs desk = module) · build-process trail = NAMED
+> "How this was built" exhibit · public demo REPLAY-only/$0/fail-closed · **deploy VERY LAST** (owner, after
+> the final gate) · **design build IN SCOPE** (Fable's judgment vs [[resilix-design-bar]] + `samples/2026/`,
+> rationale recorded, owner reviews after; NO billable re-capture — fixture stays honest deterministically).
+> **Loop/Skeptic live promotion is NOT on this ladder** — owner-gated later; the 2026-06-28 "not yet" STANDS.
+>
+> **Ladder:** state-doc reconcile → S2 legibility front door (reviewer-first README + walkthrough script +
+> root curation) → S-D design build → S3 read-only MCP server (verify transport reality first; dedicated
+> Codex pass) → S4 customs RAG (lexical-first, citation-bar-gated, skip-with-reason allowed) → S6 n8n
+> outbound (seam + reconcile hook + workflow JSON) → final batched Codex pass → push → **S1 owner deploy**
+> (commands in the plan).
+>
+> **Owner queue (closing, not blocking):** S1 deploy after the final gate · review the S-D design rationale ·
+> record the 2-min walkthrough (script from S2) · later: loop/Skeptic promotion + the ONE billable re-capture.
+>
+> ----- prior top block (D5+D6 complete, pre-showcase-goal) below -----
+
+> ## ▶ (superseded) INCREMENT COMPLETE (2026-07-03). D6 Codex gate CLOSED CLEAN (R6 APPROVED).
 >
 > **D6 (the ONE batched cross-model pass, per the right-size memory) ran and closed:** 6 rounds,
 > 10 findings (5 HIGH / 4 MED / 1 mechanical), ALL disposed primary-model-final — record:

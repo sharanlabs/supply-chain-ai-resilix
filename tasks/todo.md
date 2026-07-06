@@ -3,7 +3,43 @@
 ## Idea (2026-06-11 21:20)
 > RESILIX ActionOps — crisis-to-action war room: live disruption signal + supplier CSV → evidence-cited, human-approved action packet in under 5 minutes
 
-## ⚠️ SUPERSEDING POINTER (2026-07-02) — RESEARCH REOPENED + REFRAMED: find the real high-value industry problem
+## ⚠️ SUPERSEDING POINTER (2026-07-06, REVISED same day) — NEW FIXED GOAL: showcase expansion, "bigger without artificial bloat"
+
+Owner directive 2026-07-06 (via `/claude-os` rerun: project-advisor pass + blindspot-scout unknowns pass,
+synthesized + final-called by Fable; owner locked 3 decisions + 2 mid-run revisions): RESILIX (ActionOps +
+Customs Defense Desk, both complete + gated) is the ASSET; make it a **full-spectrum applied-AI showcase a
+90-second reviewer can read** — every capability must have a **named in-product consumer** (native, never a
+bolted-on tool demo). Owner decisions: ONE flagship (customs = module) · build-process trail = NAMED exhibit ·
+public demo REPLAY-only/$0/fail-closed · **deploy VERY LAST** · **design build IN SCOPE (Fable's judgment,
+rationale recorded, owner reviews after)**. Loop/Skeptic live promotion NOT on this ladder (owner-gated later;
+the 2026-06-28 "not yet" STANDS). Plan (fixed, owner-approved): `docs/claude/PLAN-SHOWCASE-2026-07-06.md`.
+Methodology: right-sized (spec → build → verify → acceptance-gate → commit/push); Codex = ONE batched pass at
+the END + a dedicated pass for S3 (safety-critical MCP surface). Verify-over-memory for every new dependency.
+
+- [ ] **S2 — Legibility front door (FIRST BUILD):** reviewer-first README (one flagship → trust spine → real
+  verified eval numbers → 60-second run path → "How this was built" exhibit → honest limitations) + 2-min
+  walkthrough script + root curation (do-no-harm) + `CLAUDE.md`→`AGENTS.md` pointer. Every number verified on HEAD.
+- [ ] **S-D — Design build:** strongest direction/synthesis from `samples/2026/` built into the shipped app at
+  [[resilix-design-bar]]; pick + WHY recorded in plan § Design decision (owner reviews after, not before);
+  frozen fixture stays honest WITHOUT a billable re-capture; verify:full + WCAG 2.2 AA + oracles byte-unchanged.
+- [ ] **S3 — MCP server over the war room:** read-only packet/exposure/audit tools, token-authed, NO authority
+  tools ever; red-team extended to the MCP surface; auth/consent/audit story documented; FIRST verify the
+  Next-compatible MCP transport against installed packages + official SDK docs (no MCP dep exists yet);
+  dedicated Codex pass.
+- [ ] **S4 — Customs RAG (lexical-first):** cited-chunk retrieval feeding the existing fail-closed citation
+  check (HARD BAR; skip-with-reason allowed); retrieval golden suite (recall@k) BEFORE any consumer;
+  pg-full-text/BM25 first, embeddings only if proven insufficient; customs golden 34/34 untouched.
+- [ ] **S6 — n8n outbound channel (LAST build, right-sized):** `ERP_CASE` webhook post-approval through the
+  existing typed seam + wire `reconcileStrandedDispatches` startup hook (recorded obligation) + committed
+  workflow-export JSON; running n8n instance = optional owner infra, not a repo deliverable.
+- [ ] **Final gate:** ONE batched Codex cross-model pass over the whole ladder → push.
+- [ ] **S1 — Deploy (VERY LAST, OWNER ~10 min):** `npx vercel` → env `ENABLE_CUSTOMS_DESK=true` +
+  `REQUIRE_APPROVAL_TOKEN=true` (Production) → `npx vercel --prod` → post-deploy smoke (mutations 401,
+  keyless = no live calls, disclosure visible).
+- Deferred/owner-gated (tracked, NOT lost): loop+Skeptic promotion · billable homepage re-capture ·
+  walkthrough recording (script from S2).
+
+## ⚠️ SUPERSEDED (2026-07-02) — research reframe → customs-defense goal (COMPLETE: prototype built, gated, pushed; only owner deploy remained → folded into S1 above)
 
 Owner directive 2026-07-02 (via `/claude-os`, plan-mode approved): supersede the mid-market-procurement wedge as the
 anchor. New frame: **US supply-chain/logistics industry problem at the Amazon/Apple/FedEx/Grubhub-class tier,
