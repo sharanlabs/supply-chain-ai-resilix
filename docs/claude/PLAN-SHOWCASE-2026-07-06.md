@@ -445,6 +445,33 @@ Reality check before building (the plan's own "if it can't be met, STOP and reco
   build): a **customs-desk evidence-lookup** panel + a **read-only MCP tool** (`query_customs_policy`,
   extends the S3 surface). Customs golden 34/34 untouched (additive).
 
+**S6 BUILD NOTES (2026-07-09, Fable) — mostly-already-built; the delta is the boot wiring.**
+Discovered on inspection: the n8n TRANSPORT adapter, HMAC/header auth, synthetic-providerRef leak
+fix, and the AT tests were ALREADY built + Codex-gated + live-smoke-confirmed in the Phase-5 era
+(the opening HANDOFF). The genuine S6 deltas, all built this session: (1) **wired
+`reconcileStrandedDispatches` to the boot path** — new `reconcileAllStrandedDispatches` sweep
+(action-executor.ts, enumerates persisted packets, best-effort, never throws into boot, inert under
+in-memory/no-transport) + `instrumentation.ts` (Next.js `register()`, nodejs-only, DISABLE_BOOT_
+RECONCILE opt-out) — closes the recorded 2026-06-27 forward-guardrail obligation; **the moat holds
+at boot: the sweep re-drives only REVERSIBLE actions, so it can NEVER auto-fire ERP_CASE/n8n**
+(pinned by a new test). (2) **committed the ERP_CASE workflow export**
+(`workflows/resilix_erp_case_workflow.json`) — importable n8n workflow guarding on the EXACT
+transport payload fields (actionType + idempotencyKey), upsert-on-key placeholder for the operator's
+real ERP node; +3 structural tests that the export stays valid + coupled to the transport +
+taxonomy. (3) README governed-outbound section + workflows/README refresh. AT status (HONESTLY amended after the S6 gate caught two overclaims): no-dispatch-without-APPROVED
+(action-executor.test.ts NOT_APPROVED) + crash-recovery-REVERSIBLE-only (action-executor.test.ts +
+the new boot-sweep MOAT test) + the outbound transport's **header-credential auth** — NOT HMAC; n8n's
+webhook trigger has no HMAC scheme, so the plan's original "HMAC" AT is a mislabel, corrected here to
+"operator header auth per n8n's credential model" (n8n-transport.test.ts). The "n8n absent from
+approval path" AT is scoped precisely: the OUTBOUND n8n transport is delivery-only (no approve/execute
+capability — pinned by the new structural test) and no APPROVED-producing action routes to N8N; a
+SEPARATE **legacy inbound** approval-callback route (app/api/n8n/approval-callback) DOES exist from the
+predecessor — hardened, fail-closed in secure mode, do-not-extend (AGENTS.md, out of the ActionOps core
+loop), disclosed on the README, and a candidate for removal in a production hardening pass. The new
+boot-sweep + workflow + outbound-no-authority tests are additive. ERP_CASE remains classified-but-not-derived
+(no ERP integration in the MVP — structural, recorded since Phase 5); the workflow + transport prove
+the governed path end-to-end without a fabricated derivation.
+
 ## Deferred / owner-gated (NOT on this ladder, tracked so nothing is lost)
 - **Loop + Skeptic live promotion** (`ENABLE_AGENT_LOOP` default-on + Skeptic UI dramatization): blocked on
   billable (G) live gate ×3, the Skeptic geo-caution wart fix, the re-capture coupling, and the owner's

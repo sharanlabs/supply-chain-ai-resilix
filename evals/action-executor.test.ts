@@ -12,8 +12,10 @@ import {
   dispatchGovernableAction,
   executeApprovedPacketActions,
   getExecutedActionStore,
-  reconcileStrandedDispatches
+  reconcileStrandedDispatches,
+  reconcileAllStrandedDispatches
 } from "@/lib/server/action-executor";
+import type { DecisionPacket } from "@/lib/schemas";
 import { FakeTransport } from "@/evals/_helpers/fake-transport";
 
 // ---------------------------------------------------------------------------
@@ -539,5 +541,95 @@ describe("first-attempt moat -- the auto-dispatch primitive refuses outward acti
     expect(
       await store.getActionByIdempotencyKey(outward.idempotencyKey)
     ).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// S6 -- the STARTUP reconcile sweep (reconcileAllStrandedDispatches), the recorded
+// 2026-06-27 forward-guardrail wired to instrumentation.ts. Enumerates persisted
+// packets and reconciles each; the governance moat holds, and it is fail-safe.
+// ---------------------------------------------------------------------------
+describe("S6 startup sweep -- reconcileAllStrandedDispatches (boot guardrail)", () => {
+  it("recovers a stranded REVERSIBLE dispatch across the whole packet set", async () => {
+    const approved = approvedClone();
+    const action = findReversibleAction(approved);
+    const store = getExecutedActionStore();
+    await store.reserveAction({ action, requestedAt: STRAND_AT, auditDetail: "crash strand" });
+
+    const fake = new FakeTransport();
+    // Inject the packet list (the sweep would otherwise read the persisted store);
+    // reconcile with leaseMs:0 so the strand is eligible immediately.
+    const summary = await reconcileAllStrandedDispatches({
+      listPackets: async () => [approved as unknown as DecisionPacket],
+      reconcile: (input) =>
+        reconcileStrandedDispatches({ ...input, deps: { registry: { INTERNAL: fake } }, options: { leaseMs: 0 } })
+    });
+
+    expect(summary.packetsScanned).toBe(1);
+    expect(summary.reExecuted).toBe(1);
+    expect(summary.reFailed).toBe(0);
+    expect(fake.callCount).toBe(1);
+    const stored = await store.getActionByIdempotencyKey(action.idempotencyKey);
+    expect(stored?.status).toBe("EXECUTED");
+  });
+
+  it("THE MOAT at boot: the startup sweep NEVER auto-fires an outward/IRREVERSIBLE action", async () => {
+    const approved = approvedClone();
+    const outward = findOutwardAction(approved); // SUPPLIER_EMAIL_SEND -> EMAIL, IRREVERSIBLE
+    const store = getExecutedActionStore();
+    await store.reserveAction({ action: outward, requestedAt: STRAND_AT, auditDetail: "anomalous outward strand" });
+
+    // Wire the transport for the outward action's OWN channel, so channel-routing is NOT
+    // what stops it -- the reversibility guard is the sole gate under test. (Disabling that
+    // guard would make this EMAIL transport fire; callCount 0 has real teeth.)
+    const outwardTransport = new FakeTransport("email");
+    const summary = await reconcileAllStrandedDispatches({
+      listPackets: async () => [approved as unknown as DecisionPacket],
+      reconcile: (input) =>
+        reconcileStrandedDispatches({ ...input, deps: { registry: { EMAIL: outwardTransport } }, options: { leaseMs: 0 } })
+    });
+
+    // Scanned, but the outward transport was NEVER called -- boot can't fire an outward action.
+    expect(summary.packetsScanned).toBe(1);
+    expect(summary.reExecuted).toBe(0);
+    expect(outwardTransport.callCount).toBe(0);
+    const stored = await store.getActionByIdempotencyKey(outward.idempotencyKey);
+    expect(stored?.status).toBe("DISPATCHING"); // left for a human
+  });
+
+  it("is FAIL-SAFE: a listing failure returns a zero summary and never throws (boot must not crash)", async () => {
+    const summary = await reconcileAllStrandedDispatches({
+      listPackets: async () => {
+        throw new Error("store unavailable at boot");
+      }
+    });
+    expect(summary).toEqual({ packetsScanned: 0, reExecuted: 0, reFailed: 0, errored: 0 });
+  });
+
+  it("one packet's reconcile failure never aborts the sweep (best-effort across packets)", async () => {
+    const approved = approvedClone();
+    let calls = 0;
+    const summary = await reconcileAllStrandedDispatches({
+      listPackets: async () => [approved, approved] as unknown as DecisionPacket[],
+      reconcile: async () => {
+        calls += 1;
+        if (calls === 1) throw new Error("packet 1 blew up");
+        return {
+          packetId: approved.id,
+          reconciled: 0,
+          reExecuted: 0,
+          reFailed: 0,
+          skippedInLease: 0,
+          skippedUnmatched: 0,
+          skippedNonReversible: 0,
+          skippedIntegrityMismatch: 0,
+          skippedRaced: 0,
+          actions: []
+        };
+      }
+    });
+    expect(summary.packetsScanned).toBe(2);
+    expect(summary.errored).toBe(1);
+    expect(calls).toBe(2); // continued past the failure
   });
 });

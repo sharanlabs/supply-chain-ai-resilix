@@ -10,7 +10,7 @@ import type {
 } from "@/lib/schemas";
 import { ExecutedActionSchema } from "@/lib/schemas";
 import { getDatabaseUrl, getDb } from "@/lib/server/db";
-import { updateDecisionPacket } from "@/lib/server/store";
+import { updateDecisionPacket, listDecisionPackets } from "@/lib/server/store";
 import { logger } from "@/lib/server/logger";
 import {
   deriveGovernableActions,
@@ -718,6 +718,67 @@ export async function reconcileStrandedDispatches(input: {
   );
 
   return result;
+}
+
+// S6 -- the STARTUP reconcile sweep (the recorded 2026-06-27 forward-guardrail).
+// reconcileStrandedDispatches recovers ONE packet's stranded dispatches; nothing
+// called it at process start, so a crash that stranded a REVERSIBLE dispatch was
+// never recovered until a request happened to touch that packet. This wires it to
+// the boot path (instrumentation.ts): enumerate persisted packets and reconcile
+// each. The governance moat holds unchanged -- reconcile re-drives ONLY REVERSIBLE
+// actions on APPROVED packets and NEVER an outward/IRREVERSIBLE one (ERP_CASE/n8n
+// included), so a boot sweep can never auto-fire an outbound webhook.
+//
+// Fail-SAFE by construction: it is best-effort, never throws into the caller
+// (a strand-recovery failure must not crash the server boot), and is inert under
+// the in-memory demo store (no packets persist across a restart, so there is
+// nothing stranded to recover) -- it earns its keep only on a persistent (DB)
+// production deploy.
+export async function reconcileAllStrandedDispatches(deps?: {
+  listPackets?: () => Promise<DecisionPacket[]>;
+  reconcile?: typeof reconcileStrandedDispatches;
+  now?: () => string;
+}): Promise<{ packetsScanned: number; reExecuted: number; reFailed: number; errored: number }> {
+  const listPackets = deps?.listPackets ?? (async () => (await listDecisionPackets()) as DecisionPacket[]);
+  const reconcile = deps?.reconcile ?? reconcileStrandedDispatches;
+  const summary = { packetsScanned: 0, reExecuted: 0, reFailed: 0, errored: 0 };
+
+  let packets: DecisionPacket[];
+  try {
+    packets = await listPackets();
+  } catch (e) {
+    logger.warn(
+      { event: "action.boot_reconcile_list_failed", error: e instanceof Error ? e.message : String(e) },
+      "action-executor: boot reconcile could not list packets; skipping sweep (non-fatal)"
+    );
+    return summary;
+  }
+
+  for (const packet of packets) {
+    summary.packetsScanned += 1;
+    try {
+      const res = await reconcile({ packet });
+      summary.reExecuted += res.reExecuted;
+      summary.reFailed += res.reFailed;
+    } catch (e) {
+      // One packet's failure never aborts the sweep or the boot.
+      summary.errored += 1;
+      logger.warn(
+        {
+          event: "action.boot_reconcile_packet_failed",
+          packetId: packet.id,
+          error: e instanceof Error ? e.message : String(e)
+        },
+        "action-executor: boot reconcile failed for one packet; continuing"
+      );
+    }
+  }
+
+  logger.info(
+    { event: "action.boot_reconcile_complete", ...summary },
+    "action-executor: startup stranded-dispatch reconcile sweep complete"
+  );
+  return summary;
 }
 
 export type PacketExecutionSummary = {

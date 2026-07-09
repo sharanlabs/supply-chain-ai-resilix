@@ -1,0 +1,109 @@
+{
+  "name": "RESILIX ERP_CASE (post-approval)",
+  "meta": {
+    "description": "S6 demo artifact -- an importable n8n workflow that receives a RESILIX ERP_CASE dispatch. RESILIX POSTs a sanitized DIGEST-ONLY JSON body {actionType, channel, idempotencyKey, ...digest} to this webhook AFTER a human approves the packet; nothing reaches this workflow before approval, and RESILIX is never in the approval loop (n8n is a pure outbound sink). Optional header auth: set N8N_ERP_WEBHOOK_HEADER_NAME/VALUE on the RESILIX side to match the webhook credential here. Idempotency: the idempotencyKey field dedupes a re-driven dispatch, so this workflow must upsert on it, never blind-insert."
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resilix-erp-case",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-in",
+      "name": "ERP_CASE webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "webhookId": "resilix-erp-case"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.actionType }}",
+              "rightValue": "ERP_CASE",
+              "operator": { "type": "string", "operation": "equals" }
+            },
+            {
+              "leftValue": "={{ $json.body.idempotencyKey }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "guard",
+      "name": "Guard: ERP_CASE + idempotencyKey present",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "case-key",
+              "name": "erpCaseKey",
+              "value": "={{ $json.body.idempotencyKey }}",
+              "type": "string"
+            },
+            {
+              "id": "note",
+              "name": "note",
+              "value": "Upsert an ERP case on erpCaseKey (idempotent). Replace this Set node with your NetSuite/Epicor/Dynamics case-create node; keep the upsert-on-key so a re-driven RESILIX dispatch never opens a duplicate case.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "erp-upsert",
+      "name": "Upsert ERP case (replace with your ERP node)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [780, 220]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "rejected",
+              "name": "rejected",
+              "value": "payload was not a valid ERP_CASE dispatch (missing actionType or idempotencyKey)",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "reject",
+      "name": "Reject malformed payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [780, 400]
+    }
+  ],
+  "connections": {
+    "ERP_CASE webhook": {
+      "main": [[{ "node": "Guard: ERP_CASE + idempotencyKey present", "type": "main", "index": 0 }]]
+    },
+    "Guard: ERP_CASE + idempotencyKey present": {
+      "main": [
+        [{ "node": "Upsert ERP case (replace with your ERP node)", "type": "main", "index": 0 }],
+        [{ "node": "Reject malformed payload", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}
