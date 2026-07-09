@@ -1,6 +1,20 @@
 # HANDOFF — resume pointer (updated 2026-07-09: S2 + S-D + S-L SHIPPED+PUSHED; ▶ NEXT = S3 read-only MCP server)
 
-> ## ▶ RESUME HERE — LADDER EXECUTING; three rungs shipped, S3 is next.
+> ## ▶ RESUME HERE — LADDER EXECUTING; FIVE rungs shipped, S4 is next.
+>
+> **Shipped + pushed:** `223bfbc` S2 · `4582881`+`f8f9930` S-D · `0c61e06` S-L · `b2dbd9e` **S3**
+> (read-only MCP server /api/mcp/mcp — security SAFE-TO-SHIP + DEDICATED Codex APPROVED 3 rounds +
+> acceptance-gate SHIP; 847 unit / 34 golden / 53 e2e). Ceiling reality corrected live: mcp-handler
+> 1.1.0 + SDK 1.26.0 (exact-pinned), the digest's 0.2.3 did not exist.
+>
+> **▶ NEXT: S4 — customs RAG, lexical-first** (plan §S4 + ceiling): Postgres FTS/BM25 first
+> (pg_textsearch the named upgrade); a hand-labeled Q→gold-chunk retrieval golden suite scored
+> recall@k+MRR GREEN before any consumer; every retrieved citation passes the EXISTING fail-closed
+> produce-time citation check (HARD BAR — if unmeetable, STOP + record why, skip-with-reason is
+> owner-accepted); customs golden 34/34 untouched. Then S6 n8n → final BATCHED Codex (owes S-D.1/
+> S-D.2/S-L/S3-advisories/S4/S6; carried items in S3-CODEX-PASS.md) → S1 owner deploy.
+>
+> ----- superseded resume blocks below -----
 >
 > **Shipped + pushed (each verify-green + acceptance-gate SHIP):**
 > `223bfbc` **S2** reviewer-first README + verified-numbers table + "How this was built" exhibit +
