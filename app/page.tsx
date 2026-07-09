@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import { ActionOpsDashboard } from "@/components/actionops-dashboard";
 import { loadReplayPacket } from "@/lib/pipeline/replay-packet";
 import { makeDemoPacket } from "@/lib/data/demo-packet";
+import { customsDeskEnabled } from "@/lib/server/env-flags";
 import type { DecisionPacketV2 } from "@/lib/schemas";
 
 // The `/` landing surface serves a FROZEN live-captured packet as a recorded REPLAY
@@ -34,5 +35,5 @@ export default async function Home() {
     );
     packet = makeDemoPacket();
   }
-  return <ActionOpsDashboard packet={packet} />;
+  return <ActionOpsDashboard packet={packet} customsEnabled={customsDeskEnabled()} />;
 }

@@ -511,3 +511,19 @@ describe("ActionOpsPacketView (Phase 6 deliberation surfaces)", () => {
     expect(screen.getAllByText(/margin/i).length).toBeGreaterThan(0);
   });
 });
+
+describe("BLUF verdict bar -- the 2nd-AI chip on a Skeptic-bearing packet (S-L fixture)", () => {
+  // The S-D.2 gate carried this as a residual: the chip's ABSENCE is e2e-pinned on the
+  // pre-Skeptic landing fixture, but no test proved a rendered chip. The S-L recorded loop
+  // capture is the first committed packet with a REAL cross-family Skeptic run + a
+  // code-bound ACCEPTED outcome -- render it and the chip must say the 2nd AI agreed.
+  it("renders '2nd AI agreed' for the recorded loop capture (real Skeptic, ACCEPTED)", async () => {
+    const { loadLoopTrajectory } = await import("@/lib/pipeline/replay-loop");
+    const { packet } = loadLoopTrajectory();
+    render(<ActionOpsPacketView packet={packet} />);
+    const bluf = screen.getByTestId("bluf-bar");
+    expect(within(bluf).getByText(/2nd AI agreed/)).toBeInTheDocument();
+    // And the verdict chip is ACT (the recorded run's real recommendation).
+    expect(within(bluf).getByText("Act")).toBeInTheDocument();
+  });
+});

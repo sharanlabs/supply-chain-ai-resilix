@@ -384,6 +384,25 @@ concept on a fake packet. Two gated sub-increments:
   its place when the S-L replay view makes it 3. Both revisit-able as one increment if the owner prefers
   the literal sample shell.
 
+**S-L BUILD NOTES (2026-07-09, Fable).** Recorded ONE real loop run via a NEW gated recorder
+(`evals/record-loop-trajectory.test.ts`, RUN_LIVE_LOOP_RECORD=true, metered $0.0079): SCN-HORMUZ through
+the REAL Investigator loop + REAL cross-family Skeptic — NO injected verdict (the D.9 recorder's injected
+ACCEPT would be a dishonest exhibit) and a NEW fixture path `evals/fixtures/loop/LOOP-HORMUZ.json` (the
+frozen `fixtures/live/SCN-*` set is byte-untouched — its re-capture stays owner-gated). **The recording
+itself is evidence: LIVE_AI · ACT · skepticGateOutcome ACCEPTED by meta-llama/llama-4-scout — the
+2026-06-28 false-veto fix holds on the live flagship.** Surface: `/loop` (always mounted, no flag — it IS
+the replay posture; `await connection()` for the CSP nonce; loader `lib/pipeline/replay-loop.ts` fails
+LOUD with no fallback — a broken exhibit must break visibly, never fabricate a trace). DELIBERATE loader
+difference from replay-packet.ts (recorded): the landing re-serves a packet AS the product (relabeled
+REPLAY/$0); /loop is an exhibit ABOUT a recorded run — an audit-trace viewer — so recorded modes/costs/
+models ARE the content, wrapped in "Recorded run" provenance framing ("ran live — {model} (recorded)"
+prose, never a bare enum; e2e-pinned). Nav: masthead links (War room ⇄ Agent run ⇄ Customs-when-mounted)
+chosen over the deferred rail — three links in existing chrome beats a retrofitted rail duplicating them;
+the customs link renders only when the flag mounts the route (a link to a 404 is dishonest chrome).
+Tests: +4 unit (loader drift guards incl. never-injected/cross-family assertions) +1 unit (the BLUF 2nd-AI
+chip POSITIVE render on the loop fixture — closes the S-D.2 gate residual) +4 e2e (keyless render with
+provenance/tool-order/Skeptic-on-glass, axe AA, nav round-trip, focus visibility).
+
 ## Deferred / owner-gated (NOT on this ladder, tracked so nothing is lost)
 - **Loop + Skeptic live promotion** (`ENABLE_AGENT_LOOP` default-on + Skeptic UI dramatization): blocked on
   billable (G) live gate ×3, the Skeptic geo-caution wart fix, the re-capture coupling, and the owner's

@@ -1,0 +1,15 @@
+[
+  {
+    "id": "LOOP-HORMUZ",
+    "recordedFrom": "SCN-HORMUZ",
+    "effectiveMode": "LIVE_AI",
+    "recommendation": "ACT",
+    "skepticGateOutcome": "ACCEPTED",
+    "skepticModel": "meta-llama/llama-4-scout-17b-16e-instruct",
+    "investigatorSummary": "Investigation loop ran 4 step(s) [checkCorroboration -> assessExposure -> simulateRunway -> challengeFinding]; finding completed.",
+    "exposures": 9,
+    "drafts": 5,
+    "costUsd": 0.007856809999999999,
+    "gatekeeper": "PASS"
+  }
+]

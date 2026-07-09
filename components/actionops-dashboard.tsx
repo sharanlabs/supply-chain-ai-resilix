@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { ShieldCheck, Workflow, Scale } from "lucide-react";
 import { ActionOpsPacketView } from "@/components/action-packet-view";
 import { makeDemoPacket } from "@/lib/data/demo-packet";
 import type { DecisionPacketV2 } from "@/lib/schemas";
@@ -23,7 +24,15 @@ export { ActionOpsPacketView };
 // lead in hour one). The raw signal feed (the old Events tab) now lives as an
 // on-demand disclosure inside the threat section, so no content was lost; the
 // exposure table and runway simulation were already in the briefing spine.
-export function ActionOpsDashboard({ packet }: { packet?: DecisionPacketV2 }) {
+export function ActionOpsDashboard({
+  packet,
+  customsEnabled = false
+}: {
+  packet?: DecisionPacketV2;
+  // Server-derived (customsDeskEnabled()): the customs link renders only when the
+  // route is actually mounted -- a masthead link to a 404 would be dishonest chrome.
+  customsEnabled?: boolean;
+}) {
   const data = useMemo(() => packet ?? makeDemoPacket(), [packet]);
 
   // The dated capture of the recorded signals -- shown in the masthead so a
@@ -60,6 +69,28 @@ export function ActionOpsDashboard({ packet }: { packet?: DecisionPacketV2 }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* The exhibit nav (S-L): the recorded agent run, and the customs desk
+                when its flag actually mounts the route. Masthead links, not a nav
+                rail -- three destinations in existing chrome beats a retrofitted
+                rail duplicating them (recorded S-L design call). */}
+            <nav aria-label="Exhibits" className="flex items-center gap-1.5">
+              <Link
+                href="/loop"
+                className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-ink-muted shadow-[var(--shadow-e1)] hover:text-ink"
+              >
+                <Workflow className="size-3.5" aria-hidden="true" />
+                Agent run
+              </Link>
+              {customsEnabled ? (
+                <Link
+                  href="/customs"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-ink-muted shadow-[var(--shadow-e1)] hover:text-ink"
+                >
+                  <Scale className="size-3.5" aria-hidden="true" />
+                  Customs desk
+                </Link>
+              ) : null}
+            </nav>
             {/* Honest provenance -- recorded signals, never labeled live. Lifted
                 on the white surface with a soft shadow so it reads as a status
                 chip, not flat text. */}
