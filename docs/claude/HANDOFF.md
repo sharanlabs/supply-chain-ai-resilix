@@ -1,6 +1,28 @@
 # HANDOFF — resume pointer (updated 2026-07-09: S2 + S-D + S-L SHIPPED+PUSHED; ▶ NEXT = S3 read-only MCP server)
 
-> ## ▶ RESUME HERE — LADDER EXECUTING; FIVE rungs shipped, S4 is next.
+> ## ▶ RESUME HERE — ALL SIX BUILD RUNGS SHIPPED; final Codex gate → owner deploy.
+>
+> **Shipped + pushed, each verify-green + acceptance-gate SHIP:** `223bfbc` S2 · `4582881`+`f8f9930` S-D ·
+> `0c61e06` S-L · `b2dbd9e` S3 (dedicated Codex APPROVED) · `a3f8f2b` S4 · `f46f15d` S6. Suites on HEAD:
+> **863 unit / 34 golden / 56 e2e**, verify:full FINAL_EXIT=0. The MCP surface exposes 4 read-only tools;
+> the customs desk has a cited policy lookup; /loop replays a real recorded agent run; the war room ships
+> the Apple-white/Forest register with a BLUF verdict bar; the n8n outbound channel is boot-guarded.
+>
+> **▶ NEXT (the two remaining gates, both recorded standing obligations):**
+> 1. **The ONE batched Codex cross-model pass over the whole ladder** — MUST name every increment's diff:
+>    S-D.1, S-D.2, S-L, S3 (its dedicated pass is discharged but the batch still covers it), S4, S6
+>    (boot sweep + instrumentation + workflow + the new structural tests). Try to refute the boot-moat +
+>    outbound-no-authority + the retrieval citation-by-construction claims. Dispose primary-model-final;
+>    push fixes. Carried S3 advisories to fold in: the prod-503 branch has no automated test; drive the
+>    injection corpus through the MCP query args.
+> 2. **S1 — OWNER DEPLOY (your action, ~10 min, AFTER the Codex pass):** `npx vercel` →
+>    `npx vercel env add ENABLE_CUSTOMS_DESK production` (true) → `npx vercel env add REQUIRE_APPROVAL_TOKEN
+>    production` (true) → (for the MCP surface on a public host) set `MCP_ACCESS_TOKEN` + `MCP_PUBLIC_ORIGIN`
+>    → `npx vercel --prod` → post-deploy smoke (homepage + /customs + /loop render; mutations 401; keyless =
+>    no live call; secret scan clean). Also queued: record the 2-min walkthrough (script:
+>    docs/claude/WALKTHROUGH-SCRIPT-2026-07-08.md).
+>
+> ----- superseded resume blocks below -----
 >
 > **Shipped + pushed:** `223bfbc` S2 · `4582881`+`f8f9930` S-D · `0c61e06` S-L · `b2dbd9e` **S3**
 > (read-only MCP server /api/mcp/mcp — security SAFE-TO-SHIP + DEDICATED Codex APPROVED 3 rounds +
