@@ -16,13 +16,13 @@ the 2026-06-28 "not yet" STANDS). Plan (fixed, owner-approved): `docs/claude/PLA
 Methodology: right-sized (spec → build → verify → acceptance-gate → commit/push); Codex = ONE batched pass at
 the END + a dedicated pass for S3 (safety-critical MCP surface). Verify-over-memory for every new dependency.
 
-- [ ] **S2 — Legibility front door (FIRST BUILD):** reviewer-first README (one flagship → trust spine → real
+- [x] **S2 — DONE 2026-07-08 (`223bfbc`, gate SHIP) — Legibility front door (FIRST BUILD):** reviewer-first README (one flagship → trust spine → real
   verified eval numbers → 60-second run path → "How this was built" exhibit → honest limitations) + 2-min
   walkthrough script + root curation (do-no-harm) + `CLAUDE.md`→`AGENTS.md` pointer. Every number verified on HEAD.
-- [ ] **S-D — Design build:** strongest direction/synthesis from `samples/2026/` built into the shipped app at
+- [x] **S-D — DONE 2026-07-09 (`4582881`+`f8f9930`, gates SHIP) — Design build:** strongest direction/synthesis from `samples/2026/` built into the shipped app at
   [[resilix-design-bar]]; pick + WHY recorded in plan § Design decision (owner reviews after, not before);
   frozen fixture stays honest WITHOUT a billable re-capture; verify:full + WCAG 2.2 AA + oracles byte-unchanged.
-- [ ] **S-L — Agent-loop replay exhibit (NEW rung, owner-approved 2026-07-08):** record ONE loop-mode run
+- [x] **S-L — DONE 2026-07-09 (`0c61e06`, gate SHIP; Skeptic ACCEPTED live) — Agent-loop replay exhibit:** record ONE loop-mode run
   locally (existing SCN-* fixtures are waterfall-era — verified) → commit as a disclosed "recorded run"
   fixture → replay in-product $0/keyless (tool-call order → bindings → Skeptic verdict → gatekeeper);
   Skeptic-veto risk decision recorded; structural no-billable-call-on-public-path test.

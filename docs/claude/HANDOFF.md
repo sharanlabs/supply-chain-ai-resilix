@@ -1,4 +1,28 @@
-# HANDOFF — resume pointer (updated 2026-07-08: ladder FINALIZED with Fable — register confirmed, S-L rung added, ceiling live-set; execution resuming at Step 0/S2)
+# HANDOFF — resume pointer (updated 2026-07-09: S2 + S-D + S-L SHIPPED+PUSHED; ▶ NEXT = S3 read-only MCP server)
+
+> ## ▶ RESUME HERE — LADDER EXECUTING; three rungs shipped, S3 is next.
+>
+> **Shipped + pushed (each verify-green + acceptance-gate SHIP):**
+> `223bfbc` **S2** reviewer-first README + verified-numbers table + "How this was built" exhibit +
+> walkthrough script (record AFTER the design settles) · `4582881`+`f8f9930` **S-D** the Apple
+> premium-white/Forest register into the shipped app (token swap + contrast-check.mjs wired into verify;
+> BLUF verdict bar on real packet data; nav-rail deferred→resolved as masthead links) · `0c61e06` **S-L**
+> /loop recorded agent-run exhibit (REAL loop + REAL cross-family Skeptic ACCEPTED the live flagship,
+> metered $0.0079; fail-loud loader; fixtures/live/ untouched). Suites on HEAD: 836 unit / 34 golden /
+> 47 e2e, verify:full FINAL_EXIT=0.
+>
+> **▶ NEXT: S3 — read-only MCP server** (plan § S3; ceiling live-pinned 2026-07-08:
+> `@modelcontextprotocol/sdk` v1.29.0 + `mcp-handler` v0.2.3 over Streamable HTTP; SDK ≥1.26.0 floor;
+> bearer auth = STATED OAuth 2.1 deviation; verify mcp-handler's auth-wrapper from its installed README
+> at build time). Tools: packet-retrieval / exposure-query / audit-trail — read-only, NO authority tools;
+> red-team extended to MCP; mutation 401/405 structural tests; security-specialist read; **dedicated
+> Codex pass** (safety-critical). Then S4 RAG → S6 n8n → final batched Codex (must NAME the S-D.1, S-D.2,
+> S-L diffs — standing gate obligation) → S1 owner deploy.
+>
+> Resume plan: `~/.claude/plans/check-the-repo-and-ancient-lighthouse.md` · build notes: plan
+> § FINALIZATION + § S-D/S-L BUILD NOTES · session task ledger mirrors this file.
+>
+> ----- prior top block (2026-07-08 finalization) below -----
 
 > ## ▶ RESUME HERE — LADDER EXECUTING (2026-07-08 finalization session, plan-mode gate APPROVED).
 >
