@@ -26,18 +26,18 @@ the END + a dedicated pass for S3 (safety-critical MCP surface). Verify-over-mem
   locally (existing SCN-* fixtures are waterfall-era — verified) → commit as a disclosed "recorded run"
   fixture → replay in-product $0/keyless (tool-call order → bindings → Skeptic verdict → gatekeeper);
   Skeptic-veto risk decision recorded; structural no-billable-call-on-public-path test.
-- [ ] **S3 — MCP server over the war room:** read-only packet/exposure/audit tools, token-authed, NO authority
+- [x] **S3 — DONE (`b2dbd9e`, dedicated Codex APPROVED) — MCP server over the war room:** read-only packet/exposure/audit tools, token-authed, NO authority
   tools ever; red-team extended to the MCP surface; auth/consent/audit story documented. Ceiling live-set
   2026-07-08: `@modelcontextprotocol/sdk` v1.29.0 + `mcp-handler` v0.2.3 over Streamable HTTP (SDK ≥1.26.0
   hard floor — known vuln below); v2-beta OFF-ladder (note the assessed migration path in README); bearer
   auth = STATED OAuth 2.1 deviation; dedicated Codex pass.
-- [ ] **S4 — Customs RAG (lexical-first):** cited-chunk retrieval feeding the existing fail-closed citation
+- [x] **S4 — DONE (`a3f8f2b`) — Customs RAG (lexical-first):** cited-chunk retrieval feeding the existing fail-closed citation
   check (HARD BAR; skip-with-reason allowed); retrieval golden suite (recall@k) BEFORE any consumer;
   pg-full-text/BM25 first, embeddings only if proven insufficient; customs golden 34/34 untouched.
-- [ ] **S6 — n8n outbound channel (LAST build, right-sized):** `ERP_CASE` webhook post-approval through the
+- [x] **S6 — DONE (`f46f15d`) — n8n outbound channel (LAST build, right-sized):** `ERP_CASE` webhook post-approval through the
   existing typed seam + wire `reconcileStrandedDispatches` startup hook (recorded obligation) + committed
   workflow-export JSON; running n8n instance = optional owner infra, not a repo deliverable.
-- [ ] **Final gate:** ONE batched Codex cross-model pass over the whole ladder → push.
+- [x] **Final gate — DONE (`f0872bf`, APPROVED):** ONE batched Codex pass over the whole ladder → pushed.
 - [ ] **S1 — Deploy (VERY LAST, OWNER ~10 min):** `npx vercel` → env `ENABLE_CUSTOMS_DESK=true` +
   `REQUIRE_APPROVAL_TOKEN=true` (Production) → `npx vercel --prod` → post-deploy smoke (mutations 401,
   keyless = no live calls, disclosure visible).

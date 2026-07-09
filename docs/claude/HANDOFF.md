@@ -1,6 +1,29 @@
 # HANDOFF — resume pointer (updated 2026-07-09: S2 + S-D + S-L SHIPPED+PUSHED; ▶ NEXT = S3 read-only MCP server)
 
-> ## ▶ RESUME HERE — ALL SIX BUILD RUNGS SHIPPED; final Codex gate → owner deploy.
+> ## ▶ RESUME HERE — LADDER COMPLETE + FINAL CODEX GATE DISCHARGED. Only OWNER actions remain (deploy · walkthrough).
+>
+> **The showcase-expansion ladder is DONE.** All six build rungs shipped + acceptance-gated, and the ONE
+> batched Codex cross-model pass over the whole ladder is APPROVED (2 rounds, 3 findings + 2 advisories
+> disposed primary-model-final; record: docs/claude/gates/showcase-ladder/FINAL-CODEX-PASS.md). S3 also had
+> its own dedicated mid-ladder Codex pass (APPROVED). HEAD green: **869 unit / 34 golden / 56 e2e**,
+> verify:full FINAL_EXIT=0. The demo stays $0/keyless/replay-only/byte-identical when no env is set.
+>
+> Commits: `223bfbc` S2 · `4582881`+`f8f9930` S-D · `0c61e06` S-L · `b2dbd9e` S3 · `a3f8f2b` S4 ·
+> `f46f15d` S6 · `f0872bf` final Codex gate.
+>
+> **▶ THE ONLY REMAINING WORK IS YOURS (owner actions — the session cannot do these):**
+> 1. **S1 — DEPLOY (~10 min).** `npx vercel` → `npx vercel env add ENABLE_CUSTOMS_DESK production` (true) →
+>    `npx vercel env add REQUIRE_APPROVAL_TOKEN production` (true) → for the agent-ready MCP surface on a
+>    public host also set `MCP_ACCESS_TOKEN` (strong, ≥16 chars) + `MCP_PUBLIC_ORIGIN` (your deploy URL) →
+>    `npx vercel --prod`. Post-deploy smoke: `/`, `/customs`, `/loop`, and `/api/mcp/mcp` (401 without a
+>    bearer) all respond; mutations 401; keyless surfaces make no live call; secret scan clean.
+> 2. **Record the 2-minute walkthrough** — script: docs/claude/WALKTHROUGH-SCRIPT-2026-07-08.md (record now
+>    that the shipped look is final).
+>
+> **Deferred / owner-gated (unchanged, NOT blocking):** loop/Skeptic LIVE promotion on the public URL
+> (billable) · the ONE billable homepage re-capture · the sample-packet number reconciliation (design-only).
+>
+> ----- superseded resume blocks below -----
 >
 > **Shipped + pushed, each verify-green + acceptance-gate SHIP:** `223bfbc` S2 · `4582881`+`f8f9930` S-D ·
 > `0c61e06` S-L · `b2dbd9e` S3 (dedicated Codex APPROVED) · `a3f8f2b` S4 · `f46f15d` S6. Suites on HEAD:
