@@ -6,13 +6,13 @@ One flagship, two surfaces on the same trust spine: the **ActionOps war room** (
 
 ## The numbers — verified on this commit, re-runnable in one command
 
-Every suite count below was re-run first-hand on HEAD (2026-07-08), not quoted from a past report; the ledger row is the persisted running total, dated:
+Every suite count below was re-run first-hand on HEAD (2026-07-09), not quoted from a past report; the ledger row is the persisted running total, dated:
 
 | Suite | Result | What it proves |
 |---|---|---|
 | `npm test` | **831 passed** (51 skipped — live-billed legs, off by default) | deterministic graders, injection quarantine, the authoritative-binding moat, atomic approval |
 | `npm run customs:golden` | **34 / 34** | filing-grade packet or named-gap refusal on every golden case; the citation check fails closed |
-| `npx playwright test` | **41 e2e** (incl. WCAG 2.2 AA accessibility) | the shipped UI, end to end |
+| `npx playwright test` | **43 e2e** (incl. WCAG 2.2 AA accessibility) | the shipped UI, end to end |
 | Cost ledger | **≈ $1.0–1.3 metered** total build spend, recorded through 2026-06 (cap $5, fail-closed pre-call) | real per-call tokens × a pinned price table, persisted per run |
 
 ```bash

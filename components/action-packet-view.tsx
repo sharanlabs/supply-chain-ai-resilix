@@ -3,11 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  ArrowDown,
   ArrowUpRight,
+  CalendarClock,
   CheckCircle2,
   CircleSlash,
   Clock3,
+  Factory,
   FileText,
+  Gauge,
   GitBranch,
   Hourglass,
   LifeBuoy,
@@ -16,6 +20,7 @@ import {
   RotateCcw,
   Scale,
   ShieldCheck,
+  TrendingDown,
   Workflow
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -873,6 +878,95 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
       <div role="status" aria-live="polite" className="sr-only" data-testid="mode-status">
         {modeAnnouncement}
       </div>
+
+      {/* ============================================================
+          0. BLUF VERDICT BAR (S-D.2) -- the register's bottom-line-up-front:
+          the VERDICT, the load-bearing figures, and the path to the decision,
+          before any narrative (AR 25-50 / inverted-pyramid, live-verified
+          2026-07-08). Every value is a real packet derivation shared with the
+          sections below -- nothing here is computed twice. The Approve
+          affordance is an ANCHOR to the audited decision panel (#approve-h),
+          never a second approval control: the atomic, gatekeeper-gated flow
+          keeps its one door. Non-sticky by design -- a second sticky band
+          would re-open the SC 2.4.11 focus-obscured geometry the masthead's
+          scroll-padding is tuned for.
+          ============================================================ */}
+      <section
+        aria-label="Bottom line up front"
+        data-testid="bluf-bar"
+        className="reveal panel flex flex-wrap items-center gap-x-5 gap-y-3 rounded-(--radius-card) px-5 py-4"
+        style={{ "--d": 0 } as React.CSSProperties}
+      >
+        <span
+          className={`inline-flex items-center rounded-md px-2.5 py-1 font-mono text-[0.6875rem] font-semibold tracking-[0.08em] uppercase shadow-[var(--shadow-e1)] ${
+            isNoAction
+              ? "bg-caution-soft text-caution-ink"
+              : "bg-accent-strong text-accent-ink"
+          }`}
+        >
+          {isNoAction ? "Hold" : "Act"}
+        </span>
+        <p className="min-w-[16rem] flex-1 text-sm leading-6 text-ink">
+          {isNoAction
+            ? "The evidence is too thin to act on -- nothing is drafted until the disruption is confirmed."
+            : approval.status === "APPROVED"
+              ? "Response approved -- drafts remain unsent until a person dispatches them."
+              : approval.status === "REJECTED"
+                ? "Response returned for revision -- nothing goes out."
+                : `Approve the drafted response${
+                    earliestRunout
+                      ? ` before the first stockout on ${shortDate(earliestRunout)}`
+                      : ""
+                  } -- nothing sends without you.`}
+        </p>
+        <div className="tnum flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[0.8125rem] text-ink-muted">
+          {peakRisk !== null ? (
+            <span className="inline-flex items-center gap-1.5" title="Peak revenue at risk">
+              <TrendingDown className="size-3.5 text-sev-critical" aria-hidden="true" />
+              <span className="font-medium text-ink">{compactCurrency(peakRisk)}</span> at risk
+            </span>
+          ) : null}
+          <span className="inline-flex items-center gap-1.5" title="Exposed suppliers">
+            <Factory className="size-3.5 text-ink-faint" aria-hidden="true" />
+            <span className="font-medium text-ink">{packet.exposureResults.length}</span> suppliers
+          </span>
+          {earliestRunout ? (
+            <span className="inline-flex items-center gap-1.5" title="First projected stockout">
+              <CalendarClock className="size-3.5 text-ink-faint" aria-hidden="true" />
+              <span className="font-medium text-ink">{shortDate(earliestRunout)}</span>
+            </span>
+          ) : null}
+          <span className="inline-flex items-center gap-1.5" title="Threat-read confidence">
+            <Gauge className="size-3.5 text-ink-faint" aria-hidden="true" />
+            <span className="font-medium text-ink">{confidencePct}%</span> confidence
+          </span>
+          {skepticState === "cleared" || skepticState === "annotated" ? (
+            <span
+              className="inline-flex items-center gap-1.5"
+              title={
+                skepticState === "cleared"
+                  ? "A second AI from a different company challenged this finding and accepted it"
+                  : "The second AI raised a caution; action proceeds on the finding's independent corroboration and needs your approval"
+              }
+            >
+              <ShieldCheck
+                className={`size-3.5 ${skepticState === "cleared" ? "text-accent-strong" : "text-caution-ink"}`}
+                aria-hidden="true"
+              />
+              2nd AI {skepticState === "cleared" ? "agreed" : "cautioned"}
+            </span>
+          ) : null}
+        </div>
+        {canApprove ? (
+          <a
+            href="#approve-h"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-accent-strong bg-accent px-3.5 text-sm font-semibold text-accent-ink shadow-[var(--shadow-e2),inset_0_1px_0_oklch(1_0_0/0.18)] hover:bg-accent-strong"
+          >
+            Review &amp; approve
+            <ArrowDown className="size-3.5" aria-hidden="true" />
+          </a>
+        ) : null}
+      </section>
 
       {/* ============================================================
           1. NORTH-STAR LEDE -- the at-risk figure in one calm sentence.

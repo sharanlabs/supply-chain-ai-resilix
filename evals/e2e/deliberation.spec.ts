@@ -152,3 +152,57 @@ test.describe("Phase 6 / Skeptic graceful absence + Phase-1 fields", () => {
     await expect(packet.getByText(/margin/i).first()).toBeVisible();
   });
 });
+
+test.describe("S-D.2 / BLUF verdict bar", () => {
+  // The register's bottom-line-up-front (owner-approved 2026-07-08): verdict +
+  // load-bearing figures + the path to the decision, ABOVE the narrative. Every
+  // value must be a real packet derivation (the fixture's own numbers), and the
+  // approve affordance must be an ANCHOR to the audited decision panel -- never
+  // a second approval control.
+  test("renders the verdict, real figures, and an anchor to the one approve door", async ({
+    page
+  }) => {
+    await page.goto("/");
+    await settle(page);
+    const bluf = page.getByTestId("bluf-bar");
+    await expect(bluf).toBeVisible();
+
+    // Verdict chip: the frozen Hormuz packet is an ACT recommendation.
+    await expect(bluf.getByText("Act", { exact: true })).toBeVisible();
+
+    // The figures are the packet's own: the suppliers count matches the
+    // EXPOSURE table's row count rendered below (same derivation, one source
+    // of truth) -- scoped to the exposure section, since the packet renders
+    // other tables (runway data) whose rows are not suppliers.
+    const supplierRows = page
+      .locator('section[aria-labelledby="exp-h"]')
+      .locator("table tbody tr");
+    const rowCount = await supplierRows.count();
+    expect(rowCount).toBeGreaterThan(0);
+    await expect(bluf.getByText(`${rowCount}`, { exact: true })).toBeVisible();
+
+    // The approve affordance is an anchor to the decision panel, which exists
+    // exactly once -- the BLUF bar adds a path, not a second door.
+    const cta = bluf.getByRole("link", { name: /review & approve/i });
+    await expect(cta).toHaveAttribute("href", "#approve-h");
+    await expect(page.locator("#approve-h")).toHaveCount(1);
+
+    // BLUF sits ABOVE the narrative lede in reading order.
+    const blufBox = await bluf.boundingBox();
+    const lede = page.getByRole("heading", { level: 1 });
+    const ledeBox = await lede.boundingBox();
+    expect(blufBox && ledeBox && blufBox.y < ledeBox.y).toBe(true);
+  });
+
+  // The fixture predates the Skeptic (6 runs, no Skeptic) -- the 2nd-AI chip
+  // must be gracefully ABSENT, never fabricated (the same graceful-absence bar
+  // the deliberation trail pins).
+  test("the 2nd-AI chip is absent when no cross-family Skeptic ran", async ({
+    page
+  }) => {
+    await page.goto("/");
+    await settle(page);
+    await expect(page.getByTestId("bluf-bar")).toBeVisible();
+    await expect(page.getByTestId("bluf-bar").getByText(/2nd AI/)).toHaveCount(0);
+  });
+});

@@ -368,8 +368,21 @@ concept on a fake packet. Two gated sub-increments:
   tool: `scripts/contrast-check.mjs` (OKLCH→linear-sRGB→WCAG, 14 pairs, exits 1 below bar) — all 14
   PASS first-hand (tightest: faint-on-sink-deep 4.72, runway-edge 4.41 vs 3.0 bar). All steel-era
   comments truth-updated; README Design paragraph rewritten.
-- **S-D.2 (structural signature, next):** BLUF verdict bar wired to real packet data + full-bleed
-  master-detail shell + functional Lucide icons; e2e testids preserved; verify:full + gate per increment.
+- **S-D.2 (structural signature, BUILT 2026-07-09):** BLUF verdict bar shipped INSIDE ActionOpsPacketView
+  (reuses the existing peakRisk/earliestRunout/skepticState/canApprove derivations — nothing computed twice;
+  the repo's f(x)-drift lesson applied). Anatomy: ACT/HOLD verdict chip → plain-human one-liner (all approval
+  + NO_ACTION states) → metric strip ($ at risk · suppliers · first stockout · confidence, Lucide-iconed,
+  tnum) → data-driven 2nd-AI chip (cleared/annotated only; gracefully ABSENT on the pre-Skeptic fixture) →
+  "Review & approve" ANCHOR to #approve-h (a path to the one audited approve door, never a second control).
+  Non-sticky by design (a second sticky band would re-open the SC 2.4.11 geometry). Two e2e tests added
+  (deliberation.spec.ts: real-figure cross-check vs the exposure table + graceful Skeptic absence). Lucide
+  was already the app's icon system (14 functional icons pre-existing; 5 added). **Deliberate deviations:**
+  (a) full-bleed viewport shell NOT ported — it would discard the owner-locked storytelling-arc briefing
+  (2026-06-24) for a register the sample built around a dashboard; the briefing IS the product's reading
+  arc, and the app already carries the master-detail anatomy (briefing spine + sticky decision rail).
+  (b) left nav rail DEFERRED to S-L: today the app has 2 destinations (war room, /customs); the rail earns
+  its place when the S-L replay view makes it 3. Both revisit-able as one increment if the owner prefers
+  the literal sample shell.
 
 ## Deferred / owner-gated (NOT on this ladder, tracked so nothing is lost)
 - **Loop + Skeptic live promotion** (`ENABLE_AGENT_LOOP` default-on + Skeptic UI dramatization): blocked on

@@ -45,7 +45,7 @@ Pick an **adversarial case** (injection payload):
 ## 1:25–1:45 — how it's checked (terminal, run `npm run verify` — let it scroll)
 
 > "None of that is a demo trick. Eight-hundred-plus deterministic tests, a 34-case golden suite
-> where the citation check fails closed, forty-one end-to-end tests including accessibility —
+> where the citation check fails closed, forty-plus end-to-end tests including accessibility —
 > one command re-proves all of it. A deterministic Skeptic re-derives the customs packet
 > independently, and on live runs a second AI from a different company challenges the finding
 > before it counts."
