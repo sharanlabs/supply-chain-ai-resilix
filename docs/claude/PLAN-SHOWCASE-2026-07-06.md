@@ -108,8 +108,248 @@ webhook shape) — installed packages + official docs, never model memory.
 - Owner commands: `npx vercel` → `npx vercel env add ENABLE_CUSTOMS_DESK production` (value `true`) →
   `npx vercel env add REQUIRE_APPROVAL_TOKEN production` (value `true`) → `npx vercel --prod`.
 
-## Design decision (S-D) — filled at build time
-_(recorded when the pick is made: which direction, why, what was synthesized, what was rejected)_
+## Design decision (S-D) — RECORDED 2026-07-08 (sample delivered; app build deferred to Fable)
+
+**Pick: Direction 05 "Runway Timeline" as the spine, refined into one build-ready sample —
+`samples/2026/00-recommended-runway-warroom.html`.** (This session delivered the *design sample* only,
+per owner directive 2026-07-08 — "just give the design sample; the other rungs get built with Fable once
+limits reset." So this is the reference Fable builds S-D *into the shipped app* from; app integration +
+`verify:full`/WCAG-AA-into-app remain the S-D build step, NOT done here.)
+
+**Why 05 over the other four (judged against the CURRENT goal — 90-second-reviewer legibility where
+depth/governance is the senior signal; all five already clear the design bar, so the tie-break is *which
+makes RESILIX's unique claims legible at a glance*):**
+- **05 is the only direction that renders both RESILIX differentiators visually**: the runway *as the clock*
+  (time pressure) and *reversibility as the governance dial* ("only the two reversible options restore
+  coverage before the day-7 runout"). A reviewer gets the governance thesis from one sentence + one visual.
+- **02 Intelligence Brief** — runner-up, most instantly legible; its editorial one-figure lead-in is
+  **grafted on top** as the opening (the 15-second front door).
+- **01 Command Console** — its multi-agent deliberation + **independent cross-family Skeptic** verdict is
+  **grafted inline as a trust strip** (surfaced, not drilled) — this fixes 05's one weakness (it under-shows
+  the machinery, which IS the senior signal).
+- **03 Conversational** — *rejected*: the chat metaphor is the 2026 cliché; weakest at showing the
+  deterministic-governance moat.
+- **04 Control Tower** — kept as a depth reference; its node-graph leans decorative (the decision lives in
+  the side panel), so not the spine for a legibility-first goal.
+
+**What was synthesized (disciplined, single-spine — not a franken-merge):** editorial lead (02) → runway
+governance timeline (05, the signature exhibit) → inline trust strip: 7 agents + Llama-4 cross-family Skeptic
+"Accepted" (01) → drafted, **human-gated** action (atomic/audited; n8n never in the approval loop) → three
+role playbooks (05) → trust-spine footer with **synthetic-data disclosure**. Built on the shared 01–05 token
+system (app `globals.css`) — no new aesthetic invented; defined the one missing token (`--crit-soft`).
+
+**Verified (sample-level, first-hand 2026-07-08):** desktop render screenshotted; anti-slop probe green —
+Geist resolved (no serif leak), tabular figures on, `badHues:[]` (zero green, zero orange/amber — severity is
+red hue ~26, accent steel hue ~256), no true emoji (the lone `→` is a typographic arrow, consistent with the
+existing samples' arc notation). `index.html` features the pick at top. **Owner reviews after (revert is one
+increment).** Full axe AA + `verify:full` + byte-unchanged oracles/fixture belong to Fable's build-into-app.
+
+**GALLERY-WHITE EXPLORATION ROUND (2026-07-08, owner-directed):** owner asked for a 5–7 sample "gallery-white"
+set built with design subagents + the claude-design plugin, grounded in live 2026 references, published as
+Artifacts. Delivered SIX directions on ONE shared system (`samples/2026/gallery/`, gitignored): a brighter
+barely-cool "gallery wall" ground (`oklch 0.994`, off-clinical-white but never warm — pure #fff now reads as an
+AI tell, warm/cream is barred), Geist self-hosted as a base64 `@font-face` (survives the Artifact CSP), the real
+seeded packet, one steel accent, red-only severity. Built by 6 parallel `frontend-specialist` subagents from a
+shared kit (`samples/2026/gallery/_kit.md`) after a `research-specialist` live-references sweep (15 cited 2026
+sources; the #1 AI tell = the colored left-border card; "interaction density > visual density"). Verified
+per-sample (render + anti-slop probe: Geist loads, tabular figs, zero green/orange, no left-border/emoji tell —
+one `✓` fixed on 06). Live Artifacts: gallery index https://claude.ai/code/artifact/65bcc14a-4233-4a16-b99a-f889af14d18e
+· 01 Exhibit a539ca2c · 02 Broadsheet 887dc0de · 03 Situation Board ee3f1b8a · 04 Runway 8bd90750 · 05 Ledger
+52c30836 · 06 Control Tower 84fc1bc6 (all `claude.ai/code/artifact/…`, default-private). These are exploration
+options for the owner to react to; the S-D pick above (05-runway synthesis) still stands as the recommendation
+unless the owner chooses a gallery direction. NOT committed (samples/ is gitignored; owner-gated push).
+
+**FLAGSHIP CONSOLIDATION — "The Brief" (2026-07-08, owner-directed; NEW recommended S-D direction).** After the
+6-way gallery round the owner directed: "simple human-understandable language flow, premium, fresh, intuitive."
+Consolidated the set into ONE flagship — `samples/2026/gallery/00-flagship.html` — a calm single-column briefing
+read top-to-bottom in PLAIN HUMAN language (jargon translated: "corroborated"->"two independent sources confirm
+it, and a second AI from a different company checked our read and agreed"; "exposure ramp"->"being stuck starts
+to cost real money"; "reversible"->"you can undo"). Flow: what's happening -> who it hits (5 no-backup suppliers)
+-> how long you have (the runway clock, decide by day 6) -> what we suggest (two undo-able fixes beat the runout)
+-> one action ("Approve & send" the 9 drafted notes; "nothing leaves until you approve"). Premium: generous Geist
+scale, gallery-white, one steel accent, red ONLY on money/no-backup, precise rhythm, reduced-motion-safe entrance
++ approve micro-interaction. Anti-slop CLEAN (no left-border card, no glass, no emoji, no green/orange). **This is
+now the strongest S-D candidate** — it foregrounds the trust spine (numbers never authored by the LLM) in language
+a 90-second non-expert reviewer gets instantly. **Live Artifact:**
+https://claude.ai/code/artifact/c919fced-3a83-4be8-abd2-6c5f1e887e81 . When the owner confirms, Fable builds
+"The Brief" as the shipped S-D flow (runway/ledger/control-tower become deeper drill-downs off it).
+
+**"SITUATION CONSOLE" — app-grade modern-UI ceiling (2026-07-08).** Owner then asked for the modern-UI ceiling
+(layouts, cards, pixel quality) on gallery white. Built `samples/2026/gallery/00-console.html` — a product-grade
+command surface: sticky app bar + breadcrumb, a decision hero + live decide-by counter, a hand-built SVG exposure
+area chart (shaded runway, drawn-in line, annotated $350k->$1.15M endpoints), an exposed-supplier table with
+severity stripes + mini-bars, a stat rail, a "How we know" trust module (agents + cross-family second opinion),
+and a prominent action bar. 8px system, layered cool-tinted elevation (e1/e2/e3), tabular figures, micro-interactions,
+prefers-reduced-motion. Keeps the plain-human microcopy from "The Brief" but at full visual craft. Anti-slop CLEAN
+(solid app bar — dropped the frosted-nav backdrop-filter to stay off the glassmorphism line; row severity STRIPE
+is state-encoding, not a left-border card). **Live Artifact:** https://claude.ai/code/artifact/92940791-7852-4f7c-a429-5c1864800476 .
+Two live registers now on the table for the owner: "The Brief" (calm document, language-led) and "The Console"
+(app-grade, information-design-led) — same system, same packet; owner picks the register Fable ships.
+
+**"SITUATION CHART" — fresh judgment-driven direction + FORMAL EVALUATION (2026-07-08).** Owner: "fresh design,
+your own judgment, use design + anti-AI subagents." My judgment: the subject is a maritime chokepoint, so render
+the war room as a MODERN maritime situation chart (title-block cartouche · charted Strait with the closure as a
+red hazard · supplier positions with leader callouts · runway as a clearance-profile · provenance as the "survey
+record") — modern grotesk instrument, NOT antique kitsch (no parchment/serif/compass/anchor). Built by a
+frontend-specialist subagent; file `samples/2026/gallery/00-chart.html`; anti-slop + anti-kitsch CLEAN.
+Then owner: "did you evaluate w/ domain experts, content, story-arc, language, clarity?" — ran a real 2-lens
+evaluation (a general-purpose agent as a senior SCRM/resilience-lead practitioner + a writing-specialist on
+content/story/language/de-slop). **Both converged:** trust model + reading arc + prose are STRONG; but the SCENARIO
+NUMBERS have a decision-critical incoherence seeded in `_kit.md` and propagated to all samples —
+(1) the clock doesn't close ("decide day 6"/"runout day 7"/"restores day 5" on incompatible origins);
+(2) "reversible options beat the runout" is FALSE (only expedite/day-5 beats day-7; reallocate/day-10 doesn't) —
+wrong in the Brief, correct in the Chart, seeded wrong in the kit; (3) 7-day runway vs 43-60d supplier cover
+unreconciled (binding line never surfaced); (4) $1.15M is small for a large-importer war room (a single Hormuz
+war-risk surcharge is $3-8M). Full findings in the two agent reports (this session).
+**OWNER DECISION (2026-07-08): the number/content reconciliation is DEFERRED ("this is only for design ... later");
+keeper = the Situation Chart.** So this pass applied only the DESIGN-LEGIBILITY fixes (no number-model change):
+de-jargoned the nautical labels (Soundings/under-keel/keel-line -> "How long the cover lasts"/"stock left"),
+rewrote the opaque approval line + dropped the overstated "you can undo" on dispatch, fixed the lane-repeat +
+clipped tail, standardized $350k casing + the Skeptic quote. Verified live + anti-slop CLEAN. **Live Artifact:**
+https://claude.ai/code/artifact/2d9e91c0-5544-49b7-9ab1-203330ea6f21 .
+**OPEN (deferred, owner-gated): reconcile the packet's timeline/money model** (one clock; 7-day runout = one named
+constrained line; only expedite beats it; money reframed as that line's exposure) at the ROOT `_kit.md`, then
+propagate to Chart/Brief/Console; also add a Skeptic reject-path so the trust panel isn't one-sided.
+
+**"WAR ROOM" — modern icon-integrated register (2026-07-08).** Owner: "make it modern, icons, ui, quality in all
+aspects." Note: earlier rounds deliberately avoided icons (anti-slop) — owner's explicit request overrides, so I
+added a real ICON SYSTEM the tasteful way: ~18 hand-authored inline-SVG stroke icons (24px, 1.75 stroke,
+`currentColor`, defined once as a `<symbol>` sprite + `<use>` — survives the Artifact CSP, no icon CDN), used
+FUNCTIONALLY (nav affordance · card-header identity · supplier/agent status · buttons · route nature
+zap/swap/lock), never one-per-line decoration. Modern app shell: left icon nav-rail + sticky top bar (search,
+decide-in-6d pill) + hero + iconed stat cards + exposure chart + supplier status list + trust rail + iconed
+routes + action bar. 8px system, layered cool-tinted elevation, tabular figures, hover/focus/active states, approve
+micro-interaction, prefers-reduced-motion. Gallery-white (light only), one steel accent, red on risk only, Geist,
+plain-human copy, reversibility stated CORRECTLY ("only flying it in beats the day-7 runout"). File
+`samples/2026/gallery/00-warroom.html`; anti-slop CLEAN (no left-border card, no glass, no emoji — icons are SVG;
+18/18 icon refs resolve). **Live Artifact:** https://claude.ai/code/artifact/3578bc13-2c61-4ee9-83df-b68d16b94472 .
+Registers now live for the owner: Brief (document) · Console (dashboard) · Situation Chart (maritime instrument) ·
+War Room (modern icon app) — same gallery-white system + packet; owner picks what Fable ships.
+
+**"WAR ROOM 2026" — full-bleed ultra-modern app (2026-07-08).** Owner: "no margins, it looks too old-time
+bookish; give modern UI top tech companies would do, ultra-modern premium 2026." Key insight: the generous
+centered whitespace ("gallery" air) read as BOOKISH/document, not app. Pivot: killed the centered max-width and
+rebuilt as a **100vw x 100vh full-bleed product app** (Linear/Vercel/Retool register) — nav rail | center
+(tabbed context bar -> dense hero strip -> inline hairline-separated stat strip -> full-width exposure chart ->
+dense supplier table) | **persistent right decision inspector** (drafted action + Approve + ways-to-fix + trust) |
+bottom **status bar** (live, model provenance, ⌘K / ↑↓ keyboard hints). Edge-to-edge, hairline-divided panels
+(no card margins), higher density, internal-scroll (no page scroll), fills the viewport exactly. Kept the icon
+system, gallery-white (light only), one steel accent, red-on-risk, Geist, plain-human copy, reversibility correct.
+File `samples/2026/gallery/00-app.html`; anti-slop CLEAN, 19/19 icons resolve, fills viewport (no overflow).
+**Live Artifact:** https://claude.ai/code/artifact/7b04d118-c665-4f46-9c08-f77126cfb4a7 . This is the current
+front-runner for the shipped register (full-bleed app > the earlier bookish-margin layouts, per owner).
+
+**"WAR ROOM ULTRA-PREMIUM" (2026-07-08, /claude-design "give ultra modern premium UI").** Premium craft pass on
+the full-bleed app — `samples/2026/gallery/00-ultra.html`: layered elevation + inner-light (--edge) so nav +
+inspector lift as true white panels over an off-white canvas (premium figure-ground, NO margins); a **⌘K command
+palette** signature (scrim + elevated panel + keyboard-navigable grouped commands, real JS: ⌘K/`/` open, arrows
+navigate, Esc close); elevated exposure chart (refined area + endpoint glow + hover crosshair); staggered load
+choreography; refined micro-typography + active-tab underline + status-bar sparkline. Held the austere bar —
+FLATTENED the subtle button/pill/avatar gradients I'd added (kept only the chart's meaning-encoding SVG
+gradients) so it stays strictly no-gradient; anti-slop CLEAN, fills viewport, 44 icons resolve, palette works.
+**Live Artifact:** https://claude.ai/code/artifact/3cc05bfd-5ff5-4d39-aef9-70e414888d7f .
+NOTE (2026-07-08): ~9 design iterations run this session on the same packet; owner has pushed "more modern/premium"
+repeatedly — a convergence question was surfaced (is this the bar / push motion / bolder POV / match a named
+product) to stop guessing. The number/content reconciliation remains DEFERRED + owner-gated (see above).
+
+**"WAR ROOM LIVE" — motion + interaction (2026-07-08; owner picked "push motion & interaction").** Made the
+ultra-premium full-bleed app feel like a RUNNING PRODUCT — `samples/2026/gallery/00-live.html`: (1) boot
+choreography — top loading bar, staggered panel reveal, stat numbers COUNT UP, exposure bars fill, chart line
+draws itself in; (2) live data — a pulsing signal, a ticking "auto-refresh in Ns" countdown, an animated
+sparkline feed; (3) real state transitions — WORKING TABS (Overview/Suppliers/Evidence cross-fade, 3 real views
+incl. all-9 supplier table + 7-agent evidence view), a ⌘K command palette that RUNS commands (approve, jump-to-tab;
+arrow-nav + Enter), and a genuine Approve state machine (Approve -> "Sending…" progress -> "Sent" + the action
+block swaps to a "9 notes sent" confirmation); (4) tactile press states + row hover quick-actions. Full
+prefers-reduced-motion fallback (instant, no continuous motion). All interactions verified functionally (tabs,
+palette, approve, count-up, countdown) in BOTH source and the transformed artifact. Fixed an artifact-transform
+bug: JS non-ASCII ("Sending…" ellipsis) must be \u-escaped inside <script>, not HTML-entity-encoded — transform
+updated to js-escape scripts. Anti-slop CLEAN, no gradients, fills viewport, 60 icons resolve.
+**Live Artifact:** https://claude.ai/code/artifact/f018ef8b-7658-4b69-9998-0c4637002887 . This is the fullest
+realization of the shipped-register front-runner (full-bleed + premium craft + live interaction).
+
+**PALETTE EXPLORATION + "APPLE PREMIUM WHITE" (2026-07-08).** Owner: current white/steel bar reads "dull/generic,"
+wants a fresh palette — then iterated hard (5 swatch boards / 20 palettes: cool-saturated, warm/green/pink, two
+Apple-system sets, a bolder range; boards published as artifacts). None locked at swatch scale, so I (a) applied
+Emerald to the full live app as a real full-scale demo, then (b) on the owner's "premium white if Apple would use
+it" directive, built the **converged direction**: `samples/2026/gallery/00-apple.html` — the full live app
+re-grounded in **Apple premium white** (systemGray6-tinted `oklch(0.966 0.004 286)` canvas + pure-white panels +
+near-black hue-286 labels + Apple grays) with a **LIVE ACCENT SWITCHER** in the top bar (Blue/Emerald/Teal/Indigo/
+Amber/Graphite, localStorage-persisted) — per the design-skill Tweaks pattern, so the OWNER picks the accent on the
+real app instead of me guessing on more boards. Default accent = Apple systemBlue. Also hardened the stat count-up
+with a rAF-independent fallback (preview throttles rAF when backgrounded). Verified: Apple ground + switcher +
+count-up + interactions all work. **Live Artifact:** https://claude.ai/code/artifact/5cbe2b2e-395c-426f-854f-1d28f5d7ca42 .
+Palette now OWNER-DRIVEN via the switcher — the accent loop is resolved. (Number/content reconciliation still DEFERRED.)
+**ACCENT CHOSEN = TEAL (owner delegated "ignore Apple, choose best"; 2026-07-08).** Design-lead call: TEAL on the
+Apple premium-white ground is the best accent for THIS product — fresh (clearly off the "dull steel"), calm/
+trustworthy/instrument-grade (right temperament for a crisis tool vs. playful pink/violet), doesn't fight the red
+severity, and — the decisive tiebreaker over the emerald runner-up — **stays distinguishable from red for
+red-green color-blind users** (green accent next to red danger is confusable for ~8% of men; teal is not). Set
+teal as the default (CSS + JS) in `00-apple.html`; switcher retained for override. Redeployed same URL:
+https://claude.ai/code/artifact/5cbe2b2e-395c-426f-854f-1d28f5d7ca42 . COLOR IS NOW SETTLED: Apple premium-white
+ground + teal accent + red severity.
+
+**VERIFY-OVER-MEMORY UPGRADE (2026-07-08; owner: "don't use training knowledge/memory; refer live open sources").**
+Ran THREE parallel research-specialist live-verification sweeps (all cited, cross-verified, licenses checked from repo
+LICENSE files):
+(1) **Colour/Apple** — teal-over-green CONFIRMED (WCAG 2.1's own colour-only failure example is literally red-vs-green;
+Okabe–Ito; R Journal; NEI ~1-in-12 men). CAUGHT A REAL BUG memory missed: light teal on white FAILS WCAG 1.4.11 (3:1
+non-text contrast, ~2.0–2.4:1) — accent must be a deeper teal/green + keep a non-colour cue (WCAG 1.4.1). Apple
+systemGray6=#F2F2F7 confirmed; systemTeal/Red are version-dependent (don't claim a frozen "Apple" hex).
+(2) **Icons/fonts/UI** — icons → **Lucide (ISC, 24px/2px, currentColor)**, the shadcn/ui standard (Radix MIT/15px for
+tiny sizes); font → **Geist Sans+Mono (OFL 1.1) CONFIRMED** (Inter now reads as the overused default) + tabular+lining
+figures (`tnum`+`lnum`) for data columns; UI → shadow-as-border, 4px scale, tight headline tracking, status-as-dots.
+(3) **Layout/narrative** — full-bleed shell + fluid grid (capped measure); **master-detail (decision/inspector pane
+dominates)**; slim nav rail 3–7 dests; decisive metric top-left/above-fold; glanceability (3ft/10ft); reduce+progressive
+disclosure. Narrative: **BLUF** (US Army AR 25-50 + NN/g inverted pyramid + Duarte Big-Idea) — hoist a verdict header
+(recommendation+runway+confidence+persistent Approve) ABOVE the signal; keep the investigative arc as the evidence body.
+**APPLIED** (owner picked green → **Forest**, from a 6-green board with accessibility ranking): `00-final.html` =
+Apple-white ground + **Forest green** default accent (deep enough for 3:1) + **real Lucide icon paths fetched from the
+ISC repo** (20/20, replacing my hand-drawn set) + Geist `tnum+lnum` + 2px stroke + the live accent switcher. Verified:
+20 Lucide symbols render, Forest default, fonts load, no overflow. **Live Artifact:**
+https://claude.ai/code/artifact/c264a0ae-0d00-4674-9037-75935543fc2e . The app already satisfies most layout findings
+(full-bleed + master-detail inspector + slim rail + recommendation-in-hero + persistent Approve + tabbed progressive
+disclosure); the one net-new BLUF suggestion (an explicit top verdict line) is OFFERED, not yet added. Boards:
+greens `aa1cfe03`; the 5 palette boards + teal/emerald live variants remain as artifacts.
+**BLUF HEADER APPLIED (owner: "yes").** Restructured `00-final.html` per the layout/narrative research: added a top
+**verdict bar** (ACT + one-line "Reroute now — 6 days to commit" + the 4 key metrics with count-up + a "2nd AI
+agrees" indicator + a persistent Approve wired to the same send flow); demoted the threat headline to the evidence
+body; removed the old stat strip (metrics moved up — no duplication). Caught + fixed a real layout bug (the BLUF row
+overflowed the centre column, clipping Approve — tightened spacing/verdict to fit: side now 1030px < 1048px column).
+Verified: BLUF renders, metrics count up, Approve fits + triggers the flow, no overflow. Redeployed same URL
+c264a0ae. DESIGN NOW: Apple premium-white + Forest green + Lucide icons + Geist(tnum+lnum) + BLUF arc — all
+research-grounded, live-cited.
+
+**FINALIZATION SESSION (2026-07-08, `/claude-os` + plan-mode gate, owner-approved — the ladder resumes with Fable):**
+1. **Register CONFIRMED by owner: `00-final.html`** (Apple premium-white + Forest green + Lucide + Geist
+   tnum/lnum + full-bleed live app + BLUF verdict bar) is what S-D builds into the shipped app.
+2. **Multi-agent verdict (owner asked "is the best vertical AI multi-agentic platform right for us?"):**
+   RESILIX goes forward as the best governed vertical multi-agent SYSTEM, **not** a horizontal platform —
+   no orchestration-framework build (commodity; tool-collecting signal); S3's read-only MCP surface is the
+   right-sized "platform" move. Corrected record: `ENABLE_AGENT_LOOP` is **default-ON in code**
+   (owner-promoted 2026-06-29, `lib/server/env-flags.ts`); what stays deferred is only the PUBLIC live
+   posture (keys on the URL, Skeptic wart, billable smoke) — keyless runs route to the byte-identical
+   waterfall, so the $0/honest public posture holds.
+3. **NEW RUNG S-L (owner-approved): agent-loop replay exhibit**, between S-D and S3 — a real recorded
+   Investigator-loop trajectory (tool calls → bindings → Skeptic verdict → gatekeeper) replayed in-product,
+   $0/keyless. Verified first-hand: existing `evals/fixtures/live/SCN-*.json` are WATERFALL-era (no loop
+   steps, no Skeptic) — first task is recording ONE loop-mode run locally (~$0.005 per the cost ledger) and
+   committing it as a disclosed "recorded run" fixture. Known risk carried: the Skeptic geo-caution wart
+   false-vetoed Hormuz live (2026-06-28) — at build time either record a scenario it accepts or show the
+   veto honestly; record the choice. Prior art to cite: LangSmith trace replay / AgentOps time-travel
+   debugging (established pattern, live-verified).
+4. **Live ceiling set (research-specialist, cited, accessed 2026-07-08; verify-over-memory per owner):**
+   S3 = `@modelcontextprotocol/sdk` v1.29.0 (spec 2025-11-25) + Vercel `mcp-handler` v0.2.3 over Streamable
+   HTTP (SSE transport deprecated; SDK <1.26.0 has a known vuln — hard floor); stay OFF the v2 beta (spec
+   2026-07-28 finalizes in ~20 days; official "stable for critical workloads") but note the assessed v2/
+   stateless migration path in the README; bearer-token auth documented as a STATED deviation from OAuth 2.1
+   (validate-don't-issue, 401+WWW-Authenticate, read-only scope); assess W3C Trace Context in MCP `_meta`
+   (SEP-414) for audit-trail tie-in. S4 = lexical-first CONFIRMED as the 2026 default; eval floor =
+   recall@k + MRR on hand-labeled pairs; `pg_textsearch` (BM25-in-Postgres, v1.3.0 production mid-2026) is
+   the named upgrade path. S2 = hiring-side credibility ranking: golden-set evals + regression gate >
+   recorded trajectory replay > honest failure writeup > MCP endpoint — surface the first and third LOUD.
+   Final gate: if past 2026-07-28, recheck the finalized MCP spec (open flag from the research pass).
+   **Ladder now: Step-0 reconcile → S2 → S-D → S-L → S3 → S4 → S6 → final Codex → S1 owner deploy.**
+   Session resume plan: `~/.claude/plans/check-the-repo-and-ancient-lighthouse.md`.
 
 ## Deferred / owner-gated (NOT on this ladder, tracked so nothing is lost)
 - **Loop + Skeptic live promotion** (`ENABLE_AGENT_LOOP` default-on + Skeptic UI dramatization): blocked on

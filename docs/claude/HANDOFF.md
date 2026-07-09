@@ -1,6 +1,26 @@
-# HANDOFF — resume pointer (updated 2026-07-06 mid-run: showcase expansion REVISED — legibility-first ladder, deploy last, design in scope)
+# HANDOFF — resume pointer (updated 2026-07-08: ladder FINALIZED with Fable — register confirmed, S-L rung added, ceiling live-set; execution resuming at Step 0/S2)
 
-> ## ▶ RESUME HERE — SHOWCASE EXPANSION EXECUTING (2026-07-06). Goal fixed + owner-approved (revised); autopilot running the ladder.
+> ## ▶ RESUME HERE — LADDER EXECUTING (2026-07-08 finalization session, plan-mode gate APPROVED).
+>
+> **Finalized 2026-07-08 (owner-confirmed in-session):** (1) S-D register = `samples/2026/gallery/00-final.html`
+> (Apple premium-white + Forest green + Lucide + Geist tnum/lnum + full-bleed + BLUF bar). (2) Multi-agent
+> verdict: best governed vertical multi-agent SYSTEM, not a horizontal platform; the built loop (default-ON
+> in code since 2026-06-29; public posture still keyless/waterfall) gets SHOWN, not rebuilt. (3) NEW rung
+> **S-L** (owner-approved): recorded Investigator-loop trajectory replayed in-product, $0/keyless — existing
+> SCN-* fixtures are waterfall-era, so first task = record one loop run locally (~$0.005) as a disclosed
+> fixture; Skeptic-veto risk decision recorded at build time. (4) Live ceiling set (cited 2026-07-08):
+> S3 = MCP SDK v1.29.0 + `mcp-handler` v0.2.3 / Streamable HTTP / stated-deviation bearer auth; S4 =
+> Postgres FTS first, recall@k+MRR floor, `pg_textsearch` upgrade path; S2 = evals + honest-failure exhibit
+> are the top-ranked senior signals. Full record: plan § FINALIZATION SESSION; resume plan:
+> `~/.claude/plans/check-the-repo-and-ancient-lighthouse.md`.
+>
+> **Ladder: Step-0 state reconcile (this commit) → S2 legibility front door → S-D (00-final into app) →
+> S-L loop replay → S3 MCP (dedicated Codex) → S4 RAG → S6 n8n → final batched Codex → S1 OWNER DEPLOY.**
+> Per rung: verify green first-hand → acceptance-gate SHIP → commit → push.
+>
+> ----- prior top block (2026-07-06 goal-fix, pre-finalization) below -----
+>
+> ## ▶ (superseded) SHOWCASE EXPANSION EXECUTING (2026-07-06). Goal fixed + owner-approved (revised); autopilot running the ladder.
 >
 > **Owner directive (2026-07-06, via `/claude-os` rerun):** RESILIX is the ASSET; make it a full-spectrum
 > applied-AI showcase **a 90-second reviewer can read** — "bigger without artificial bloat"; every capability

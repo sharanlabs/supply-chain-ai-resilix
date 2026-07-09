@@ -22,10 +22,15 @@ the END + a dedicated pass for S3 (safety-critical MCP surface). Verify-over-mem
 - [ ] **S-D — Design build:** strongest direction/synthesis from `samples/2026/` built into the shipped app at
   [[resilix-design-bar]]; pick + WHY recorded in plan § Design decision (owner reviews after, not before);
   frozen fixture stays honest WITHOUT a billable re-capture; verify:full + WCAG 2.2 AA + oracles byte-unchanged.
+- [ ] **S-L — Agent-loop replay exhibit (NEW rung, owner-approved 2026-07-08):** record ONE loop-mode run
+  locally (existing SCN-* fixtures are waterfall-era — verified) → commit as a disclosed "recorded run"
+  fixture → replay in-product $0/keyless (tool-call order → bindings → Skeptic verdict → gatekeeper);
+  Skeptic-veto risk decision recorded; structural no-billable-call-on-public-path test.
 - [ ] **S3 — MCP server over the war room:** read-only packet/exposure/audit tools, token-authed, NO authority
-  tools ever; red-team extended to the MCP surface; auth/consent/audit story documented; FIRST verify the
-  Next-compatible MCP transport against installed packages + official SDK docs (no MCP dep exists yet);
-  dedicated Codex pass.
+  tools ever; red-team extended to the MCP surface; auth/consent/audit story documented. Ceiling live-set
+  2026-07-08: `@modelcontextprotocol/sdk` v1.29.0 + `mcp-handler` v0.2.3 over Streamable HTTP (SDK ≥1.26.0
+  hard floor — known vuln below); v2-beta OFF-ladder (note the assessed migration path in README); bearer
+  auth = STATED OAuth 2.1 deviation; dedicated Codex pass.
 - [ ] **S4 — Customs RAG (lexical-first):** cited-chunk retrieval feeding the existing fail-closed citation
   check (HARD BAR; skip-with-reason allowed); retrieval golden suite (recall@k) BEFORE any consumer;
   pg-full-text/BM25 first, embeddings only if proven insufficient; customs golden 34/34 untouched.
