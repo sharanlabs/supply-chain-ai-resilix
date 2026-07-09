@@ -157,3 +157,17 @@ function constantTimeEquals(actual: string, expected: string): boolean {
   const b = createHash("sha256").update(expected).digest();
   return timingSafeEqual(a, b);
 }
+
+// S3 -- the MCP surface's bearer check. STRICTER than verifyApprovalToken by
+// design: there is NO demo pass-through -- a remote agent protocol surface is
+// never authless, so the endpoint stays fail-closed (401) unless a strong
+// MCP_ACCESS_TOKEN (>= MIN_APPROVAL_TOKEN_LENGTH) is configured AND the caller
+// presents it. Pure boolean (the mcp-handler withMcpAuth wrapper maps a falsy
+// verify to 401 + the RFC 9728 WWW-Authenticate challenge); same shared
+// constant-time compare as every other secret on this server (P2.7).
+export function verifyMcpToken(bearer: string | undefined): boolean {
+  const expected = process.env.MCP_ACCESS_TOKEN?.trim();
+  if (!expected || expected.length < MIN_APPROVAL_TOKEN_LENGTH) return false;
+  if (!bearer) return false;
+  return constantTimeEquals(bearer, expected);
+}

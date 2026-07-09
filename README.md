@@ -10,9 +10,9 @@ Every suite count below was re-run first-hand on HEAD (2026-07-09), not quoted f
 
 | Suite | Result | What it proves |
 |---|---|---|
-| `npm test` | **836 passed** (52 skipped — live-billed legs, off by default) | deterministic graders, injection quarantine, the authoritative-binding moat, atomic approval |
+| `npm test` | **847 passed** (52 skipped — live-billed legs, off by default) | deterministic graders, injection quarantine, the authoritative-binding moat, atomic approval |
 | `npm run customs:golden` | **34 / 34** | filing-grade packet or named-gap refusal on every golden case; the citation check fails closed |
-| `npx playwright test` | **47 e2e** (incl. WCAG 2.2 AA accessibility) | the shipped UI, end to end |
+| `npx playwright test` | **53 e2e** (incl. WCAG 2.2 AA accessibility) | the shipped UI, end to end |
 | Cost ledger | **≈ $1.0–1.3 metered** total build spend, recorded through 2026-07 (cap $5, fail-closed pre-call) | real per-call tokens × a pinned price table, persisted per run |
 
 ```bash
@@ -56,6 +56,10 @@ A single **decision packet**:
 - **Role playbooks** — what procurement, ops, and finance each do next, grounded only in the structured numbers.
 - **Drafted supplier emails** — top-5 exposed suppliers, every figure carrying a `claims[]` entry, sitting in an approval queue. Nothing sends without a human clicking approve.
 - **Action items.**
+
+## Agent-ready — the MCP surface
+
+Any MCP client (Claude Desktop, Claude Code, anything speaking Streamable HTTP) can ask the war room questions: `POST /api/mcp/mcp` exposes three **read-only** tools (`get_decision_packet` · `query_supplier_exposure` · `get_audit_trail`) over the recorded replay data, behind a fail-closed bearer token (401 + `WWW-Authenticate` unless a strong `MCP_ACCESS_TOKEN` is configured — no demo pass-through on a remote protocol surface). The trust spine extends here: **no authority tools exist** — a structural test pins the registry, mutation-shaped calls are protocol errors, adversarial inputs are allowlist-rejected and never echoed, and every tool call is audit-logged. Full auth/consent/audit story, including the stated deviation from the full OAuth 2.1 flow and the assessed 2026-07-28 spec-migration path: [docs/mcp.md](docs/mcp.md).
 
 ## How it decides
 

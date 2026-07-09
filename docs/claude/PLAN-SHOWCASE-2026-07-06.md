@@ -403,6 +403,25 @@ Tests: +4 unit (loader drift guards incl. never-injected/cross-family assertions
 chip POSITIVE render on the loop fixture — closes the S-D.2 gate residual) +4 e2e (keyless render with
 provenance/tool-order/Skeptic-on-glass, axe AA, nav round-trip, focus visibility).
 
+**S3 BUILD NOTES (2026-07-09, Fable).** TRANSPORT REALITY corrected the research digest (verify-over-
+memory caught its own research): `mcp-handler@0.2.3` does not exist on npm — live registry latest is
+**1.1.0**, whose peerDependency pins `@modelcontextprotocol/sdk` to **exactly 1.26.0** (installed; at the
+≥1.26.0 security floor — the handler's tested contract beats "latest SDK 1.29.0"). zod conflict class
+(the n8n lesson) checked: SDK peer range `^3.25 || ^4.0` accepts the repo's zod 4.4.3 flat — the README's
+"zod@^3" advice is stale. Auth wrapper verified from installed types: `withMcpAuth(handler, verifyToken,
+{required:true})` → 401 + WWW-Authenticate. BUILT: endpoint `/api/mcp/mcp` (own base — the [transport]
+segment can never shadow other /api routes); 3 read-only fixture-backed tools (get_decision_packet /
+query_supplier_exposure / get_audit_trail — same $0/keyless/disclosed posture as the surfaces);
+`verifyMcpToken` in security.ts (STRICTER than approval: no demo pass-through, unset/weak/wrong all deny,
+shared constant-time compare); structural registry pin + FORBIDDEN_TOOL_VERBS export; audit line per tool
+call (AuditTrailEntry shape, actor mcp-client, append-only log). Tests: 10 unit over a REAL in-memory
+protocol round-trip (registry pin, mutation-shaped call → isError, disclosure-led REPLAY payloads,
+adversarial id → no-match never echoed, schema rejects, token fail-closed ×3) + 4 e2e over REAL Streamable
+HTTP (401+WWW-Authenticate no-bearer, 401 wrong-bearer no-leak, GET auth-gated, SDK-client authed
+round-trip listing exactly 3 tools). docs/mcp.md = the auth/consent/audit story (stated OAuth 2.1
+deviation; assessed 2026-07-28/v2 migration path). README "Agent-ready" section. Pending at rung exit:
+security-specialist read + the DEDICATED Codex pass (safety-critical) + gate.
+
 ## Deferred / owner-gated (NOT on this ladder, tracked so nothing is lost)
 - **Loop + Skeptic live promotion** (`ENABLE_AGENT_LOOP` default-on + Skeptic UI dramatization): blocked on
   billable (G) live gate ×3, the Skeptic geo-caution wart fix, the re-capture coupling, and the owner's
