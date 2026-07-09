@@ -1016,7 +1016,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
             </p>
 
             {/* Quiet evidence line -- the provenance/verifier statement as a trust
-                feature, in the calm accent, never red-alert chrome. A soft steel
+                feature, in the calm accent, never red-alert chrome. A soft accent
                 wash (solid accent-soft, not a gradient) lifted by an inset top
                 highlight so it reads as the packet's trust seal. */}
             <div className="mt-4 flex items-start gap-3 rounded-lg border border-accent/25 bg-accent-soft px-4 py-3 shadow-[inset_0_1px_0_oklch(1_0_0/0.4)]">
@@ -1291,7 +1291,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                 literal; both reuse RunwayBar so the SC 1.4.11 edge token is carried.
                 Additive-optional -- absent unless survivalDays + a recoveryDays exist. */}
             {survival ? (
-              <div className="mb-5 rounded-lg border border-line bg-sink p-4 shadow-[inset_0_1px_2px_oklch(0.3_0.02_262/0.05)]">
+              <div className="mb-5 rounded-lg border border-line bg-sink p-4 shadow-[inset_0_1px_2px_oklch(0.3_0.02_286/0.05)]">
                 <div className="flex items-center gap-2">
                   <Hourglass
                     className="size-3.5 shrink-0 text-ink-muted"
@@ -1732,7 +1732,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
           {/* The human decision -- the trust anchor of the packet. A solid tonal
               panel (no gradient behind text, so the a11y contrast scan stays
               clean): depth is read from the surface step, the panel elevation,
-              and a 2px steel accent cap that marks this as THE decision moment.
+              and a 2px Forest accent cap that marks this as THE decision moment.
               The cap is a top border on a non-text edge -- pure visual weight. */}
           <section
             className="reveal panel overflow-hidden rounded-(--radius-card) border-t-2 border-t-accent shadow-[var(--shadow-e3),inset_0_1px_0_oklch(1_0_0/0.6)]"
@@ -1796,7 +1796,7 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
                   bound to the real gatekeeper verdict (never hardcoded). Rendered
                   in calm ink + the accent, not a green light. A recessed well
                   (inset shadow) so the verdict reads as carved-in evidence. */}
-              <div className="mt-4 rounded-lg border border-line bg-sink p-3.5 shadow-[inset_0_1px_2px_oklch(0.3_0.02_262/0.05)]">
+              <div className="mt-4 rounded-lg border border-line bg-sink p-3.5 shadow-[inset_0_1px_2px_oklch(0.3_0.02_286/0.05)]">
                 <div className="mb-2.5 flex items-center justify-between">
                   <span className="text-[0.6875rem] font-semibold tracking-[0.1em] text-ink-faint uppercase">
                     Automatic checks

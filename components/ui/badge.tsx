@@ -18,7 +18,7 @@ type BadgeTone =
 
 // Foreground tokens are the AA-compliant *-ink severity inks (>=4.5:1 small-text
 // contrast on the matching -soft fill); border/background tokens carry the calm
-// severity ramp. The "success" tone now reads in the steel-blue accent -- the
+// severity ramp. The "success" tone reads in the single Forest accent -- the
 // green status family was dropped in the 2026 retheme ("validated" is calm
 // confidence in the one accent, not a green light); it clears AA on accent-soft
 // (6.73). critical keeps its red status family (4.89 on danger-soft).

@@ -354,6 +354,23 @@ research-grounded, live-cited.
    **Ladder now: Step-0 reconcile → S2 → S-D → S-L → S3 → S4 → S6 → final Codex → S1 owner deploy.**
    Session resume plan: `~/.claude/plans/check-the-repo-and-ancient-lighthouse.md`.
 
+**S-D BUILD NOTES (2026-07-08, Fable).** The port is the REGISTER, not the mockup — the shipped app's
+2,090-line packet view (gated, WCAG-proven, testid-pinned) is the product; the 500-line sample is a
+concept on a fake packet. Two gated sub-increments:
+- **S-D.1 (token-system swap, app-wide reskin):** neutral family → hue 286 (Apple systemGray6 class),
+  canvas deepened 0.985→0.966; accent steel-blue→Forest green (0.5/0.4/0.95 ×0.11-0.035 chroma, hue 148);
+  `positive` = accent-strong (green-as-validation is now the SAME single accent, not a second green);
+  severity ramp UNTOUCHED (severity-semantic, previously measured); runway-edge de-tinted to neutral 286
+  (a green-tinted boundary under amber/red fills would cross-contaminate meaning); tnum+lnum on data
+  figures. **Deliberate deviations from the sample:** ink-faint keeps the app's proven L=0.51 (sample's
+  0.58 measures <4.5:1 at body size — sample not copied blindly); accent-soft lightened to 0.95/0.035
+  (sample's 0.94/0.05 thins the accent-on-soft chip text toward the AA line). NEW committed evidence
+  tool: `scripts/contrast-check.mjs` (OKLCH→linear-sRGB→WCAG, 14 pairs, exits 1 below bar) — all 14
+  PASS first-hand (tightest: faint-on-sink-deep 4.72, runway-edge 4.41 vs 3.0 bar). All steel-era
+  comments truth-updated; README Design paragraph rewritten.
+- **S-D.2 (structural signature, next):** BLUF verdict bar wired to real packet data + full-bleed
+  master-detail shell + functional Lucide icons; e2e testids preserved; verify:full + gate per increment.
+
 ## Deferred / owner-gated (NOT on this ladder, tracked so nothing is lost)
 - **Loop + Skeptic live promotion** (`ENABLE_AGENT_LOOP` default-on + Skeptic UI dramatization): blocked on
   billable (G) live gate ×3, the Skeptic geo-caution wart fix, the re-capture coupling, and the owner's

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-// Type system for the 2026 "Command Surface" language -- sans-clean end to end,
+// Type system for the "Apple premium-white / Forest" register -- sans-clean end to end,
 // in the Apple SF / Google Sans / OpenAI / Geist register:
 //   Geist -- a bespoke grotesk for headlines, body, labels, and all figures
 //     (tabular-nums via the `.tnum` utility). It carries the editorial calm

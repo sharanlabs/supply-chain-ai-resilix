@@ -128,7 +128,7 @@ The full enterprise-expansion path — what's already built, what's deliberately
 
 ## Design
 
-A "calm command center" surface: a cool near-white ground, a single desaturated steel/cobalt accent (color is reserved for meaning — amber→red severity on real risk only), Geist sans, and a tinted two-layer elevation system (soft shadow + contact line + inset highlight) with a fractal-noise grain and a lit-from-above wash. The palette, accent strategy, elevation, and anti-AI-slop posture were validated against the current top-tier 2026 design language (Vercel, Linear, Stripe, Apple's 2026 Liquid Glass guidance) — see `docs/claude/DESIGN-VALIDATION-2026-06-20.md`. Light-only is a deliberate choice (every WCAG 2.2 AA ratio is light-tuned); a dark theme is future scope.
+An "Apple premium-white / Forest" register (2026-07-08): a systemGray6-class neutral canvas with pure-white lifted panels, one deep Forest-green accent carrying every meaning moment (approve, validated, PASS — chosen from an accessibility-ranked board; deep enough to clear the 3:1 non-text bar lighter greens fail), the amber→red severity ramp reserved for real risk, Geist with tabular+lining figures, and a tinted elevation system over a fractal-noise grain. Every token pair is contrast-measured by a committed checker (`scripts/contrast-check.mjs`) and re-proven in the browser by the a11y e2e; the register's selection trail (20+ palette explorations, live 2026 references, the design decision record) is in `docs/claude/PLAN-SHOWCASE-2026-07-06.md`. Light-only is a deliberate choice (every WCAG 2.2 AA ratio is light-tuned); a dark theme is future scope.
 
 ## Tech stack
 

@@ -1,24 +1,29 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   RESILIX ActionOps -- "Command Surface" design language (2026 retheme).
+   RESILIX ActionOps -- "Apple premium-white / Forest" register (S-D, 2026-07-08).
 
-   A serious crisis-to-action decision tool, read like a war-room briefing.
-   The lineage is Linear / Vercel / Apple system surfaces: a cool near-white
-   canvas with real tonal depth, a confident desaturated STEEL-BLUE accent, and
-   sanctioned elevation (tinted, wide, low-opacity shadows) carrying hierarchy.
+   The shipped build of the owner-confirmed 00-final design register (see
+   docs/claude/PLAN-SHOWCASE-2026-07-06.md § Design decision + FINALIZATION):
+   an Apple-system premium-white ground (a systemGray6-class canvas at neutral
+   hue 286, deeper than the previous 0.985 ground so pure-white panels lift as
+   true figure over ground), a single FOREST GREEN accent (owner-picked from a
+   live accessibility-ranked board; deep enough for 3:1 non-text on white, the
+   live-verified WCAG 1.4.11 bar the lighter teals failed), and the unchanged
+   amber->red severity ramp -- still the only other saturated family, still
+   appearing only on real risk.
 
-   What changed from the prior near-monochrome system, and WHY:
-     - The accent gains real chroma (graphite 0.015 -> steel-blue ~0.105). The
-       earlier accent was near-zero-chroma graphite, which read flat; a single
-       restrained blue is the one confident color the decision UI turns on. It
-       stays desaturated (premium, not electric) and off purple/green/pink.
-     - Depth is now elevation, not edge-only. Shadows are tinted to the cool
-       neutral hue, wide, and low-opacity so panels lift off the canvas the way
-       a real instrument lifts off a desk -- never a muddy default drop shadow.
-     - The palette is still strictly three families: cool neutrals (60), the
-       steel-blue accent (~10%), and the amber->red severity ramp -- the ONLY
-       saturated color, appearing ONLY on real risk. Every color is meaning.
+   What changed from the steel-blue "Command Surface" system, and WHY:
+     - Accent steel-blue (hue ~256) -> Forest green (hue 148). The owner judged
+       the steel register "dull/generic" after a 20-palette exploration; Forest
+       won an accessibility-ranked green board. Green-as-decoration stays
+       banned; green is now the one MEANING color (act, validated, approve).
+     - Neutrals move from hue ~255-262 to hue 286 (the Apple systemGray6
+       family) and the canvas deepens (0.985 -> 0.966) so white surfaces carry
+       figure-ground without heavier shadows.
+     - Ink lightness values KEEP the previously measured AA-proven levels; only
+       hue/chroma move to the 286 family (the sample's lighter faint-ink failed
+       our body-size AA bar, so the sample was not copied blindly).
 
    Tailwind v4: tokens are registered in @theme so utilities like
    `bg-ground` / `text-ink` / `border-line` / `text-sev-critical` exist. The
@@ -28,48 +33,51 @@
 
    Contrast: every text/background pair clears WCAG 2.2 AA and the runway edge
    clears SC 1.4.11 by ground-truth sRGB; the measured ratios are noted inline
-   and proven by evals/e2e/a11y.spec.ts (12 passed).
+   (re-computed for this register, scripts/contrast-check.mjs) and proven by
+   evals/e2e/a11y.spec.ts.
    --------------------------------------------------------------------------- */
 
 @theme {
-  /* Surfaces -- a cool near-white ground (neutral hue ~255, never pure #fff), a
-     pure-white lifted panel, and two tonal sinks. The ramp is slightly deeper
-     than before so elevation reads: surface (white) > ground > sink > sink-deep,
-     each a real step a shadow can sit between. */
-  --color-ground: oklch(0.985 0.004 255);
+  /* Surfaces -- the Apple premium-white ground (hue 286, systemGray6-class
+     depth), a pure-white lifted panel, and two tonal sinks. The canvas is a
+     real tone now (0.966), so elevation reads: surface (white) > ground >
+     sink > sink-deep, each a step a shadow can sit between. */
+  --color-ground: oklch(0.966 0.004 286);
   --color-surface: oklch(1 0 0);
-  --color-sink: oklch(0.966 0.006 255);
-  --color-sink-deep: oklch(0.949 0.008 255);
-  --color-line: oklch(0.908 0.008 255);
-  --color-line-strong: oklch(0.845 0.01 255);
+  --color-sink: oklch(0.952 0.005 286);
+  --color-sink-deep: oklch(0.932 0.006 286);
+  --color-line: oklch(0.902 0.006 286);
+  --color-line-strong: oklch(0.838 0.008 286);
 
-  /* Text -- cool graphite ink (not #000), a muted mid, and a faint label grey.
-     All three clear WCAG AA 4.5:1 for small text on every surface used for body
-     copy (ground/sink/surface): ink >=14.3, muted >=6.6, faint >=5.1; faint on
-     the deepest sink still measures 4.85 (AA). The inks carry a hair more chroma
-     than before so they sit in the same cool family as the steel accent. */
-  --color-ink: oklch(0.255 0.022 262);
-  --color-ink-muted: oklch(0.455 0.028 260);
-  --color-ink-faint: oklch(0.515 0.03 258);
+  /* Text -- cool graphite ink (not #000), a muted mid, and a faint label grey,
+     all in the 286 family. Lightness levels are carried over from the previous
+     AA-proven system (the design sample's lighter faint ink measured below
+     4.5:1 at body size and was rejected); ratios re-measured for the new hues
+     by scripts/contrast-check.mjs and asserted by the a11y e2e. */
+  --color-ink: oklch(0.225 0.012 286);
+  --color-ink-muted: oklch(0.45 0.016 286);
+  --color-ink-faint: oklch(0.51 0.016 286);
 
-  /* One confident accent -- a desaturated STEEL-BLUE (hue ~256, chroma ~0.105).
-     This is the deliberate move from "calm by absence of color" to "calm by ONE
-     confident color": the decision UI now has a voice (the approve path, claim
-     ticks, the gatekeeper PASS, the validated pill) in a single restrained blue,
-     while the only OTHER saturated color remains the amber->red severity ramp.
-     Off purple/green/pink entirely (owner direction), and well clear of the
-     "AI purple-blue glow" slop (no gradient glow, flat confident hue).
-     Measured: accent-strong on surface 8.94, accent on accent-soft 5.29 (AA). */
-  --color-accent: oklch(0.5 0.105 256);
-  --color-accent-strong: oklch(0.41 0.115 257);
-  --color-accent-soft: oklch(0.955 0.02 256);
-  --color-accent-ink: oklch(0.99 0.004 256);
+  /* One confident accent -- FOREST GREEN (hue 148, owner-picked 2026-07-08 from
+     an accessibility-ranked board; supersedes the steel-blue and the old
+     "no green" bar line -- green-as-decoration stays banned, green-as-THE-accent
+     is the deliberate choice). The decision UI's voice (the approve path, claim
+     ticks, the gatekeeper PASS, the validated pill) in a single deep green that
+     clears 3:1 non-text on white (the WCAG 1.4.11 bar lighter greens/teals
+     failed in live verification), while the only OTHER saturated color remains
+     the amber->red severity ramp. Measured (scripts/contrast-check.mjs):
+     accent-strong on surface 8.81, accent on accent-soft 4.99, accent-ink on
+     accent-strong 8.57, accent on surface 5.71 (non-text bar 3.0) -- all AA. */
+  --color-accent: oklch(0.5 0.11 148);
+  --color-accent-strong: oklch(0.4 0.1 148);
+  --color-accent-soft: oklch(0.95 0.035 148);
+  --color-accent-ink: oklch(0.99 0.004 148);
 
   /* Semantic severity -- a single perceptual ramp, calm -> alarm. The -edge
      value is a touch deeper/brighter for the trailing end of a runway gradient
-     (a single hue shift, never a rainbow). The LOW end is shifted to a cool
-     blue-cyan (hue 230) so it harmonizes with the steel accent rather than the
-     dropped teal, and stays clearly distinct from the warm medium/high/critical. */
+     (a single hue shift, never a rainbow). The LOW end stays a cool blue-cyan
+     (hue 230): clearly distinct from the warm medium/high/critical AND from the
+     Forest accent (hue 148), so "low severity" never reads as "approved". */
   --color-sev-low: oklch(0.55 0.07 230);
   --color-sev-low-soft: oklch(0.955 0.022 230);
   --color-sev-low-edge: oklch(0.6 0.075 228);
@@ -87,25 +95,24 @@
      runway-fill gradients and icon strokes (large/graphic scale on light
      surfaces); as small badge TEXT on the matching -soft fill they need a darker
      same-hue ink to clear WCAG AA. Measured against their -soft background:
-     low 5.89, medium 5.65, high 5.73, critical 5.84 (all >=4.5 AA). */
+     low 5.91, medium 5.67, high 5.73, critical 5.84 (all >=4.5 AA; scripts/contrast-check.mjs). */
   --color-sev-low-ink: oklch(0.47 0.075 232);
   --color-sev-medium-ink: oklch(0.49 0.115 90);
   --color-sev-high-ink: oklch(0.49 0.155 48);
   --color-sev-critical-ink: oklch(0.49 0.175 26);
 
-  /* Status semantics distinct from severity (mode/approval/validation). The
-     green family stays GONE: a "PASS / approved" state is calm confidence, not a
-     green-light decoration, so "positive" resolves to the steel-blue accent --
-     the gatekeeper, claim ticks, and the approved pill read as quiet evidence in
-     the one accent, never as celebratory chrome. (Token name kept so existing
-     callers stay valid; the meaning is "validated", rendered in the accent.)
-     Measured: positive on positive-soft 7.85 (AA). */
-  --color-positive: oklch(0.41 0.115 257);
-  --color-positive-soft: oklch(0.955 0.02 256);
+  /* Status semantics distinct from severity (mode/approval/validation).
+     "Positive" resolves to the Forest accent-strong: with green now the one
+     accent, a "PASS / approved" state finally reads in the color the world
+     expects -- but it is the SAME single accent doing it, never a second
+     celebratory green. (Token name kept so existing callers stay valid.)
+     Measured: positive on positive-soft 7.70 (scripts/contrast-check.mjs). */
+  --color-positive: oklch(0.4 0.1 148);
+  --color-positive-soft: oklch(0.95 0.035 148);
   --color-caution: oklch(0.6 0.125 75);
   --color-caution-soft: oklch(0.962 0.042 75);
   /* Caution badge text needs a darker same-amber ink for AA on caution-soft
-     (measured 5.63), while the base --color-caution keeps its role on chips. */
+     (measured 5.66, scripts/contrast-check.mjs), while the base --color-caution keeps its role on chips. */
   --color-caution-ink: oklch(0.49 0.135 72);
   --color-danger: oklch(0.535 0.175 27);
   --color-danger-soft: oklch(0.957 0.038 26);
@@ -116,11 +123,11 @@
      against the near-white --color-sink track (the LOW gradient start is
      near-white, so a low bar would be effectively invisible on its own). This
      hue-independent 1px edge draws the bar boundary in one dark token that
-     clears 3:1 for EVERY severity -- measured 4.59:1 vs --color-sink in
-     evals/e2e/a11y.spec.ts (>=3:1). The numeric label beside each bar separately
-     satisfies SC 1.4.1 (use of color). Carries a hair of the accent hue (260) so
-     the boundary belongs to the steel family. */
-  --color-runway-edge: oklch(0.54 0.02 260);
+     clears 3:1 for EVERY severity -- measured 4.41:1 vs --color-sink
+     (scripts/contrast-check.mjs; >=3:1, re-asserted by evals/e2e/a11y.spec.ts). The numeric label beside each bar separately
+     satisfies SC 1.4.1 (use of color). Neutral 286-family (a green-tinted edge
+     under the amber->red severity fills would cross-contaminate meaning). */
+  --color-runway-edge: oklch(0.54 0.014 286);
 
   /* Crisp instrument radii -- 8-10px, not 24px blobs. A touch softer than the
      prior 8px to read a step more premium at high-DPI without going pill-round. */
@@ -128,18 +135,18 @@
 
   /* ------------------------------------------------------------------------
      Elevation -- the sanctioned depth lever (the old "hairline, not shadow"
-     rule is lifted). Shadows are TINTED to the cool neutral hue (262), WIDE,
+     rule is lifted). Shadows are TINTED to the cool neutral hue (286), WIDE,
      and LOW-opacity so a panel lifts off the canvas without a muddy halo. Three
      steps: a resting panel (e1), a lifted/sticky surface (e2), and the decision
      rail / button (e3, a touch more presence). Each pairs a soft ambient spread
      with a tight contact line, the way real elevation casts two shadows. These
      are not measured by any test -- they are pure premium depth. */
-  --shadow-e1: 0 1px 2px oklch(0.3 0.03 262 / 0.05),
-    0 4px 14px -6px oklch(0.3 0.03 262 / 0.08);
-  --shadow-e2: 0 2px 4px oklch(0.3 0.03 262 / 0.06),
-    0 10px 30px -10px oklch(0.3 0.03 262 / 0.12);
-  --shadow-e3: 0 1px 2px oklch(0.3 0.03 262 / 0.07),
-    0 14px 40px -12px oklch(0.3 0.03 262 / 0.16);
+  --shadow-e1: 0 1px 2px oklch(0.3 0.02 286 / 0.05),
+    0 4px 14px -6px oklch(0.3 0.02 286 / 0.08);
+  --shadow-e2: 0 2px 4px oklch(0.3 0.02 286 / 0.06),
+    0 10px 30px -10px oklch(0.3 0.02 286 / 0.12);
+  --shadow-e3: 0 1px 2px oklch(0.3 0.02 286 / 0.07),
+    0 14px 40px -12px oklch(0.3 0.02 286 / 0.16);
 }
 
 @theme inline {
@@ -178,9 +185,9 @@ body {
 }
 
 /* The canvas, lit from above. Two stacked, very faint cool blooms -- a broad
-   top wash plus a tighter steel-tinted core -- give the ground a sense of an
-   instrument lit from overhead, with more dimensionality than the prior flat
-   single wash, while staying near-flat. Fixed, pointer-events-none, never on a
+   top wash plus a tighter neutral core, both in the 286 family (the light stays
+   neutral; only meaning gets color) -- give the ground a sense of an instrument
+   lit from overhead while staying near-flat. Fixed, pointer-events-none, never on a
    scroll container (so it never triggers a continuous GPU repaint). This sits
    behind everything and never under text used for contrast. */
 body::before {
@@ -192,12 +199,12 @@ body::before {
   background:
     radial-gradient(
       120% 70% at 50% -12%,
-      oklch(0.97 0.012 256 / 0.55),
+      oklch(0.978 0.005 286 / 0.55),
       transparent 58%
     ),
     radial-gradient(
       90% 55% at 85% 0%,
-      oklch(0.965 0.016 248 / 0.4),
+      oklch(0.972 0.006 286 / 0.4),
       transparent 55%
     );
 }
@@ -242,13 +249,15 @@ summary:focus-visible,
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: 4px;
-  box-shadow: 0 0 0 4px oklch(0.5 0.105 256 / 0.16);
+  box-shadow: 0 0 0 4px oklch(0.5 0.11 148 / 0.16);
 }
 
-/* All figures align in columns and read as data, not prose. */
+/* All figures align in columns and read as data, not prose. Lining figures
+   (lnum) added with the S-D register: data columns get uniform-height digits
+   even if a face ships oldstyle defaults (the live-verified 2026 data-UI bar). */
 .tnum {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum", "lnum";
 }
 
 /* The north-star at-risk figure in the briefing lede. Previously the one serif
@@ -296,7 +305,7 @@ summary:focus-visible,
 .panel-sunken {
   border: 1px solid var(--color-line);
   background: var(--color-sink);
-  box-shadow: inset 0 1px 2px oklch(0.3 0.02 262 / 0.05);
+  box-shadow: inset 0 1px 2px oklch(0.3 0.02 286 / 0.05);
 }
 
 /* A scroll guard so data tables never overflow the viewport on small screens. */
@@ -359,7 +368,7 @@ summary:focus-visible,
   border-radius: 999px;
   background: var(--color-sink);
   overflow: hidden;
-  box-shadow: inset 0 1px 2px oklch(0.3 0.02 262 / 0.07);
+  box-shadow: inset 0 1px 2px oklch(0.3 0.02 286 / 0.07);
 }
 
 .runway-fill {

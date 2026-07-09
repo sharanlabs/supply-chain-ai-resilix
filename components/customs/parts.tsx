@@ -101,7 +101,7 @@ export function LabelClassBadge({ labelClass }: { labelClass: LabelClass }) {
   return <Badge tone="neutral">{text}</Badge>;
 }
 
-// Disposition carries meaning: PROCEED is the calm steel accent; REFUSE is a
+// Disposition carries meaning: PROCEED is the calm Forest accent; REFUSE is a
 // considered "held back" -- one warm caution tone, never a red alarm.
 export function DispositionBadge({ disposition }: { disposition: "PROCEED" | "REFUSE" }) {
   return disposition === "PROCEED" ? (

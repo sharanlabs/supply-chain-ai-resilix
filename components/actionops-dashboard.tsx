@@ -43,7 +43,7 @@ export function ActionOpsDashboard({ packet }: { packet?: DecisionPacketV2 }) {
       <header className="sticky top-0 z-20 border-b border-line bg-ground/80 shadow-[var(--shadow-e2)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-3.5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div className="flex items-center gap-3.5">
-            {/* The brand mark -- a deep graphite tile with a steel top-edge
+            {/* The brand mark -- a deep graphite tile with an accent top-edge
                 highlight, so it catches the same "lit from above" light as the
                 panels. The accent shield reads as the product's quiet authority. */}
             <div className="flex size-9 items-center justify-center rounded-lg bg-ink text-ground shadow-[var(--shadow-e2),inset_0_1px_0_oklch(1_0_0/0.12)]">

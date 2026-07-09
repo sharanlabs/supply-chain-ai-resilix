@@ -3,7 +3,7 @@ import type { SkepticVerdict as Verdict } from "@/lib/agents/customsdesk/skeptic
 
 // The Skeptic verdict -- an INDEPENDENT re-derivation of the outcome from the raw
 // case inputs (maker != judge). Acceptance reads as quiet confirmation in the one
-// steel accent, never celebratory chrome; objections are listed as the adversarial
+// the single accent, never celebratory chrome; objections are listed as the adversarial
 // re-check they are.
 
 export function SkepticVerdict({ verdict }: { verdict: Verdict }) {
