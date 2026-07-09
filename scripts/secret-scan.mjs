@@ -50,7 +50,9 @@ const allowlistedAssignments = new Map([
   ["callback-secret-for-test", ["n8n-callback.test.ts"]],
   ["a-strong-callback-secret-value", ["security-fail-closed.test.ts"]],
   // obviously-fake Slack bot token (the literal word SECRET, not a real xoxb credential).
-  ["xoxb-SECRET-TOKEN", ["slack-transport.test.ts"]]
+  ["xoxb-SECRET-TOKEN", ["slack-transport.test.ts"]],
+  // fake MCP token for the prod-misconfig predicate tests.
+  ["a-strong-token-1234567890", ["mcp-server.test.ts"]]
 ]);
 
 function isAllowlisted(value, relativePath) {

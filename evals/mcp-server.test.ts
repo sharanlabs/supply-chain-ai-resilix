@@ -55,10 +55,12 @@ describe("MCP surface -- structural no-authority contract", () => {
   // actual code a regression would introduce.
   it("the tool module imports NO mutation/execution/persistence surface (structural moat)", () => {
     const src = readFileSync(new URL("../lib/server/mcp-server.ts", import.meta.url), "utf8");
-    // Scan IMPORT lines for reach into any mutation/execution/persistence module.
+    // Scan static imports, DYNAMIC imports, and require() for reach into any
+    // mutation/execution/persistence module (final-gate Codex LOW: a dynamic import
+    // must not be a blind spot).
     const importLines = src
       .split("\n")
-      .filter((l) => /^\s*import\s/.test(l) || /require\(/.test(l));
+      .filter((l) => /^\s*import\s/.test(l) || /\bimport\s*\(/.test(l) || /require\(/.test(l));
     const forbiddenModules = [
       /action-executor/,
       /action-transport/,
@@ -74,7 +76,20 @@ describe("MCP surface -- structural no-authority contract", () => {
     // FORBIDDEN_TOOL_VERBS regex literal legitimately NAMES these verbs, and
     // crypto's .update() is not a DB write, so scan the specific authority calls,
     // not generic method shapes -- the import-module scan above is the primary guard.)
-    const callSites = [/approvePacket\(/, /executeAction\(/, /dispatchAction\(/, /buildDecisionPacket\(/];
+    // Broadened (final-gate Codex LOW) to the executor/store authority surface's
+    // exported symbols, so an authority call under a different local name is caught.
+    const callSites = [
+      /approvePacket\s*\(/,
+      /executeApprovedPacketActions\s*\(/,
+      /executeAction\s*\(/,
+      /dispatchGovernableAction\w*\s*\(/,
+      /dispatchAction\s*\(/,
+      /reconcile\w*Dispatches\s*\(/,
+      /transitionApproval\s*\(/,
+      /buildDecisionPacket\s*\(/,
+      /saveDecisionPacket\s*\(/,
+      /updateDecisionPacket\s*\(/
+    ];
     for (const pattern of callSites) {
       expect(src, `mcp-server.ts must not call a mutation/execution surface (${pattern})`).not.toMatch(
         pattern
@@ -203,5 +218,74 @@ describe("verifyMcpToken -- fail-closed bearer (no demo pass-through)", () => {
     expect(verifyMcpToken("a-strong-test-token-of-plenty-length")).toBe(true);
     expect(verifyMcpToken("a-strong-test-token-of-plenty-lengtX")).toBe(false);
     expect(verifyMcpToken(undefined)).toBe(false);
+  });
+});
+
+describe("MCP surface -- injection CORPUS driven through the tool args (carried S3 advisory)", () => {
+  it("every BASE_INTENT payload as a supplierId yields no-match and is NEVER echoed", async () => {
+    const { BASE_INTENTS } = await import("@/evals/golden/injection-corpus");
+    const client = await connectedClient();
+    for (const intent of BASE_INTENTS) {
+      // The tool caps supplierId at 64 chars; truncate as a real client would be forced to.
+      const supplierId = intent.base.slice(0, 64);
+      const text = firstText(
+        await client.callTool({
+          name: "query_supplier_exposure",
+          arguments: { source: "war-room", supplierId }
+        })
+      );
+      // Never a match (no packet supplier is named this), and the payload never appears
+      // in the output -- the never-echo invariant holds across the whole corpus.
+      expect(text, `intent ${intent.key} should not match`).toContain("no supplier in this packet matches");
+      expect(text, `intent ${intent.key} must not be echoed`).not.toContain(supplierId);
+      // And a signature injection phrase never survives into output.
+      expect(text.toLowerCase()).not.toContain("ignore all previous");
+    }
+    await client.close();
+  });
+
+  it("injection payloads as a customs-policy query are hashed, never echoed", async () => {
+    const { BASE_INTENTS } = await import("@/evals/golden/injection-corpus");
+    const client = await connectedClient();
+    for (const intent of BASE_INTENTS) {
+      const query = intent.base.slice(0, 256);
+      const text = firstText(
+        await client.callTool({ name: "query_customs_policy", arguments: { query } })
+      );
+      expect(text).toContain("(hashed; not echoed)");
+      expect(text, `intent ${intent.key} must not be echoed`).not.toContain(query);
+    }
+    await client.close();
+  });
+});
+
+describe("mcpMisconfiguredInProduction -- the prod-503 guard (carried S3 advisory)", () => {
+  it("FALSE in dev/test (no 503 for the keyless demo)", async () => {
+    const { mcpMisconfiguredInProduction } = await import("@/lib/server/security");
+    expect(mcpMisconfiguredInProduction({ NODE_ENV: "test", MCP_ACCESS_TOKEN: "x".repeat(20) })).toBe(false);
+    expect(mcpMisconfiguredInProduction({ NODE_ENV: "development" })).toBe(false);
+  });
+
+  it("FALSE in production when the MCP surface is not live (no token)", async () => {
+    const { mcpMisconfiguredInProduction } = await import("@/lib/server/security");
+    expect(mcpMisconfiguredInProduction({ NODE_ENV: "production" })).toBe(false);
+  });
+
+  it("TRUE in production when a token is set but no trusted origin is pinned (fail closed)", async () => {
+    const { mcpMisconfiguredInProduction } = await import("@/lib/server/security");
+    expect(
+      mcpMisconfiguredInProduction({ NODE_ENV: "production", MCP_ACCESS_TOKEN: "a-strong-token-1234567890" })
+    ).toBe(true);
+  });
+
+  it("FALSE in production once a trusted origin is configured", async () => {
+    const { mcpMisconfiguredInProduction } = await import("@/lib/server/security");
+    expect(
+      mcpMisconfiguredInProduction({
+        NODE_ENV: "production",
+        MCP_ACCESS_TOKEN: "a-strong-token-1234567890",
+        MCP_PUBLIC_ORIGIN: "https://resilix.example"
+      })
+    ).toBe(false);
   });
 });

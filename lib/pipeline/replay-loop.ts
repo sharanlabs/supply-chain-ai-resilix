@@ -61,11 +61,37 @@ export function loadLoopTrajectory(): LoopTrajectory {
     );
   }
 
+  // Final-gate Codex MED: the loader (not only the tests) enforces the exhibit's
+  // honesty semantics -- a fixture that drifts must fail HERE, at render time, not
+  // just in CI. The Skeptic must be a genuine LIVE, CROSS-FAMILY critic with a
+  // code-bound gate outcome, and must NOT be the D.9 recorder's injected-accept.
   const skeptic = packet.agentRuns.find((r) => r.agentName === "Skeptic");
-  if (!skeptic || !skeptic.model || skeptic.model === "deterministic-rules" || !packet.skepticGateOutcome) {
+  if (
+    !skeptic ||
+    !skeptic.model ||
+    skeptic.model === "deterministic-rules" ||
+    skeptic.mode !== "LIVE_AI" ||
+    // Cross-family: the Skeptic must NOT be the Gemini family that drives the loop.
+    skeptic.model.toLowerCase().includes("gemini") ||
+    !packet.skepticGateOutcome
+  ) {
     throw new Error(
-      "Loop fixture has no REAL cross-family Skeptic run with a code-bound gate outcome -- " +
-        "the exhibit must never present a deterministic or injected verdict as the live critic; regenerate."
+      "Loop fixture has no REAL live cross-family Skeptic run with a code-bound gate outcome -- " +
+        "the exhibit must never present a deterministic, same-family, or injected verdict as the live critic; regenerate."
+    );
+  }
+  // The D.9 landing recorder injects "in-pipeline accept" for reproducibility; that
+  // marker must NEVER appear in a /loop fixture (it would be a faked verdict).
+  if ((skeptic.summary ?? "").includes("in-pipeline accept")) {
+    throw new Error(
+      "Loop fixture carries the injected-accept marker -- it is a reproducibility fixture, not a real loop trace; regenerate via evals/record-loop-trajectory.test.ts."
+    );
+  }
+  // The recorded tool order must include the challenge step (the Skeptic gate is the
+  // point of the exhibit); a sequence without it is not a complete loop trajectory.
+  if (!sequenceMatch[1].includes("challengeFinding")) {
+    throw new Error(
+      "Loop fixture's tool sequence does not include challengeFinding -- an incomplete loop trace; regenerate."
     );
   }
 

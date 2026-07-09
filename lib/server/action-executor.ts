@@ -18,6 +18,7 @@ import {
 } from "@/lib/server/action-taxonomy";
 import {
   defaultTransportRegistry,
+  transportRegistryFromEnv,
   resolveTransport,
   type TransportRegistry
 } from "@/lib/server/action-transport";
@@ -737,10 +738,17 @@ export async function reconcileStrandedDispatches(input: {
 export async function reconcileAllStrandedDispatches(deps?: {
   listPackets?: () => Promise<DecisionPacket[]>;
   reconcile?: typeof reconcileStrandedDispatches;
+  registry?: TransportRegistry;
   now?: () => string;
 }): Promise<{ packetsScanned: number; reExecuted: number; reFailed: number; errored: number }> {
   const listPackets = deps?.listPackets ?? (async () => (await listDecisionPackets()) as DecisionPacket[]);
-  const reconcile = deps?.reconcile ?? reconcileStrandedDispatches;
+  // Final-gate Codex MED: the boot sweep uses CONFIGURED transports so a recovered
+  // REVERSIBLE action reaches the transport an operator set (empty {} -> all-Noop for
+  // the keyless demo, unchanged). The moat is intact: reconcile re-drives only
+  // REVERSIBLE actions, never the outward ERP_CASE/n8n path.
+  const registry = deps?.registry ?? transportRegistryFromEnv();
+  const reconcile =
+    deps?.reconcile ?? ((input) => reconcileStrandedDispatches({ ...input, deps: { registry } }));
   const summary = { packetsScanned: 0, reExecuted: 0, reFailed: 0, errored: 0 };
 
   let packets: DecisionPacket[];

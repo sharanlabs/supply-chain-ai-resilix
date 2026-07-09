@@ -10,7 +10,7 @@ Every suite count below was re-run first-hand on HEAD (2026-07-09), not quoted f
 
 | Suite | Result | What it proves |
 |---|---|---|
-| `npm test` | **863 passed** (52 skipped — live-billed legs, off by default) | deterministic graders, injection quarantine, the authoritative-binding moat, atomic approval |
+| `npm test` | **869 passed** (52 skipped — live-billed legs, off by default) | deterministic graders, injection quarantine, the authoritative-binding moat, atomic approval |
 | `npm run customs:golden` | **34 / 34** | filing-grade packet or named-gap refusal on every golden case; the citation check fails closed |
 | `npx playwright test` | **56 e2e** (incl. WCAG 2.2 AA accessibility) | the shipped UI, end to end |
 | Cost ledger | **≈ $1.0–1.3 metered** total build spend, recorded through 2026-07 (cap $5, fail-closed pre-call) | real per-call tokens × a pinned price table, persisted per run |

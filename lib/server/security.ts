@@ -158,6 +158,21 @@ function constantTimeEquals(actual: string, expected: string): boolean {
   return timingSafeEqual(a, b);
 }
 
+// S3 -- the MCP surface's production-misconfig guard, as a PURE testable predicate
+// (carried S3 advisory): the MCP endpoint fails closed with a 503 when it is LIVE in
+// production (a token is configured) but no trusted MCP_PUBLIC_ORIGIN is pinned, so
+// the 401 challenge origin can never be request-derived on a live prod surface. Dev,
+// test, and token-less replay-only deploys are unaffected.
+export function mcpMisconfiguredInProduction(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return (
+    env.NODE_ENV === "production" &&
+    Boolean(env.MCP_ACCESS_TOKEN?.trim()) &&
+    !env.MCP_PUBLIC_ORIGIN?.trim()
+  );
+}
+
 // S3 -- the MCP surface's bearer check. STRICTER than verifyApprovalToken by
 // design: there is NO demo pass-through -- a remote agent protocol surface is
 // never authless, so the endpoint stays fail-closed (401) unless a strong

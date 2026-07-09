@@ -1,7 +1,7 @@
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { registerWarRoomTools } from "@/lib/server/mcp-server";
-import { verifyMcpToken } from "@/lib/server/security";
+import { verifyMcpToken, mcpMisconfiguredInProduction } from "@/lib/server/security";
 
 // S3 -- the MCP endpoint: /api/mcp/mcp over Streamable HTTP (mcp-handler v1.1.0,
 // SDK v1.26.0 -- the handler's exact peer pin, at/above the >=1.26.0 security
@@ -61,10 +61,7 @@ const resourceUrl = publicOrigin
 // trusted origin, matching the repo's "secure mode requires strong config"
 // pattern (verifyApprovalToken's 503 AUTH_NOT_CONFIGURED). Dev/test/replay-only
 // deploys (no token) are unaffected -- the surface there simply 401s on every call.
-const mcpMisconfiguredInProd =
-  process.env.NODE_ENV === "production" &&
-  Boolean(process.env.MCP_ACCESS_TOKEN?.trim()) &&
-  !publicOrigin;
+const mcpMisconfiguredInProd = mcpMisconfiguredInProduction();
 
 const authedHandler = withMcpAuth(handler, verifyToken, { required: true, resourceUrl });
 

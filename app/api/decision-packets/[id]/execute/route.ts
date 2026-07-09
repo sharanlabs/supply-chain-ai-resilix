@@ -4,6 +4,7 @@ import { envBool } from "@/lib/server/env-flags";
 import { enforceMutationRateLimit } from "@/lib/server/rate-limit";
 import { getDecisionPacket } from "@/lib/server/store";
 import { executeApprovedPacketActions } from "@/lib/server/action-executor";
+import { transportRegistryFromEnv } from "@/lib/server/action-transport";
 
 // ---------------------------------------------------------------------------
 // Phase 5 -- the authenticated execution entry point. CLOSES THE LOOP after a
@@ -14,9 +15,17 @@ import { executeApprovedPacketActions } from "@/lib/server/action-executor";
 //
 // Auth posture matches the approve route exactly (P2.7): fail-closed bearer
 // APPROVAL_TOKEN in secure mode, then rate-limited. Only an APPROVED packet may be
-// executed. The transport registry is the DEFAULT (all-Noop) here -- this route
-// never wires a real Slack/email/n8n transport, so it can never fire a real outward
-// send. A real transport is an operator/runtime wiring step, owner-gated.
+// executed.
+//
+// Transport wiring (final-gate Codex MED): the route uses transportRegistryFromEnv()
+// so a CONFIGURED transport is actually used -- closing the silent-Noop trap where a
+// stranded reversible action could be marked EXECUTED without reaching the transport
+// an operator configured. With NO transport env set (the demo/replay-only deploy) it
+// returns {} -> every channel resolves to Noop, so the surface is byte-identical to
+// the prior all-Noop default. The governance moat is unchanged: outward/IRREVERSIBLE
+// actions stay PENDING here regardless of registry; only REVERSIBLE/internal ones
+// (audit log, owner alert, ticket) can auto-fire, and only when the operator has both
+// set the transport env AND enabled ENABLE_REVERSIBLE_AUTO_EXECUTE.
 // ---------------------------------------------------------------------------
 export async function POST(
   request: Request,
@@ -54,7 +63,9 @@ export async function POST(
     packet,
     // Reversible auto-fire is OFF unless the operator explicitly enables it. Even ON,
     // it only auto-fires REVERSIBLE/internal actions; outward actions stay PENDING.
-    autoExecuteReversible: envBool("ENABLE_REVERSIBLE_AUTO_EXECUTE")
+    autoExecuteReversible: envBool("ENABLE_REVERSIBLE_AUTO_EXECUTE"),
+    // Use configured transports (empty {} -> all-Noop for the keyless demo).
+    deps: { registry: transportRegistryFromEnv() }
   });
 
   if (!result.ok) {
