@@ -1,5 +1,28 @@
 # HANDOFF — resume pointer (updated 2026-07-09: S2 + S-D + S-L SHIPPED+PUSHED; ▶ NEXT = S3 read-only MCP server)
 
+> ## ▶ NEXT SESSION INTENT (owner, 2026-07-09) — REWORK / RE-REVIEW against updated doctrine + NEW models.
+>
+> **Owner is pausing the deploy to REWORK.** Reason: the operating doctrine (`~/claude-os`, MODEL-ROUTING,
+> the model lineup) has moved AND newer frontier models have been released. Owner wants to **review the whole
+> RESILIX project fresh and re-run it through the pipeline/gates with the current doctrine + new models** —
+> not accept the just-finished ladder as final without a re-pass.
+>
+> **How to start the fresh session (do these first, in order):**
+> 1. Re-read `~/claude-os/docs/MODEL-ROUTING.md` (dated lineup + per-model prompting profiles) + `~/claude-os/STATE.md`
+>    — anchor to the CURRENT seat/model and today's date; the routing may have changed since this ladder ran (Fable).
+> 2. Re-read this HANDOFF + `docs/claude/PLAN-SHOWCASE-2026-07-06.md` + the gate records
+>    (`docs/claude/gates/showcase-ladder/FINAL-CODEX-PASS.md`, `.../mcp-surface/S3-CODEX-PASS.md`) — the ladder is
+>    BUILT + gated + pushed (see the completed block below); nothing to rebuild blind.
+> 3. Decide the rework SHAPE with the owner (goal is a re-REVIEW, not a from-scratch rebuild): candidates —
+>    (a) `/enhance` for ranked forward-proposals on the now-complete artifact; (b) a fresh full cross-model
+>    review with the NEW model as the seat + a NEW cross-model critic (the lineup may have a stronger pairing now);
+>    (c) re-run the acceptance-gate / dual-flagship over the whole ladder under current doctrine; (d) targeted
+>    re-eval of the deferred/owner-gated items (loop-Skeptic public promotion, billable re-capture). Let the owner fix it.
+> 4. Deploy (S1) + walkthrough stay owner actions, AFTER the rework decision — do NOT deploy until the re-review settles.
+>
+> **State is fully durable:** tree clean, HEAD `3dd73e6` in sync with origin; 869 unit / 34 golden / 56 e2e green;
+> demo $0/keyless/byte-identical. Nothing is half-built. The ladder-complete detail is the block immediately below.
+>
 > ## ▶ RESUME HERE — LADDER COMPLETE + FINAL CODEX GATE DISCHARGED. Only OWNER actions remain (deploy · walkthrough).
 >
 > **The showcase-expansion ladder is DONE.** All six build rungs shipped + acceptance-gated, and the ONE
