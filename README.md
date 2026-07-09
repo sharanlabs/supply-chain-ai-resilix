@@ -2,6 +2,25 @@
 
 **Crisis-to-action disruption response for supply-chain teams.** One live disruption signal plus your supplier list becomes an **evidence-cited, human-approved action packet** — a classified threat, which of *your* suppliers are exposed, a runway/revenue-at-risk simulation, role playbooks, and drafted supplier emails where **every number traces to a source**.
 
+One flagship, two surfaces on the same trust spine: the **ActionOps war room** (`/`) and the **Customs Defense Desk** (`/customs`). A governed multi-agent system — nine agents including a tool-using Investigator loop and a cross-family Skeptic — where **deterministic code holds every number and every decision, and the LLMs are never authoritative**.
+
+## The numbers — verified on this commit, re-runnable in one command
+
+Every suite count below was re-run first-hand on HEAD (2026-07-08), not quoted from a past report; the ledger row is the persisted running total, dated:
+
+| Suite | Result | What it proves |
+|---|---|---|
+| `npm test` | **831 passed** (51 skipped — live-billed legs, off by default) | deterministic graders, injection quarantine, the authoritative-binding moat, atomic approval |
+| `npm run customs:golden` | **34 / 34** | filing-grade packet or named-gap refusal on every golden case; the citation check fails closed |
+| `npx playwright test` | **41 e2e** (incl. WCAG 2.2 AA accessibility) | the shipped UI, end to end |
+| Cost ledger | **≈ $1.0–1.3 metered** total build spend, recorded through 2026-06 (cap $5, fail-closed pre-call) | real per-call tokens × a pinned price table, persisted per run |
+
+```bash
+npm install && npm run dev              # zero keys, zero database → http://localhost:3000
+npm run verify                          # re-prove the table: typecheck → lint → tests → golden → build → secret scan
+ENABLE_CUSTOMS_DESK=true npm run dev    # + the customs desk → http://localhost:3000/customs
+```
+
 ## The Customs Defense Desk (`/customs`) — the newest module
 
 A second surface on the same trust spine: a **customs enforcement-defense copilot** for the moment an importer discovers a filing error and has to decide whether to tell CBP first (a **prior disclosure**, 19 CFR 162.74 — for negligence-tier duty-loss cases the penalty collapses to roughly interest, but only before an investigation opens; fraud-tier disclosures follow their own stiffer formula, which the engine models too). The engine quarantines every evidence document (bodies never reach the reasoning — injection-proof by construction), decides the file-or-refuse call **in code**, computes bounded penalty exposure with **every figure bound to a deterministic tool return and a primary-source citation** (19 USC 1592 · CBP ICP penalty guidelines · eCFR, point-in-time), then assembles a filing-grade packet — **or refuses and names the gaps**. A deterministic Skeptic re-derives everything independently, and export literally throws until a **named counsel approval** lands.
@@ -85,6 +104,15 @@ Stated up front, because the credibility of an evidence tool depends on it:
 - **Your CSV goes stale.** Exposure results are only as current as the last upload.
 - **Idempotency: cross-instance safe for persistence, single-instance for work.** Within one Node instance an in-process mutex de-duplicates concurrent same-key runs. Across instances, the persist transaction reserves the key and returns the winner on conflict, so two instances can never persist two packets (no orphan). Both may still *run* the pipeline before that save-time dedup (double-work), bounded by the fail-closed budget cap; eliminating that needs a reserve-before-assembly row (a schema migration) and is post-MVP.
 - **Mid-market willingness-to-pay is unproven.** This is built as a portfolio-grade artifact; the affordability wedge is real but the demand is not yet validated (see the competitive analysis).
+
+## How this was built — the process trail is part of the artifact
+
+This is a solo agentic-workflow build, and the working records are committed rather than summarized:
+
+- **Gated increments.** Every increment exits through `npm run verify` + an independent acceptance gate + a cross-model review: a GPT-5-class reviewer reads the actual diff adversarially, and its findings are argued, not obeyed (accepted fixes and refuted claims are both on the record). 22 committed gate records live in [docs/claude/gates/](docs/claude/gates/) and [gates/customsdesk/](gates/customsdesk/).
+- **42 recorded lessons** ([tasks/lessons.md](tasks/lessons.md)): one line per mistake, never deleted, each paired with its durable rule. A sample: *"a grader that recomputes a fixture's value through the same function the fixture was built with is `f(x)===f(x)` — pin independent, hand-computed literals."*
+- **The honest failure worth reading:** the cross-family Skeptic scored a *perfect* labelled calibration (TPR/TNR 100%) and then **false-vetoed the real flagship finding** on every live run, 3 of 3 — the labelled set never reproduced the real finding's shape. The fix went into pure code, not a re-prompt, twice over: the gate now downgrades a critic's reject on a deterministically *strong* finding (corroborated, high-confidence, real exposure) to an annotation instead of a veto, and a geography clause that is structurally false for a country-less chokepoint event was dropped entirely after it re-broke the same flagship during live re-calibration. A regression test pins the exact shape that failed, and a cross-model closure pass ran on the fixed diff. Full record: [PHASE4-SKEPTIC-CALIBRATION.md](docs/claude/gates/agentic-rework/PHASE4-SKEPTIC-CALIBRATION.md). The durable lesson: a perfect score on a labelled set is necessary, never sufficient — smoke the real artifact.
+- **Plans and adversarial review logs precede the code:** [PLAN.md](PLAN.md) → [PLAN-REVIEW-LOG.md](PLAN-REVIEW-LOG.md) (a 12-finding cross-model round *before* build unblocked it), the customs-defense plan and its 16-finding review log, and the showcase plan (all under [docs/claude/](docs/claude/)).
 
 ## Status
 

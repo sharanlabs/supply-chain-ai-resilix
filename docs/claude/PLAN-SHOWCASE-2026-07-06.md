@@ -333,10 +333,13 @@ research-grounded, live-cited.
    Investigator-loop trajectory (tool calls → bindings → Skeptic verdict → gatekeeper) replayed in-product,
    $0/keyless. Verified first-hand: existing `evals/fixtures/live/SCN-*.json` are WATERFALL-era (no loop
    steps, no Skeptic) — first task is recording ONE loop-mode run locally (~$0.005 per the cost ledger) and
-   committing it as a disclosed "recorded run" fixture. Known risk carried: the Skeptic geo-caution wart
-   false-vetoed Hormuz live (2026-06-28) — at build time either record a scenario it accepts or show the
-   veto honestly; record the choice. Prior art to cite: LangSmith trace replay / AgentOps time-travel
-   debugging (established pattern, live-verified).
+   committing it as a disclosed "recorded run" fixture. CORRECTION (S2 verify-over-memory pass, same day):
+   the 2026-06-28 flagship false-veto was FIXED same-day in pure code + regression-pinned + cross-model
+   closure clean — no material findings; the later (A) closure carries the literal APPROVED
+   (`PHASE4-SKEPTIC-CALIBRATION.md` §2026-06-28) — the earlier "unfixed wart" note in this
+   block was wrong; a fresh loop recording should ACT on Hormuz, and the S-L risk is downgraded (what stays
+   owner-gated for live promotion is the billable smoke + public-key posture, not a broken Skeptic). Prior
+   art to cite: LangSmith trace replay / AgentOps time-travel debugging (established pattern, live-verified).
 4. **Live ceiling set (research-specialist, cited, accessed 2026-07-08; verify-over-memory per owner):**
    S3 = `@modelcontextprotocol/sdk` v1.29.0 (spec 2025-11-25) + Vercel `mcp-handler` v0.2.3 over Streamable
    HTTP (SSE transport deprecated; SDK <1.26.0 has a known vuln — hard floor); stay OFF the v2 beta (spec
