@@ -560,3 +560,31 @@ test.describe("customs / SC 1.4.11 non-text contrast", () => {
     }
   });
 });
+
+test.describe("S4 / customs policy-corpus evidence lookup (?ask=)", () => {
+  test("a query returns cited chunks, each with a primary-source citation", async ({ page }) => {
+    await page.goto("/customs?ask=penalty%20for%20a%20negligent%20duty-loss%20violation");
+    await settle(page);
+    const results = page.getByTestId("lookup-results");
+    await expect(results).toBeVisible();
+    // The top result is the negligence/duty-loss disposition, cited to ICP-1592.
+    await expect(results).toContainText(/negligence/i);
+    await expect(results).toContainText("ICP-1592");
+  });
+
+  test("a zero-signal query returns an honest no-match, never an uncited guess", async ({ page }) => {
+    await page.goto("/customs?ask=zzzzz%20quux%20blorptastic");
+    await settle(page);
+    await expect(page.getByTestId("lookup-no-match")).toBeVisible();
+    await expect(page.getByTestId("lookup-results")).toHaveCount(0);
+  });
+
+  test("the lookup landing has no axe WCAG 2.2 AA violations", async ({ page }) => {
+    await page.goto("/customs?ask=how%20much%20if%20I%20file%20a%20prior%20disclosure");
+    await settle(page);
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+      .analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  });
+});

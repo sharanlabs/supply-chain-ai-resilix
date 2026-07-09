@@ -33,7 +33,7 @@ function firstText(result: Awaited<ReturnType<Client["callTool"]>>): string {
 }
 
 describe("MCP surface -- structural no-authority contract", () => {
-  it("the registry is EXACTLY the three read-only tools, and no name carries an authority verb", async () => {
+  it("the registry is EXACTLY the pinned read-only tool set, and no name carries an authority verb", async () => {
     const client = await connectedClient();
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
@@ -125,6 +125,23 @@ describe("MCP surface -- each tool round-trips with disclosed, allowlisted data"
       await client.callTool({ name: "get_audit_trail", arguments: { source: "war-room" } })
     );
     expect(text).toContain("REPLAY_SERVED");
+    await client.close();
+  });
+
+  it("query_customs_policy returns cited chunks and NEVER echoes the raw query (S4)", async () => {
+    const client = await connectedClient();
+    const text = firstText(
+      await client.callTool({
+        name: "query_customs_policy",
+        arguments: { query: "negligent duty loss penalty range", k: 2 }
+      })
+    );
+    // A relevant cited chunk comes back...
+    expect(text).toContain("disposition-negligence-duty_loss");
+    expect(text).toContain("ICP-1592");
+    // ...and the raw query text is hashed, never reflected (Law 11 on tool inputs).
+    expect(text).not.toContain("negligent duty loss penalty range");
+    expect(text).toContain("(hashed; not echoed)");
     await client.close();
   });
 });

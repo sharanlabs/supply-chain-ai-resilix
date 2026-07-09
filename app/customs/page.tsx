@@ -16,6 +16,7 @@ import { skepticReview } from "@/lib/agents/customsdesk/skeptic-check";
 
 import { SyntheticChip, LabelClassBadge, MatrixCellDims } from "@/components/customs/parts";
 import { ScenarioPicker } from "@/components/customs/scenario-picker";
+import { PolicyLookup } from "@/components/customs/policy-lookup";
 import { PipelineWalk } from "@/components/customs/pipeline-walk";
 import { DefensePacketView } from "@/components/customs/defense-packet-view";
 import { RefusalView } from "@/components/customs/refusal-view";
@@ -176,13 +177,18 @@ export default async function CustomsDeskPage({
   const rawCase = Array.isArray(params.case) ? params.case[0] : params.case;
   const selected = rawCase ? CUSTOMS_GOLDEN_CASES.find((c) => c.id === rawCase) : undefined;
   const cell = selected ? findCell(selected.matrixCellId) : undefined;
+  // S4: the policy-corpus evidence lookup (?ask=), server-rendered on the landing.
+  const rawAsk = Array.isArray(params.ask) ? params.ask[0] : params.ask;
 
   return (
     <div className="min-h-[100dvh]">
       <CustomsMasthead />
       <main className="mx-auto max-w-6xl px-8 py-8">
         {!rawCase ? (
-          <PickerLanding />
+          <>
+            <PickerLanding />
+            <PolicyLookup ask={rawAsk} />
+          </>
         ) : !selected || !cell ? (
           <EmptyState requested={rawCase} />
         ) : (

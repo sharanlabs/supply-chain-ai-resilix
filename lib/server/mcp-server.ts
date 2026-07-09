@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { loadReplayPacket } from "@/lib/pipeline/replay-packet";
 import { loadLoopTrajectory } from "@/lib/pipeline/replay-loop";
+import { retrievePolicy } from "@/lib/agents/customsdesk/retrieval";
 import type { DecisionPacketV2 } from "@/lib/schemas";
 
 // S3 -- the read-only MCP tool surface over the war room. Registered through
@@ -138,6 +139,34 @@ export function registerWarRoomTools(server: McpServer): void {
       return textResult({ auditTrail: packetFor(source).auditTrail });
     }
   );
+
+  // S4: cited-chunk retrieval over the committed, page-cited customs policy corpus
+  // (lexical/BM25). Every returned chunk carries its {sourceId, section} citation --
+  // an agent gets the primary-source basis, never an uncited claim. Read-only; the
+  // corpus is committed policy encoding, not the gitignored ingest cache.
+  server.registerTool(
+    "query_customs_policy",
+    {
+      title: "Query the customs penalty-defense policy corpus (cited)",
+      description:
+        "Lexical retrieval over the committed customs policy corpus (19 USC 1592 dispositions, prior-disclosure rules, mitigating/aggravating factors, response deadlines, EO 14411). Returns the top cited chunks -- each with its primary-source citation. Read-only.",
+      inputSchema: {
+        query: z.string().min(1).max(256),
+        k: z.number().int().min(1).max(5).optional()
+      }
+    },
+    async ({ query, k }) => {
+      // Codex F2 discipline: log the SHAPE, never the raw query text (untrusted).
+      auditToolCall("query_customs_policy", { queryHashPrefix: hashPrefix(query), k: k ?? 3 });
+      const hits = retrievePolicy(query, k ?? 3).map((r) => ({
+        id: r.chunk.id,
+        text: r.chunk.text,
+        citation: r.chunk.citation,
+        score: Number(r.score.toFixed(4))
+      }));
+      return textResult({ query: "(hashed; not echoed)", results: hits, total: hits.length });
+    }
+  );
 }
 
 // The structural no-authority contract, exported for the registry pin test: the
@@ -145,7 +174,8 @@ export function registerWarRoomTools(server: McpServer): void {
 export const MCP_TOOL_NAMES = [
   "get_decision_packet",
   "query_supplier_exposure",
-  "get_audit_trail"
+  "get_audit_trail",
+  "query_customs_policy"
 ] as const;
 export const FORBIDDEN_TOOL_VERBS =
   /approve|reject|execute|dispatch|send|set|update|delete|create|write|mutate/i;

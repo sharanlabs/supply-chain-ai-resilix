@@ -10,9 +10,9 @@ Every suite count below was re-run first-hand on HEAD (2026-07-09), not quoted f
 
 | Suite | Result | What it proves |
 |---|---|---|
-| `npm test` | **847 passed** (52 skipped — live-billed legs, off by default) | deterministic graders, injection quarantine, the authoritative-binding moat, atomic approval |
+| `npm test` | **854 passed** (52 skipped — live-billed legs, off by default) | deterministic graders, injection quarantine, the authoritative-binding moat, atomic approval |
 | `npm run customs:golden` | **34 / 34** | filing-grade packet or named-gap refusal on every golden case; the citation check fails closed |
-| `npx playwright test` | **53 e2e** (incl. WCAG 2.2 AA accessibility) | the shipped UI, end to end |
+| `npx playwright test` | **56 e2e** (incl. WCAG 2.2 AA accessibility) | the shipped UI, end to end |
 | Cost ledger | **≈ $1.0–1.3 metered** total build spend, recorded through 2026-07 (cap $5, fail-closed pre-call) | real per-call tokens × a pinned price table, persisted per run |
 
 ```bash
@@ -59,7 +59,9 @@ A single **decision packet**:
 
 ## Agent-ready — the MCP surface
 
-Any MCP client (Claude Desktop, Claude Code, anything speaking Streamable HTTP) can ask the war room questions: `POST /api/mcp/mcp` exposes three **read-only** tools (`get_decision_packet` · `query_supplier_exposure` · `get_audit_trail`) over the recorded replay data, behind a fail-closed bearer token (401 + `WWW-Authenticate` unless a strong `MCP_ACCESS_TOKEN` is configured — no demo pass-through on a remote protocol surface). The trust spine extends here: **no authority tools exist** — a structural test pins the registry, mutation-shaped calls are protocol errors, adversarial inputs are allowlist-rejected and never echoed, and every tool call is audit-logged. Full auth/consent/audit story, including the stated deviation from the full OAuth 2.1 flow and the assessed 2026-07-28 spec-migration path: [docs/mcp.md](docs/mcp.md).
+Any MCP client (Claude Desktop, Claude Code, anything speaking Streamable HTTP) can ask the war room questions: `POST /api/mcp/mcp` exposes four **read-only** tools (`get_decision_packet` · `query_supplier_exposure` · `get_audit_trail` · `query_customs_policy`) over the recorded replay data and the committed, cited customs policy corpus, behind a fail-closed bearer token (401 + `WWW-Authenticate` unless a strong `MCP_ACCESS_TOKEN` is configured — no demo pass-through on a remote protocol surface). The trust spine extends here: **no authority tools exist** — a structural test pins the registry, mutation-shaped calls are protocol errors, adversarial inputs are allowlist-rejected and never echoed, and every tool call is audit-logged. Full auth/consent/audit story, including the stated deviation from the full OAuth 2.1 flow and the assessed 2026-07-28 spec-migration path: [docs/mcp.md](docs/mcp.md).
+
+The same retrieval powers a **cited evidence lookup on the customs desk** (`/customs?ask=…`): a plain-language question returns the top primary-source policy chunks (19 USC 1592 dispositions, prior-disclosure rules, response deadlines, EO 14411), each with its citation. Lexical-first (BM25) over the committed page-cited corpus — deterministic, keyless, no database; a hand-labeled retrieval golden suite (recall@k + MRR: recall@1 0.92 / recall@3 1.00 / MRR 0.96) gates it, and every retrieved chunk carries a citation by construction so the fail-closed citation bar holds. (`pg_textsearch` is the documented enterprise upgrade; the raw ingest cache is deliberately not indexed — it's gitignored and would break the reproducible, keyless posture.)
 
 ## How it decides
 

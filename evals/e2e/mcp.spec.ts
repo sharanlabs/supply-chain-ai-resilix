@@ -68,7 +68,7 @@ test.describe("S3 / MCP endpoint auth (fail-closed)", () => {
 });
 
 test.describe("S3 / MCP authed round-trip (real SDK client, Streamable HTTP)", () => {
-  test("lists exactly the three read-only tools and round-trips a call", async () => {
+  test("lists exactly the pinned read-only tool set and round-trips a call", async () => {
     const transport = new StreamableHTTPClientTransport(new URL(ENDPOINT), {
       requestInit: { headers: { authorization: `Bearer ${TOKEN}` } }
     });
@@ -79,6 +79,7 @@ test.describe("S3 / MCP authed round-trip (real SDK client, Streamable HTTP)", (
       expect(tools.map((t) => t.name).sort()).toEqual([
         "get_audit_trail",
         "get_decision_packet",
+        "query_customs_policy",
         "query_supplier_exposure"
       ]);
 

@@ -422,6 +422,29 @@ round-trip listing exactly 3 tools). docs/mcp.md = the auth/consent/audit story 
 deviation; assessed 2026-07-28/v2 migration path). README "Agent-ready" section. Pending at rung exit:
 security-specialist read + the DEDICATED Codex pass (safety-critical) + gate.
 
+**S4 DECISION + BUILD NOTES (2026-07-09, Fable) — lowest-rung-first + a recorded partial skip.**
+Reality check before building (the plan's own "if it can't be met, STOP and record why" clause):
+- **SKIP-WITH-REASON (owner-pre-accepted): raw-corpus RAG over the 3.7M ingest cache + pg full-text.**
+  The retrievable ingest cache (`data/customs/cache/` — icp/ecfr/fr/hts/courtlistener/catair/
+  opensanctions) is **gitignored** — absent from a fresh clone and the replay-only deploy — so a RAG
+  consumer indexing it would break the reproducible/committed posture AND could not offer a *stable*
+  citation source (an uncommitted corpus can't be cited honestly). And `pg` full-text needs a running
+  Postgres the $0/**keyless/no-DB** demo deliberately doesn't assume (README: "zero keys, zero
+  database"; the customs engine is pure/no-DB). Building the literal "pg-FTS over the cache" would
+  violate two standing invariants at once. **Recorded, skipped; `pg_textsearch` is the documented
+  enterprise upgrade path.**
+- **BUILT — the fitting lowest rung: in-process lexical (BM25) retrieval over a COMMITTED, page-cited
+  chunk corpus.** The "corpus" = the already-D0–D6-Codex-gated primary-source ENCODING in
+  `policy-table.ts` (ICP-1592 F(2) disposition ranges + (f) prior-disclosure + VII/VIII factors ·
+  eCFR 162.78(a)/171.2(b)(2)/162.74 deadline windows · EO-14411 §4(c) directed-pending), re-expressed
+  as retrievable cited chunks — NO statutory text authored from memory; every chunk carries its
+  verified `{sourceId, section, asOf, layer}` citation. Deterministic · keyless · no-DB · committed ·
+  deploy-safe. **Retrieved chunks pass the fail-closed produce-time citation bar BY CONSTRUCTION** (a
+  chunk with no citation cannot exist; a structural test pins it). Retrieval golden suite (hand-labeled
+  Q→gold-chunk pairs, scored **recall@k + MRR**) GREEN before any consumer. Consumers (two stories, one
+  build): a **customs-desk evidence-lookup** panel + a **read-only MCP tool** (`query_customs_policy`,
+  extends the S3 surface). Customs golden 34/34 untouched (additive).
+
 ## Deferred / owner-gated (NOT on this ladder, tracked so nothing is lost)
 - **Loop + Skeptic live promotion** (`ENABLE_AGENT_LOOP` default-on + Skeptic UI dramatization): blocked on
   billable (G) live gate ×3, the Skeptic geo-caution wart fix, the re-capture coupling, and the owner's
