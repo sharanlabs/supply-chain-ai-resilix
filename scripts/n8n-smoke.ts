@@ -12,6 +12,14 @@
 //        synthetic message for real to your configured n8n Webhook-trigger URL.
 //
 // Either mode runs the GENUINE adapter -- only the registry differs.
+//
+// AUTHORITY NOTE (2026-07-16 re-review, B-03): this smoke exercises TRANSPORT DELIVERY
+// only -- it bypasses the approval/outbox/audit path on purpose (there is no packet), so
+// its message is labeled SMOKE and carries no authority. The workflow's fail-closed
+// secret guard treats it like any other caller: without the matching
+// X-Resilix-Webhook-Secret header (N8N_ERP_WEBHOOK_HEADER_NAME/VALUE), --send is
+// REJECTED (403) by an imported workflow. A dev sink without the guard would record a
+// demo case -- never anything more.
 import { NoopTransport, transportRegistryFromEnv } from "@/lib/server/action-transport";
 
 const send = process.argv.includes("--send");

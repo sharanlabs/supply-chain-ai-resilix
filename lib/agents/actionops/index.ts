@@ -2,7 +2,10 @@ import { makeAgentRun } from "@/lib/agents/actionops/agent-run";
 import { runActionOpsGatekeeper } from "@/lib/agents/actionops/gatekeeper";
 import { runAtlas } from "@/lib/agents/actionops/atlas";
 import { classifyMessagesLive, runDispatcher } from "@/lib/agents/actionops/dispatcher";
-import { decideRecommendation } from "@/lib/agents/actionops/recommendation";
+import {
+  capUncorroboratedLiveConfidence,
+  decideRecommendation
+} from "@/lib/agents/actionops/recommendation";
 import { buildRecoveryOptions } from "@/lib/agents/actionops/recovery";
 import { classifyThreatLive, runSentinel } from "@/lib/agents/actionops/sentinel";
 import { runSimulator } from "@/lib/agents/actionops/simulator";
@@ -118,12 +121,32 @@ export async function runActionOpsAgents(
 
   // Sentinel (LLM #1 when live): the injection firewall + the ONLY agent that reads raw
   // signal text. Key-OFF/live:false -> the deterministic threat (unchanged from D.1).
-  const { threatCard, agentRun: sentinelRun } = live
+  const { threatCard: classifiedThreat, agentRun: sentinelRun } = live
     ? await classifyThreatLive(ctx, { budget: budgetForNext(), retry: retryReserve })
     : runSentinel(ctx);
   spentUsd += sentinelRun.costUsd ?? 0;
 
-  const { checks: verifierChecks, agentRun: verifierRun } = runVerifier(ctx, threatCard);
+  // Evidence-bound corroboration, LIVE only (2026-07-16 re-review, A-02a): a live fetch
+  // returns signals about MANY world events, so counting distinct outlets across the whole
+  // set would let two unrelated articles "corroborate" this threat. Live corroboration
+  // therefore counts only the signals Sentinel actually cited as this threat's evidence
+  // (evidenceUrls, already allowlist-validated by the firewall). Deterministic/replay runs
+  // keep the whole scenario-bound set — byte-identical to the frozen fixtures.
+  const verifierCtx = live
+    ? { ...ctx, signals: ctx.signals.filter((s) => classifiedThreat.evidenceUrls.includes(s.sourceUrl)) }
+    : ctx;
+  const { checks: verifierChecks, agentRun: verifierRun } = runVerifier(verifierCtx, classifiedThreat);
+
+  // Deterministic confidence cap, LIVE only (A-01/D-01): the live classifier authors its own
+  // confidence, and an overstated value on an UNCORROBORATED signal would bypass the refusal
+  // gate — the one place a model-authored number could flip a decision. When the deterministic
+  // corroboration check says single-source, confidence is capped below the action floor, making
+  // the refusal trigger deterministic. Corroborated findings keep the model's (clamped) value;
+  // deterministic/replay runs never enter this branch.
+  const threatCard = capUncorroboratedLiveConfidence(classifiedThreat, {
+    live,
+    corroborated: verifierChecks.corroborated
+  });
   const { exposureResults, dataGaps: atlasDataGaps, agentRun: atlasRun } = runAtlas(ctx, threatCard);
   const { simulation, dataGaps: simulatorDataGaps, agentRun: simulatorRun } = runSimulator(ctx, exposureResults);
   // Atlas's gaps (a rejected/misclassified handoff) come first, then the Simulator's

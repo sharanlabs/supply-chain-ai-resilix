@@ -43,15 +43,34 @@ export async function POST(request: Request) {
     return tooLarge();
   }
 
-  // Read the raw body as text. We then re-check the actual byte size BEFORE
-  // parsing, because Content-Length can be absent or lie.
-  const text = await request.text();
-
-  // (2b) Byte cap on the actually-read body, BEFORE parse. new Blob([]).size is
-  // the UTF-8 byte length (a multibyte char must not slip past a char-count cap).
-  if (new Blob([text]).size > MAX_CSV_BYTES) {
-    return tooLarge();
+  // (2b) STREAM the body with the byte cap enforced DURING the read (2026-07-16
+  // re-review, B-06): `await request.text()` would fully materialize a body whose
+  // Content-Length is absent or lies before any cap check ran — a memory-exhaustion
+  // path. Count bytes as chunks arrive, cancel the moment the cap is crossed, and
+  // only then decode the bounded buffer.
+  const reader = request.body?.getReader();
+  if (!reader) {
+    return apiError("EMPTY_UPLOAD", "Upload body is empty; expected CSV content", 400);
   }
+  const chunks: Uint8Array[] = [];
+  let receivedBytes = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    receivedBytes += value.byteLength;
+    if (receivedBytes > MAX_CSV_BYTES) {
+      await reader.cancel();
+      return tooLarge();
+    }
+    chunks.push(value);
+  }
+  const merged = new Uint8Array(receivedBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  const text = new TextDecoder("utf-8").decode(merged);
 
   if (text.trim().length === 0) {
     return apiError("EMPTY_UPLOAD", "Upload body is empty; expected CSV content", 400);

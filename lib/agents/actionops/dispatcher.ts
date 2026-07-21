@@ -413,6 +413,21 @@ export function applyDispatcherFirewall(
     });
   }
 
+  // Recipient-set binding (2026-07-16 re-review, A-06): membership/dedup/cap above stop a
+  // draft to the WRONG supplier, but an empty or partial set — silently omitting the
+  // highest-priority exposed suppliers — would still pass. The expected recipient set is
+  // code-derived (the same top-N, in Atlas order, the deterministic fallback drafts), so
+  // the model chooses the words, never the audience. An omission rejects the whole set,
+  // falling back to the deterministic drafts that cover everyone.
+  const expectedIds = [...new Set(exposureResults.slice(0, MAX_DRAFTS).map((e) => e.supplierId))];
+  const missingIds = expectedIds.filter((id) => !seenSupplierIds.has(id));
+  if (missingIds.length > 0) {
+    return {
+      ok: false,
+      reason: `Dispatcher firewall: draft set omits expected top-exposure supplier(s) ${missingIds.join(", ")} -- the recipient set is code-derived, not model-chosen.`
+    };
+  }
+
   // The FULL bidirectional citation check, through the SAME shared function the
   // gatekeeper and grader run. The root mirrors the gatekeeper's CitationCheckRoot
   // exactly: the FULL exposure array (sourcePaths are absolute indices, so a top-5 slice

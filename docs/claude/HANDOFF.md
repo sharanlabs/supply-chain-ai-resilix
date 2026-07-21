@@ -1,4 +1,34 @@
-# HANDOFF — resume pointer (updated 2026-07-09: S2 + S-D + S-L SHIPPED+PUSHED; ▶ NEXT = S3 read-only MCP server)
+# HANDOFF — resume pointer (updated 2026-07-16 MID-SESSION WRAP: rework re-review RAN, fix batches ~80% done, tree UNCOMMITTED)
+
+> ## ▶ RESUME HERE (2026-07-16 wrap — owner: "wrap exactly where you have left; we will continue where its left")
+>
+> **The owner-approved plan** (4 phases): `~/.claude/plans/review-the-project-once-wobbly-lake.md` —
+> Phase 1 right-sized re-review (IN PROGRESS, this wrap) → Phase 2 visual design, fresh-directions
+> round, owner-satisfaction-gated → Phase 3 walkthrough re-align → Phase 4 owner deploy LAST.
+>
+> **Phase 1 state:** the 2026-07-14 dual-flagship run died at dispatch (nothing reviewed); superseded
+> by an owner-approved right-sized single pass, WHICH RAN 2026-07-16: Codex Sol @ high over 4 sections
+> (A engine · B surfaces · C evals · D docs) → **60 findings, ALL disposed primary-model-final**, plus
+> the main-session doctrine-delta read (Δ1: Gemini defaults/pricing one generation stale, fail-safe).
+> Fix batches 1–4 APPLIED + affected suites green (customs:golden 34/34; sentinel/dispatcher/
+> investigator/live-pipeline/erp-workflow all green; typecheck clean at wrap). **Working tree is
+> UNCOMMITTED (38 files) on top of `8048d0d` — do not discard.**
+>
+> **▶ THE EXACT NEXT ACTION:** `docs/claude/gates/rework-2026-07-14/RIGHT-SIZED-PASS-2026-07-16.md`
+> § "FIX-BATCH PROGRESS AT WRAP" — resume at **B-14** (db/schema.ts `executedActions.packetId`
+> cascade→restrict; the Edit needs table-unique context; then `npm run db:generate`), then CI batch →
+> evals batch → S-01/S-02 → Gemini recency → full verify:full → re-check dispositions vs final diff →
+> acceptance-gate → commit (+ owner-gated push) → HANDOFF finalize (incl. the D-07 deploy-recipe fix:
+> the recipe below needs an `APPROVAL_TOKEN` env step, and bare `REQUIRE_APPROVAL_TOKEN` yields 503
+> AUTH_NOT_CONFIGURED, not 401).
+>
+> **Session decisions recorded:** design phase = fresh-directions round (owner-picked 2026-07-16);
+> grilling-frontend-prototyping method REMOVED at owner direction; design skills better-colors /
+> better-typography / better-ui (jakubkrehel/skills, scan-clean) installed to `~/.claude/skills/` for
+> Phase 2. Review artifacts (verdicts A–D + events JSONL) live in the session scratchpad
+> `rework-review/` — the DISPOSITIONS in the gate record are the durable copy.
+>
+> ----- prior top block (2026-07-09 rework intent) below -----
 
 > ## ▶ NEXT SESSION INTENT (owner, 2026-07-09) — REWORK / RE-REVIEW against updated doctrine + NEW models.
 >

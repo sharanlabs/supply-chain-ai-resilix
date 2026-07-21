@@ -45,12 +45,27 @@ async function hormuzLiveContext(): Promise<ActionOpsContext> {
 
 const runById = (runs: AgentRun[], id: string) => runs.find((r) => r.id === id);
 
+// One evidence URL per DISTINCT source label from the actually-fetched signal set — what a
+// real live Sentinel cites (2026-07-16, A-02a: live corroboration now counts only the
+// signals the classification cited as evidence, so the mock must cite fetched signals, not
+// the scenario fixture's curated allowlist, to stay corroborated the way a real run is).
+function distinctSourceEvidence(signals: ActionOpsContext["signals"]): string[] {
+  const bySource = new Map<string, string>();
+  for (const s of signals) {
+    const key = s.source.trim().toLowerCase();
+    if (key.length > 0 && !bySource.has(key)) bySource.set(key, s.sourceUrl);
+  }
+  return [...bySource.values()];
+}
+
 // Build prompt-aware mock LLM responses by ECHOING the deterministic pipeline's outputs
 // (valid by construction). `usage` is injectable so a test can force a large cost to prove
-// the cumulative budget hard-stop.
+// the cumulative budget hard-stop. `evidenceUrls` overrides the Sentinel echo's citations
+// (see distinctSourceEvidence above).
 function echoMockFromDeterministic(
   det: Awaited<ReturnType<typeof runActionOpsAgents>>,
-  usageBy: { sentinel?: UsageShape; strategist?: UsageShape; dispatcher?: UsageShape } = {}
+  usageBy: { sentinel?: UsageShape; strategist?: UsageShape; dispatcher?: UsageShape } = {},
+  evidenceUrls?: string[]
 ) {
   const stdUsage: UsageShape = {
     inputTokens: 100,
@@ -68,7 +83,7 @@ function echoMockFromDeterministic(
           severity: t.severity,
           location: t.location,
           summary: t.summary,
-          evidenceUrls: t.evidenceUrls,
+          evidenceUrls: evidenceUrls ?? t.evidenceUrls,
           confidence: t.confidence
         },
         usage: usageBy.sentinel ?? stdUsage,
@@ -152,7 +167,9 @@ describe("D.9 live pipeline wiring (mocked SDK, no spend)", () => {
     expect(generateObjectMock).not.toHaveBeenCalled();
     expect(det.exposureResults.length).toBeGreaterThan(0); // Hormuz must expose suppliers
 
-    generateObjectMock.mockImplementation(echoMockFromDeterministic(det));
+    generateObjectMock.mockImplementation(
+      echoMockFromDeterministic(det, {}, distinctSourceEvidence(ctx.signals))
+    );
 
     const live = await runActionOpsAgents({ ...ctx, live: true });
 
@@ -199,9 +216,13 @@ describe("D.9 live pipeline wiring (mocked SDK, no spend)", () => {
     // exactly ONCE. If the budget reset per-call (the bug this guards), all 3 would fire.
     const hugeOutput = 3_000_000; // 3M out @ $2.5/1M = ~$7.5 > $5 cap
     generateObjectMock.mockImplementation(
-      echoMockFromDeterministic(det, {
-        sentinel: { inputTokens: 1000, outputTokens: hugeOutput, totalTokens: hugeOutput + 1000, finishReason: "stop" }
-      })
+      echoMockFromDeterministic(
+        det,
+        {
+          sentinel: { inputTokens: 1000, outputTokens: hugeOutput, totalTokens: hugeOutput + 1000, finishReason: "stop" }
+        },
+        distinctSourceEvidence(ctx.signals)
+      )
     );
 
     const live = await runActionOpsAgents({ ...ctx, live: true });

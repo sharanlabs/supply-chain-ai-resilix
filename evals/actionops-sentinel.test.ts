@@ -261,14 +261,16 @@ describe("Sentinel output-validation firewall (D.5)", () => {
     }
   });
 
-  it("DROPS an invalid country when no chokepoint is claimed", () => {
+  it("DROPS an invalid country (a matching chokepoint claimed; the bad country is just unusable)", () => {
     const ctx = hormuzContext();
     // A non-ISO country is dropped (not rejected) -- it is not a misclassification signal, just
-    // an unusable field. With no chokepoint claimed, the firewall clears and emits the card.
+    // an unusable field. The chokepoint claim matches, so the firewall clears and emits the card.
+    // (2026-07-16: the raw now claims the chokepoint — a CHOKEPOINT_CLOSURE naming none is
+    // rejected as incoherent by the omission guard, pinned in the test below.)
     const malicious: SentinelLlmResult = {
       eventType: "CHOKEPOINT_CLOSURE",
       severity: "HIGH",
-      location: { country: "NOT_A_CODE" },
+      location: { chokepoint: "Strait of Hormuz", country: "NOT_A_CODE" },
       summary: "Gulf-routed inbound disrupted.",
       evidenceUrls: [HORMUZ_GDELT_URL],
       confidence: 0.8
@@ -279,6 +281,27 @@ describe("Sentinel output-validation firewall (D.5)", () => {
     if (outcome.ok) {
       expect(outcome.threatCard.location.country).toBeUndefined();
       expect(JSON.stringify(outcome.threatCard)).not.toMatch(/NOT_A_CODE/);
+    }
+  });
+
+  it("REJECTS a CHOKEPOINT_CLOSURE that names no chokepoint (incoherent omission fails closed)", () => {
+    const ctx = hormuzContext();
+    // The A-03 bypass shape (2026-07-16 re-review): a chokepoint-class event whose location
+    // omits the chokepoint would downgrade Atlas to country/region matching, dodging the
+    // scope firewall. It must fail closed to the deterministic threat.
+    const omitted: SentinelLlmResult = {
+      eventType: "CHOKEPOINT_CLOSURE",
+      severity: "HIGH",
+      location: { country: "OM" },
+      summary: "Gulf-routed inbound disrupted.",
+      evidenceUrls: [HORMUZ_GDELT_URL],
+      confidence: 0.8
+    };
+
+    const outcome = applyThreatFirewall(omitted, ctx);
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) {
+      expect(outcome.reason).toMatch(/names no chokepoint/i);
     }
   });
 

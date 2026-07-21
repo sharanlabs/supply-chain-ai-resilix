@@ -1,10 +1,10 @@
 # RESILIX ActionOps — Architecture
 
-**Last updated:** 2026-06-22 (rewritten from the superseded RESILIX-v1 / LaunchOps doc; the v1 n8n / Google-Sheets / 3-agent design no longer exists). Authoritative scope: [PLAN.md](../PLAN.md); success criteria: [Success_Criteria.md](Success_Criteria.md).
+**Last updated:** 2026-07-16 (live-topology correction, rework re-review pass; previously 2026-06-22, rewritten from the superseded RESILIX-v1 / LaunchOps doc). Authoritative scope: [PLAN.md](../PLAN.md) (see its stale-claims header note); success criteria: [Success_Criteria.md](Success_Criteria.md).
 
 ## System overview
 
-RESILIX ActionOps is an **in-app Next.js pipeline** (App Router + TypeScript), not an external orchestrator. One disruption signal plus a supplier dataset becomes one **DecisionPacketV2** — an evidence-cited, human-approval-gated action packet. The pipeline is a **sequential six-agent chain with a deterministic gatekeeper and a human approval gate**, entered at `/api/run-exception → buildDecisionPacket → runActionOpsAgents` (`lib/agents/actionops/index.ts`) and rendered by the `/` server component.
+RESILIX ActionOps is an **in-app Next.js pipeline** (App Router + TypeScript), not an external orchestrator. One disruption signal plus a supplier dataset becomes one **DecisionPacketV2** — an evidence-cited, human-approval-gated action packet. Two orchestration paths share the same agents, invariants, and gates: **with live AI enabled, the default (since 2026-06-29, `ENABLE_AGENT_LOOP` on) is a step-driven, tool-using Investigator loop** — the model chooses which tools to call, but every packet number binds from deterministic *tool return values* and the act/refuse decision re-runs in code; the **sequential six-agent waterfall below is the byte-for-byte opt-out** (`ENABLE_AGENT_LOOP=false`) and the path every key-off/deterministic/replay run takes. Both enter at `/api/run-exception → buildDecisionPacket` (`lib/agents/actionops/index.ts`) and render via the `/` server component.
 
 The defining property is a **hard split: deterministic TypeScript calculates and validates; LLMs only classify and draft.** The deterministic spine is the default and ships standalone — with the live-AI flag off (`ENABLE_LIVE_AI`), every agent routes to a deterministic body and the packet is produced with zero model calls. Live AI is the gated upgrade.
 
@@ -58,7 +58,7 @@ Each invariant answers a documented 2026 failure mode, and each is enforced in c
 - **No model-invented number reaches the UI.** All math is deterministic TS. The bidirectional citation contract (`lib/pipeline/citation-check.ts`) is called by *both* the produce-time gatekeeper and the grade-time grader — one definition, no maker/judge divergence.
 - **Degradation is disclosed, never faked.** A four-value mode taxonomy (`LIVE_AI` / `DETERMINISTIC_RULES` / `REPLAY` / `FAILED_TO_FALLBACK`, via `computeEffectiveMode`) keys a visible "degraded" badge; a live call that silently fell back fails the eval.
 - **Calibrated refusal.** `decideRecommendation` (`lib/pipeline/recommendation.ts`) emits a `NO_ACTION` packet (playbooks + drafts withheld, `missingEvidence[]` listed) when a real exposure is reported by a single uncorroborated, low-confidence source.
-- **Fail-closed cost cap.** `assertWithinBudget` (`lib/agents/budget.ts`) throws `BudgetExceededError` *before* a breaching call can bill; fails closed on non-finite inputs. A shared run-level retry reserve bounds a run at ≤5 calls.
+- **Fail-closed cost cap.** `assertWithinBudget` (`lib/agents/budget.ts`) throws `BudgetExceededError` *before* a breaching call can bill; fails closed on non-finite inputs. On the waterfall path a shared run-level retry reserve bounds a run at ≤5 calls; on the default Investigator-loop path the call count is variable (step-capped) and the same pre-call budget check hard-stops the run.
 
 ## Data contract — DecisionPacketV2
 

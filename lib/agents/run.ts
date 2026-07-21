@@ -338,13 +338,15 @@ export async function liveGenerateValidated<T>(args: {
 // overspending. Pure; reuses the pinned price table.
 export function estimateLiveCallCostUsd(
   model: string,
-  envelope: { inputTokens: number; outputTokens: number } = {
-    inputTokens: 8_000,
-    // Locked to the live output cap: the estimate must never under-price what a call can emit.
-    outputTokens: MAX_LIVE_OUTPUT_TOKENS
-  }
+  envelope?: { inputTokens?: number; outputTokens?: number }
 ): number {
-  return costUsd(model, envelope.inputTokens, envelope.outputTokens);
+  // Defaults: 8k input envelope; output locked to the live cap (the estimate must never
+  // under-price what a call can emit). A caller whose real prompt grows across steps (the
+  // Investigator loop) passes its own input estimate — a fixed envelope is NOT an upper
+  // bound once accumulated context exceeds it (2026-07-16 re-review, A-07).
+  const inputTokens = envelope?.inputTokens ?? 8_000;
+  const outputTokens = envelope?.outputTokens ?? MAX_LIVE_OUTPUT_TOKENS;
+  return costUsd(model, inputTokens, outputTokens);
 }
 
 type AgentContext = {

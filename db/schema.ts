@@ -107,11 +107,19 @@ export const decisionPackets = pgTable("decision_packets", {
   index("decision_packets_created_at_idx").on(table.createdAt)
 ]);
 
+// B-14 (2026-07-16 re-review, decided at fix 2026-07-21): the AUDIT-BEARING children of a
+// packet are RESTRICT, not cascade. In an evidence product, deleting a packet must not
+// silently erase the record of what was decided, by whom, or what was executed in the
+// outside world -- the DB should refuse and force an explicit, deliberate cleanup.
+// Derived/regenerable children (runIdempotencyKeys, processedApprovalEvents -- operational
+// dedup guards, reconstructible and meaningless without their packet) keep cascade.
+// Verified at fix time: NO code path anywhere deletes a decisionPacket, so this is purely
+// protective today -- it costs nothing now and closes the hole before a cleanup path exists.
 export const decisionPacketAuditEvents = pgTable("decision_packet_audit_events", {
   id: text("id").primaryKey(),
   packetId: text("packet_id")
     .notNull()
-    .references(() => decisionPackets.id, { onDelete: "cascade" }),
+    .references(() => decisionPackets.id, { onDelete: "restrict" }),
   at: timestamp("at", { withTimezone: true }).notNull(),
   actor: text("actor").notNull(),
   action: text("action").notNull(),
@@ -127,7 +135,7 @@ export const decisionPacketAgentRuns = pgTable("decision_packet_agent_runs", {
   id: text("id").primaryKey(),
   packetId: text("packet_id")
     .notNull()
-    .references(() => decisionPackets.id, { onDelete: "cascade" }),
+    .references(() => decisionPackets.id, { onDelete: "restrict" }),
   agentRunId: text("agent_run_id").notNull(),
   agentName: text("agent_name").notNull(),
   model: text("model").notNull(),
@@ -350,7 +358,9 @@ export const executedActions = pgTable("executed_actions", {
   id: text("id").primaryKey(),
   packetId: text("packet_id")
     .notNull()
-    .references(() => decisionPackets.id, { onDelete: "cascade" }),
+    // B-14: RESTRICT -- this is the immutable outbox/audit row for actions actually
+    // executed in the outside world. It must outlive any packet cleanup, not vanish with it.
+    .references(() => decisionPackets.id, { onDelete: "restrict" }),
   actionType: text("action_type").notNull(),
   channel: text("channel").notNull(),
   reversibility: text("reversibility").notNull(),

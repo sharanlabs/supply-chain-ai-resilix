@@ -250,6 +250,18 @@ export function applyThreatFirewall(
         reason: `Sentinel firewall: claimed chokepoint "${raw.location.chokepoint}" does not match this run's chokepoint -- rejecting (a misclassified chokepoint must fail closed, not be silently dropped).`
       };
     }
+  } else if (!rawChokepoint && resolveEventType(raw.eventType) === "CHOKEPOINT_CLOSURE") {
+    // INCOHERENT-OMISSION fails closed (2026-07-16 re-review, A-03, narrowed): a
+    // CHOKEPOINT_CLOSURE classification that names NO chokepoint is self-contradictory —
+    // and it is exactly the shape that would downgrade Atlas to country/region matching
+    // and bypass the chokepoint scope firewall. A NON-chokepoint event type omitting the
+    // field stays legitimate (export controls, recalls, and allocations carry none), per
+    // the documented vocab design.
+    return {
+      ok: false,
+      reason:
+        "Sentinel firewall: a CHOKEPOINT_CLOSURE classification names no chokepoint -- rejecting (an omitted chokepoint on a chokepoint-class event must fail closed, not silently downgrade the scope match)."
+    };
   }
   const country = raw.location.country
     ? CountryCodeSchema.safeParse(raw.location.country.trim().toUpperCase())

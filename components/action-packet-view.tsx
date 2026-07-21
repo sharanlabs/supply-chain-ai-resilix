@@ -862,8 +862,8 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
           action: status === "APPROVED" ? "HUMAN_APPROVAL" : "HUMAN_REJECTION",
           detail:
             status === "APPROVED"
-              ? "Plan approved. Drafts remain unsent until a person dispatches them."
-              : "Plan returned; no drafts dispatched."
+              ? "Plan approved (replay simulation — not persisted). Drafts remain unsent until a person dispatches them."
+              : "Plan returned (replay simulation — not persisted); no drafts dispatched."
         }
       ]
     }));
@@ -1884,6 +1884,17 @@ export function ActionOpsPacketView({ packet }: { packet: DecisionPacketV2 }) {
               <p className="mt-3 flex items-center gap-1.5 text-[0.75rem] font-medium text-accent-strong">
                 <ShieldCheck className="size-3.5 shrink-0" aria-hidden="true" />
                 RESILIX never sends anything without your approval.
+              </p>
+
+              {/* Replay honesty (2026-07-16, B-01/D-04): on this recorded demo the
+                  decision below is a LOCAL SIMULATION of the approval flow — nothing
+                  persists and nothing dispatches. The real product path is the
+                  authenticated API's atomic, audited transition. Stated on the glass,
+                  by the control it qualifies. */}
+              <p className="mt-2 text-[0.75rem] leading-[1.5] text-ink-faint">
+                Demo note: this replay simulates the approval locally — your click is
+                not persisted. In the product, approval is an atomic, audited API
+                transition behind authentication.
               </p>
 
               {/* Gatekeeper PASS -- the quiet-evidence trust anchor next to APPROVE,

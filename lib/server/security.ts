@@ -166,11 +166,18 @@ function constantTimeEquals(actual: string, expected: string): boolean {
 export function mcpMisconfiguredInProduction(
   env: Record<string, string | undefined> = process.env
 ): boolean {
-  return (
-    env.NODE_ENV === "production" &&
-    Boolean(env.MCP_ACCESS_TOKEN?.trim()) &&
-    !env.MCP_PUBLIC_ORIGIN?.trim()
-  );
+  if (env.NODE_ENV !== "production" || !env.MCP_ACCESS_TOKEN?.trim()) return false;
+  const origin = env.MCP_PUBLIC_ORIGIN?.trim();
+  if (!origin) return true;
+  // A SET-but-malformed origin is the same misconfig as an unset one (2026-07-16
+  // re-review, B-13): the route's URL parse falls back to a request-derived challenge
+  // origin, which is exactly what this guard exists to prevent — fail closed.
+  try {
+    new URL("/api/mcp/mcp", origin);
+    return false;
+  } catch {
+    return true;
+  }
 }
 
 // S3 -- the MCP surface's bearer check. STRICTER than verifyApprovalToken by

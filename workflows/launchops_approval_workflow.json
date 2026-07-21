@@ -65,7 +65,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $json.callbackUrl || 'http://host.docker.internal:3000/api/n8n/approval-callback' }}",
+        "url": "http://host.docker.internal:3000/api/n8n/approval-callback",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

@@ -42,5 +42,47 @@ export function renderPacketText(packet: CustomsDefensePacket): string {
   if (packet.namedGaps.length > 0) {
     lines.push(`\n## Named gaps\n${packet.namedGaps.map((g) => `- ${g}`).join("\n")}`);
   }
+  // Appendices (2026-07-16 re-review, C-01): the exported artifact must CONTAIN what its
+  // prose says is attached. Every numeral below is covered by citedFigures at assembly
+  // (statutory-section numerals are bound from the structured PolicyCitation fields in
+  // pipeline.ts); exhibit digests render as SHA-<hex> so the numeral extractor treats
+  // them structurally as identifiers, never as asserted figures.
+  if (packet.policyCitations.length > 0) {
+    lines.push(
+      `\n## Policy citations (statutory sources)\n` +
+        packet.policyCitations
+          .map((c) => `- ${c.sourceId} — ${c.section} — as of ${c.asOf} — layer: ${c.layer}`)
+          .join("\n")
+    );
+  }
+  if (packet.citedFigures.length > 0) {
+    lines.push(
+      `\n## Figure provenance ledger\n` +
+        packet.citedFigures.map((f) => `- ${f.value} — ${f.sourceKind} — ${f.sourceRef}`).join("\n")
+    );
+  }
+  if (packet.deadlines.length > 0) {
+    lines.push(
+      `\n## Deadline clocks\n` +
+        packet.deadlines
+          .map((d) => `- ${d.kind}: due ${d.dueOn} (${d.windowDays} days from mailing; ${d.sourceStatus})`)
+          .join("\n")
+    );
+  }
+  if (packet.exhibitAudit.length > 0) {
+    lines.push(
+      `\n## Exhibit audit (bodies never cross quarantine)\n` +
+        packet.exhibitAudit
+          .map(
+            (e) =>
+              `- ${e.kind} — digest SHA-${e.bodyDigest} — ${
+                e.injectionSignals.length > 0
+                  ? `injection signals: ${e.injectionSignals.join(", ")}`
+                  : "no injection signals"
+              }`
+          )
+          .join("\n")
+    );
+  }
   return lines.join("\n");
 }

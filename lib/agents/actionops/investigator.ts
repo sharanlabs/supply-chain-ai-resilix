@@ -3,7 +3,10 @@ import { makeAgentRun, type AgentRunUsage } from "@/lib/agents/actionops/agent-r
 import { runActionOpsGatekeeper } from "@/lib/agents/actionops/gatekeeper";
 import { runAtlas } from "@/lib/agents/actionops/atlas";
 import { classifyMessagesLive, runDispatcher } from "@/lib/agents/actionops/dispatcher";
-import { decideRecommendation } from "@/lib/agents/actionops/recommendation";
+import {
+  capUncorroboratedLiveConfidence,
+  decideRecommendation
+} from "@/lib/agents/actionops/recommendation";
 import { buildRecoveryOptions } from "@/lib/agents/actionops/recovery";
 import { classifyThreatLive, runSentinel } from "@/lib/agents/actionops/sentinel";
 import { runSimulator } from "@/lib/agents/actionops/simulator";
@@ -242,6 +245,14 @@ export async function runInvestigatorLoop(
   // though both guards "fired". We RESERVE the step's estimate in prepareStep (so any in-step
   // tool sees it) and REPLACE it with the actual cost in onStepFinish.
   let reservedStepUsd = 0;
+  // A mid-step throw leaves a step's real cost unknown; its reservation is KEPT here as the
+  // conservative upper bound (D-05) — it stays inside spentUsd and is surfaced in the audit
+  // summary, never silently dropped.
+  let unknownCostReservedUsd = 0;
+  // Next step's input-token estimate for the pre-call budget guard (A-07): starts at the
+  // default envelope, then tracks the last step's REAL input+output (the next prompt
+  // contains at least that context) plus headroom for tool results.
+  let nextInputEstimateTokens = 8_000;
   // The ACTUAL tool-call order the model drove (Codex P3 Low) -- recorded on the audit run so the
   // canonical agentRuns order does not mask what the loop really did.
   const toolSequence: string[] = [];
@@ -299,7 +310,12 @@ export async function runInvestigatorLoop(
       // billable call is never made (the cap as a guard, not a hope). The shaping gates the
       // tool menu to the valid next moves so the model is steered down a DAG-valid order.
       prepareStep: async () => {
-        const stepEstimate = estimateLiveCallCostUsd(modelId);
+        // Input estimate grows with the loop (A-07): a step's real prompt is roughly the
+        // prior step's full context plus its output and tool results, so the pre-call
+        // guard prices the ACCUMULATED context, never the fixed first-call envelope.
+        const stepEstimate = estimateLiveCallCostUsd(modelId, {
+          inputTokens: nextInputEstimateTokens
+        });
         // Assert FIRST against the pre-reservation total (a would-breach step throws here, before
         // the billable call), THEN reserve the step's estimate so any tool that executes WITHIN
         // this step (e.g. the live Skeptic) budget-checks against a spentUsd that already includes
@@ -322,6 +338,7 @@ export async function runInvestigatorLoop(
         lastFinishReason = step.finishReason ?? lastFinishReason;
         spentUsd += costUsd(modelId, inTok, outTok) - reservedStepUsd;
         reservedStepUsd = 0;
+        nextInputEstimateTokens = Math.max(8_000, inTok + outTok + 2_000);
         for (const call of step.toolCalls ?? []) {
           toolSequence.push(call.toolName);
         }
@@ -335,15 +352,17 @@ export async function runInvestigatorLoop(
     degraded = true;
     degradeReason =
       err instanceof Error ? err.message : "Investigator loop ended on an unexpected error.";
-    // Reconcile a MID-STEP throw (Codex independent-gate Med): if generateText threw AFTER
-    // prepareStep reserved this step's estimate but BEFORE onStepFinish replaced it, the
-    // reservation would otherwise LEAK as phantom spend into the post-loop budget checks
-    // (Strategist / Dispatcher / the Skeptic completion), falsely degrading them. Clear it so the
-    // running total carries no un-reconciled reservation. (A budget breach throws at the assert
-    // BEFORE the reserve line, so reservedStepUsd is 0 there; this only fires on a model/tool
-    // throw mid-step, whose tiny actual cost we drop on an already-degrading run -- the cap is
-    // still defended by every downstream agent's own hard-stop.)
-    spentUsd -= reservedStepUsd;
+    // MID-STEP throw accounting (revised 2026-07-16 re-review, D-05 — supersedes the earlier
+    // "clear the reservation" reconcile): if generateText threw AFTER prepareStep reserved this
+    // step's estimate but BEFORE onStepFinish replaced it, the step's REAL cost is unknown —
+    // somewhere between $0 and the reservation. The README's "hard-stopped before it can exceed
+    // the cap" claim requires conservative accounting on unknown cost, so the reservation is
+    // KEPT as the step's recorded upper bound (never released on unknown cost). The tradeoff is
+    // deliberate: downstream agents on this ALREADY-degrading run may budget-degrade slightly
+    // earlier (they fall back deterministically), which errs toward blocking — the direction a
+    // fail-closed cap must err. (A budget breach throws at the assert BEFORE the reserve line,
+    // so reservedStepUsd is 0 there; this path only fires on a model/tool throw mid-step.)
+    unknownCostReservedUsd = reservedStepUsd;
     reservedStepUsd = 0;
   }
 
@@ -370,11 +389,15 @@ export async function runInvestigatorLoop(
           finishReason: lastFinishReason
         }
       : undefined;
-  const degradeNote = degraded
-    ? degradeReason
-    : toolBreach
-      ? "an off-context tool input was rejected by the input-side moat"
-      : "";
+  const degradeNote =
+    (degraded
+      ? degradeReason
+      : toolBreach
+        ? "an off-context tool input was rejected by the input-side moat"
+        : "") +
+    (unknownCostReservedUsd > 0
+      ? ` [conservative unknown-cost reservation $${unknownCostReservedUsd.toFixed(4)} held against the cap for the interrupted step]`
+      : "");
   const investigatorRun = makeAgentRun({
     id: "RUN-INVESTIGATOR",
     agentName: "Investigator",
@@ -423,15 +446,26 @@ export async function runInvestigatorLoop(
   const skepticVerdict = state.skeptic!.verdict;
   const dataGaps = [...state.exposure!.dataGaps, ...state.simulation!.dataGaps];
 
+  // A-01/D-01 on the LOOP path (added 2026-07-21). The 2026-07-16 fix capped live
+  // model-authored confidence in the waterfall only -- but ENABLE_AGENT_LOOP defaults ON, so
+  // this loop is the DEFAULT live route and was still deciding on the uncapped value. Same
+  // shared helper as index.ts; from here down the gated card is what decides, what scores
+  // strength, what the Dispatcher sees, and what the packet reports -- so the number on the
+  // glass is the number that drove the decision.
+  const gatedThreatCard = capUncorroboratedLiveConfidence(threatCard, {
+    live,
+    corroborated: verifierChecks.corroborated
+  });
+
   const baseDecision = decideRecommendation({
     corroborated: verifierChecks.corroborated,
-    confidence: threatCard.confidence,
+    confidence: gatedThreatCard.confidence,
     exposureResults
   });
   // IDENTICAL to the waterfall (index.ts): the strength signal + the gate decide whether a live
   // Skeptic REJECT hard-vetoes or is downgraded to a recorded caution on a strong finding (the
   // false-veto fix). Parity here is the moat -- the loop and the waterfall MUST produce byte-equal packets.
-  const strength = findingStrength(verifierChecks, threatCard.confidence, exposureResults);
+  const strength = findingStrength(verifierChecks, gatedThreatCard.confidence, exposureResults);
   const {
     recommendation,
     missingEvidence,
@@ -489,7 +523,7 @@ export async function runInvestigatorLoop(
       ? await classifyMessagesLive(ctx, exposureResults, simulation, {
           budget: budgetForNext(),
           retry: retryReserve,
-          threatCard,
+          threatCard: gatedThreatCard,
           publicSignals: signals
         })
       : runDispatcher(ctx, exposureResults, simulation);
@@ -523,7 +557,7 @@ export async function runInvestigatorLoop(
 
   const gatekeeper = runActionOpsGatekeeper({
     suppliers: ctx.suppliers,
-    threatCard,
+    threatCard: gatedThreatCard,
     exposureResults,
     supplierMessages,
     agentRuns,
@@ -533,7 +567,7 @@ export async function runInvestigatorLoop(
   });
 
   return {
-    threatCard,
+    threatCard: gatedThreatCard,
     publicSignals: signals,
     exposureResults,
     simulation,

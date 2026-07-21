@@ -16,6 +16,24 @@ import { computePenaltyExposure } from "./penalty-exposure";
 import { computeDeadlines, type NoticeEvent } from "./deadline-clocks";
 import { gradeCustomsCitationCoverage, type CitedFigure } from "./packet-graders";
 import { renderPacketText, type CustomsDefensePacket } from "./defense-packet";
+import { extractSourceableNumerals } from "@/lib/evals/numerals";
+import type { PolicyCitation } from "./policy-table";
+
+// Statutory-section numerals for the rendered policy-citation appendix (C-01): the
+// appendix lines render FROM the structured PolicyCitation fields, so every numeral a
+// section string carries ("19 CFR 162.74") is bound here from that same field — a
+// SOURCE_DOCUMENT figure referencing the citation it appears in. Without this, the
+// produce-time guard would (correctly) block its own appendix.
+export function policyCitationFigures(citations: PolicyCitation[]): CitedFigure[] {
+  const out: CitedFigure[] = [];
+  for (const c of citations) {
+    const { figures } = extractSourceableNumerals(c.section);
+    for (const value of figures) {
+      out.push({ value, sourceKind: "SOURCE_DOCUMENT", sourceRef: `policy-table#${c.sourceId}` });
+    }
+  }
+  return out;
+}
 
 export interface CustomsDefenseOutcome {
   disposition: "PROCEED" | "REFUSE";
@@ -86,11 +104,13 @@ export function runCustomsDefenseCase(input: SyntheticCase): CustomsDefenseOutco
     ? computeDeadlines([{ kind: "CF28_RESPONSE", mailedOn: DEMO_NOTICE_MAILED_ON } as NoticeEvent])
     : [];
 
+  const policyCitations = [...caught.citations, ...disclosed.citations];
   const citedFigures: CitedFigure[] = [
     // The seed appears in the rendered provenance line ("cellId:seed"), and the
     // guard now grades the FULL rendered text (Codex D6 #3) -- so the seed is a
-    // first-class cited figure, sourced to the case generator input.
-    { value: input.seed, sourceKind: "TOOL_RETURN", sourceRef: "case-generator#seed" },
+    // first-class cited figure. Honest kind (C-05): it is a raw case INPUT passed
+    // through, not a tool-computed return.
+    { value: input.seed, sourceKind: "RAW_INPUT", sourceRef: "case-input#seed" },
     { value: scope.entryCount, sourceKind: "TOOL_RETURN", sourceRef: "entry-scoper#entryCount" },
     { value: scope.lineCount, sourceKind: "TOOL_RETURN", sourceRef: "entry-scoper#lineCount" },
     { value: scope.totalEnteredValueCents / 100, sourceKind: "TOOL_RETURN", sourceRef: "entry-scoper#totalEnteredValue" },
@@ -100,13 +120,16 @@ export function runCustomsDefenseCase(input: SyntheticCase): CustomsDefenseOutco
     { value: caught.maxCents / 100, sourceKind: "TOOL_RETURN", sourceRef: "penalty-exposure#caught.max" },
     { value: disclosed.maxCents / 100, sourceKind: "TOOL_RETURN", sourceRef: "penalty-exposure#disclosed.max" },
     { value: quarantined.length, sourceKind: "TOOL_RETURN", sourceRef: "exhibit-quarantine#count" },
-    { value: DEMO_INTEREST.annualRatePct, sourceKind: "TOOL_RETURN", sourceRef: "lor-model#interestRateAssumption" },
-    { value: DEMO_INTEREST.days, sourceKind: "TOOL_RETURN", sourceRef: "lor-model#interestDaysAssumption" },
+    // Honest kinds (C-05): the interest rate/days are DISCLOSED demo-model constants,
+    // not tool computations — labeling them TOOL_RETURN was declarative provenance.
+    { value: DEMO_INTEREST.annualRatePct, sourceKind: "DECLARED_ASSUMPTION", sourceRef: "demo-model#interestRateAssumption" },
+    { value: DEMO_INTEREST.days, sourceKind: "DECLARED_ASSUMPTION", sourceRef: "demo-model#interestDaysAssumption" },
     ...deadlines.map((d) => ({
       value: d.windowDays,
       sourceKind: "TOOL_RETURN" as const,
       sourceRef: `deadline-clocks#${d.kind}`,
     })),
+    ...policyCitationFigures(policyCitations),
   ];
 
   const packet: CustomsDefensePacket = {
@@ -160,7 +183,7 @@ export function runCustomsDefenseCase(input: SyntheticCase): CustomsDefenseOutco
     citedFigures,
     namedGaps: [],
     deadlines,
-    policyCitations: [...caught.citations, ...disclosed.citations],
+    policyCitations,
     exhibitAudit: quarantined.map(({ kind, bodyDigest, injectionSignals }) => ({ kind, bodyDigest, injectionSignals })),
     provenance: {
       synthetic: true,
@@ -179,6 +202,9 @@ function refuse(
   quarantined: ReturnType<typeof quarantineAll>
 ): CustomsDefenseOutcome {
   const cell = findCell(input.cellId);
+  const refusalCitations: PolicyCitation[] = gaps.includes("INELIGIBLE:INVESTIGATION_COMMENCED")
+    ? [{ sourceId: "eCFR", section: "19 CFR 162.74 (prior disclosure)", asOf: "2026-07-03", layer: "operative" }]
+    : [];
   const packet: CustomsDefensePacket = {
     contractVersion: "customs-defense-packet/1",
     workflow: cell?.workflow ?? "PRIOR_DISCLOSURE",
@@ -205,14 +231,13 @@ function refuse(
       },
     ],
     citedFigures: [
-      { value: input.seed, sourceKind: "TOOL_RETURN", sourceRef: "case-generator#seed" },
+      { value: input.seed, sourceKind: "RAW_INPUT", sourceRef: "case-input#seed" },
       { value: quarantined.length, sourceKind: "TOOL_RETURN", sourceRef: "exhibit-quarantine#count" },
+      ...policyCitationFigures(refusalCitations),
     ],
     namedGaps: gaps,
     deadlines: [],
-    policyCitations: gaps.includes("INELIGIBLE:INVESTIGATION_COMMENCED")
-      ? [{ sourceId: "eCFR", section: "19 CFR 162.74 (prior disclosure)", asOf: "2026-07-03", layer: "operative" }]
-      : [],
+    policyCitations: refusalCitations,
     exhibitAudit: quarantined.map(({ kind, bodyDigest, injectionSignals }) => ({ kind, bodyDigest, injectionSignals })),
     provenance: {
       synthetic: true,

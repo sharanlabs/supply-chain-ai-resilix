@@ -181,7 +181,11 @@ describe("skeptic re-verification (D4) -- maker != judge", () => {
     const verdict = skepticReview(generated, tampered);
     expect(verdict.accepted).toBe(false);
     expect(verdict.objections.some((o) => o.includes("2099-01-01"))).toBe(true);
-    expect(verdict.objections.some((o) => o.includes(realDue))).toBe(true);
+    // Note (2026-07-16): the deadline appendix renders the honest structured dueOn by
+    // construction, so the "re-derived due date missing from text" objection can no
+    // longer fire on a section-only tamper — the contradiction objection above and the
+    // whole-outcome deviation backstop carry the catch.
+    expect(verdict.objections.some((o) => o.includes("deviates from a full deterministic re-derivation"))).toBe(true);
   });
 
   it("objects to a tampered deadline date (dates are masked from the citation grader)", () => {

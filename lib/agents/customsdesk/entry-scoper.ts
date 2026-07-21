@@ -27,12 +27,31 @@ interface ParsedLine {
   valueUsd: number;
 }
 
+// Strict fixed-width numeric parse (2026-07-16 re-review, C-04): Number("") and
+// Number("   ") are 0, not NaN — so a truncated/blank slice slipped the NaN guard and
+// became an authoritative zero-valued figure. A numeric field must be a non-empty
+// digits-only token (space padding tolerated) inside a record long enough to contain it.
+function parseNumericField(record: string, start: number, end: number, label: string): number {
+  if (record.length < end) {
+    throw new Error(`50-record too short for ${label} (len ${record.length} < ${end})`);
+  }
+  const raw = record.slice(start, end).trim();
+  if (!/^\d+$/.test(raw)) {
+    throw new Error(`50-record ${label} is not a digits-only field: "${record.slice(start, end)}"`);
+  }
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error(`50-record ${label} exceeds safe-integer range: "${raw}"`);
+  }
+  return parsed;
+}
+
 function parseLine(lineItem: string, tariff: string): ParsedLine {
   return {
     countryOfOrigin: lineItem.slice(8, 10),
     htsNumber: tariff.slice(2, 12),
-    dutyCents: Number(tariff.slice(13, 23)), // 10N, implied 2dp -> already cents
-    valueUsd: Number(tariff.slice(24, 34)), // 10N whole USD
+    dutyCents: parseNumericField(tariff, 13, 23, "dutyCents"), // 10N, implied 2dp -> already cents
+    valueUsd: parseNumericField(tariff, 24, 34, "valueUsd"), // 10N whole USD
   };
 }
 
@@ -54,10 +73,9 @@ export function scopeEntryPopulation(
     if (criteria.portOfEntry && port !== criteria.portOfEntry) continue;
     let entryMatched = false;
     for (const line of entry.lines) {
+      // parseLine fails loud on blank/short/non-digit numeric fields (C-04) — no NaN
+      // check needed here; Number("") === 0 was the hole the strict parse closes.
       const parsed = parseLine(line.lineItem, line.tariff);
-      if (Number.isNaN(parsed.dutyCents) || Number.isNaN(parsed.valueUsd)) {
-        throw new Error(`unparseable 50-record figures in entry ${entry.header.slice(8, 16)}`);
-      }
       if (criteria.htsPrefix && !parsed.htsNumber.startsWith(criteria.htsPrefix)) continue;
       if (criteria.countryOfOrigin && parsed.countryOfOrigin !== criteria.countryOfOrigin) continue;
       entryMatched = true;

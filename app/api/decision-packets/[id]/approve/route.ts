@@ -9,7 +9,13 @@ import { enforceMutationRateLimit } from "@/lib/server/rate-limit";
 
 const ApprovalRequestSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
-  reason: z.string().min(1).max(500),
+  // Trim-then-validate (2026-07-16 re-review, B-02): a whitespace-only reason passed
+  // min(1) and persisted an empty-in-substance audit reason on a terminal decision.
+  reason: z
+    .string()
+    .max(500)
+    .transform((s) => s.trim())
+    .refine((s) => s.length > 0, "reason must be non-blank"),
   approvalEventId: z.string().min(8).max(120).optional()
 });
 
@@ -40,6 +46,10 @@ export async function POST(
     packetId: id,
     approvalStatus: parsed.data.status,
     reason: parsed.data.reason,
+    // Demo actor label (B-02, recorded posture): this surface has no per-user identity —
+    // the bearer token authorizes the mutation, and the audit actor is the generic demo
+    // reviewer. Deriving a verified named human requires SSO/per-user auth (enterprise
+    // path, docs/enterprise_readiness.md), deliberately out of the showcase scope.
     actor: "human-approver",
     auditAction: "HUMAN_APPROVAL",
     eventId: parsed.data.approvalEventId

@@ -11,7 +11,13 @@ import { extractSourceableNumerals, normalizeNumeral, sameFigure } from "@/lib/e
 
 export interface CitedFigure {
   value: number;
-  sourceKind: "TOOL_RETURN" | "SOURCE_DOCUMENT";
+  // Honest provenance vocabulary (2026-07-16 re-review, C-05): TOOL_RETURN = a value a
+  // deterministic tool computed and returned; SOURCE_DOCUMENT = a value read from a named
+  // source document (statute section numbers); RAW_INPUT = a case input passed through
+  // (the generator seed); DECLARED_ASSUMPTION = a disclosed demo-model constant (the
+  // interest-rate assumption). Labeling an input or an assumption as TOOL_RETURN was the
+  // exact declarative-provenance drift this enum closes.
+  sourceKind: "TOOL_RETURN" | "SOURCE_DOCUMENT" | "RAW_INPUT" | "DECLARED_ASSUMPTION";
   sourceRef: string; // tool call id or exhibit/document identifier
 }
 

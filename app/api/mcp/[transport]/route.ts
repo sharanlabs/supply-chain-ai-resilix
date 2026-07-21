@@ -50,9 +50,19 @@ const verifyToken = async (
 // derived. (The pointer itself is inert -- no metadata endpoint is mounted, see
 // docs/mcp.md -- so this is defense-in-depth on the stated-deviation posture.)
 const publicOrigin = process.env.MCP_PUBLIC_ORIGIN?.trim();
-const resourceUrl = publicOrigin
-  ? new URL("/api/mcp/mcp", publicOrigin).toString()
-  : undefined;
+// Guarded parse (2026-07-16 re-review, B-13): a malformed MCP_PUBLIC_ORIGIN would throw
+// DURING MODULE EVALUATION and take down the whole route (500 on every MCP call, hard to
+// diagnose). Treat it as the misconfig it is: fall through to undefined, which the
+// production misconfig gate below turns into a legible fail-closed 503.
+const resourceUrl = (() => {
+  if (!publicOrigin) return undefined;
+  try {
+    return new URL("/api/mcp/mcp", publicOrigin).toString();
+  } catch {
+    console.error(`MCP_PUBLIC_ORIGIN is not a valid origin URL: "${publicOrigin}" — treating as unset (fail-closed misconfig).`);
+    return undefined;
+  }
+})();
 
 // Codex F1 round-2 residual: don't leave the fallback silent in production. When
 // the MCP surface is LIVE in production (a token is configured) but no trusted

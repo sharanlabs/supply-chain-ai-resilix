@@ -12,8 +12,10 @@ the shipped look — this script's shot list survives the redesign (same flow, n
 
 > "This is RESILIX — a crisis-to-action war room for supply-chain teams. One disruption signal
 > plus your supplier list becomes this: an evidence-cited action packet a human approves.
-> The rule the whole system is built on: **the AI never owns a number**. Every figure you'll
-> see was computed by deterministic code and traces to a source."
+> The rule the whole system is built on: **the AI never owns a number**. Every operational
+> figure you'll see — dollars, days, exposure — was computed by deterministic code and traces
+> to a source. (The one model-authored value, the classifier's own confidence, is labeled as
+> such and capped by deterministic evidence checks.)"
 
 ## 0:15–0:50 — the packet walk (scroll the landing packet, slowly)
 
@@ -24,8 +26,9 @@ Point at each as you say it:
 > The exposure map: which of *my* suppliers are hit, and the exact rule that matched each one.
 > The runway simulation: revenue at risk over time — deterministic arithmetic, not model output.
 > Drafted supplier emails: every number in the draft carries a claims entry the gatekeeper
-> cross-checks in both directions. And nothing sends — ever — until a person clicks approve,
-> atomically, with an audit trail."
+> cross-checks in both directions. And nothing sends — ever — until a person approves: on the
+> persisted API that's an atomic, audited transition; the approve button on this replay demo is
+> a labeled simulation of it."
 
 ## 0:50–1:25 — the customs desk: the refusal and the attack (switch tab, `/customs`)
 

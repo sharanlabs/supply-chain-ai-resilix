@@ -83,11 +83,21 @@ export function retrievePolicy(query: string, k = 3): RetrievedChunk[] {
     }
     return { chunk: d.chunk, score };
   });
-  return scored
+  const results = scored
     .filter((s) => s.score > 0)
     // Codepoint compare (not localeCompare) so the tie-break is locale-independent
     // by construction -- the ids are ASCII, and the ranking must be deterministic
     // regardless of the runtime's locale.
     .sort((a, b) => (b.score - a.score) || (a.chunk.id < b.chunk.id ? -1 : a.chunk.id > b.chunk.id ? 1 : 0))
     .slice(0, k);
+  // Serve-time citation guard (2026-07-16 re-review, D-10): the structural "every chunk
+  // is cited" invariant is test-pinned, but the serving boundary must not DEPEND on the
+  // test having run — an uncited chunk here is a corpus regression and fails loud rather
+  // than surfacing an uncited claim to a caller.
+  for (const r of results) {
+    if (r.chunk.citation.sourceId.trim().length === 0 || r.chunk.citation.section.trim().length === 0) {
+      throw new Error(`retrievePolicy: chunk "${r.chunk.id}" has no usable citation (corpus regression — fail closed)`);
+    }
+  }
+  return results;
 }

@@ -11,6 +11,7 @@
 // for safety -- safety comes from the structural rule (bodies never cross), which
 // holds even for payloads the patterns miss.
 
+import { createHash } from "node:crypto";
 import type { SyntheticExhibit } from "./synthetic-entries";
 
 export interface QuarantinedExhibit {
@@ -22,14 +23,12 @@ export interface QuarantinedExhibit {
   injectionSignals: string[]; // audit flags; NEVER gates the disposition
 }
 
-// FNV-1a 32-bit -- tiny, deterministic, dependency-free fingerprint.
-function fnv1a(text: string): string {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < text.length; i += 1) {
-    hash ^= text.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, "0");
+// SHA-256 (first 16 hex chars) -- collision-resistant provenance fingerprint (2026-07-16
+// re-review, D-11: this digest is cross-referenced in the exported audit appendix, so it
+// earns a real hash; the prior FNV-1a 32-bit stays acceptable only for harmless-collision
+// fingerprints per lessons.md P2.5, which an audit identifier is not).
+function sha256Fingerprint(text: string): string {
+  return createHash("sha256").update(text).digest("hex").slice(0, 16);
 }
 
 const INJECTION_PATTERNS: Array<{ signal: string; pattern: RegExp }> = [
@@ -39,6 +38,12 @@ const INJECTION_PATTERNS: Array<{ signal: string; pattern: RegExp }> = [
   { signal: "role-hijack", pattern: /you are (now|a) |system prompt/i },
 ];
 
+// SYNTHETIC-TRUST BOUNDARY (recorded, 2026-07-16 re-review): `consistentWithEntry` and
+// `declaredOrigin` are GENERATOR-SET ground truth of the synthetic case world (the generator
+// decides whether an exhibit contradicts its entry) -- not verdicts derivable from the body,
+// which is opaque by quarantine design. A real evidence layer would replace these copied fields
+// with a real structured extractor AT THIS WALL; the wall itself (bodies never cross) is the
+// invariant that carries over unchanged.
 export function quarantineExhibit(exhibit: SyntheticExhibit): QuarantinedExhibit {
   const injectionSignals = INJECTION_PATTERNS.filter((p) => p.pattern.test(exhibit.body)).map(
     (p) => p.signal
@@ -48,7 +53,7 @@ export function quarantineExhibit(exhibit: SyntheticExhibit): QuarantinedExhibit
     declaredOrigin: exhibit.declaredOrigin,
     consistentWithEntry: exhibit.consistentWithEntry,
     bodyLength: exhibit.body.length,
-    bodyDigest: fnv1a(exhibit.body),
+    bodyDigest: sha256Fingerprint(exhibit.body),
     injectionSignals,
   };
 }

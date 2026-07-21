@@ -29,6 +29,13 @@
       "when": 1782454926996,
       "tag": "0003_aberrant_yellowjacket",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784658595061,
+      "tag": "0004_thick_rafael_vega",
+      "breakpoints": true
     }
   ]
 }

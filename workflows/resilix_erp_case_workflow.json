@@ -1,14 +1,14 @@
 {
   "name": "RESILIX ERP_CASE (post-approval)",
   "meta": {
-    "description": "S6 demo artifact -- an importable n8n workflow that receives a RESILIX ERP_CASE dispatch. RESILIX POSTs a sanitized DIGEST-ONLY JSON body {actionType, channel, idempotencyKey, ...digest} to this webhook AFTER a human approves the packet; nothing reaches this workflow before approval, and RESILIX is never in the approval loop (n8n is a pure outbound sink). Optional header auth: set N8N_ERP_WEBHOOK_HEADER_NAME/VALUE on the RESILIX side to match the webhook credential here. Idempotency: the idempotencyKey field dedupes a re-driven dispatch, so this workflow must upsert on it, never blind-insert."
+    "description": "S6 demo artifact -- an importable n8n workflow that receives a RESILIX ERP_CASE dispatch. RESILIX POSTs a sanitized DIGEST-ONLY JSON body {actionType, channel, idempotencyKey, ...digest} to this webhook AFTER a human approves the packet; nothing reaches this workflow before approval, and RESILIX is never in the approval loop (n8n is a pure outbound sink). AUTH (fail-closed, 2026-07-16): the guard requires the X-Resilix-Webhook-Secret header to match the RESILIX_WEBHOOK_SECRET n8n environment variable -- with the variable unset, EVERY call is rejected, so an imported workflow is never open by accident; set the same value in RESILIX's N8N_ERP_WEBHOOK_HEADER_NAME/VALUE. RESPONSE (2026-07-16): the webhook responds via Respond-to-Webhook nodes AFTER the guard and ERP step run -- 200 only when the guarded work completed, 403 on a bad secret or malformed payload -- so RESILIX's delivery receipt never records success for work that failed. Idempotency: the idempotencyKey field dedupes a re-driven dispatch, so this workflow must upsert on it, never blind-insert."
   },
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "resilix-erp-case",
-        "responseMode": "onReceived",
+        "responseMode": "responseNode",
         "options": {}
       },
       "id": "webhook-in",
@@ -25,6 +25,16 @@
           "combinator": "and",
           "conditions": [
             {
+              "leftValue": "={{ $env.RESILIX_WEBHOOK_SECRET }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            },
+            {
+              "leftValue": "={{ $json.headers['x-resilix-webhook-secret'] }}",
+              "rightValue": "={{ $env.RESILIX_WEBHOOK_SECRET }}",
+              "operator": { "type": "string", "operation": "equals" }
+            },
+            {
               "leftValue": "={{ $json.body.actionType }}",
               "rightValue": "ERP_CASE",
               "operator": { "type": "string", "operation": "equals" }
@@ -39,7 +49,7 @@
         "options": {}
       },
       "id": "guard",
-      "name": "Guard: ERP_CASE + idempotencyKey present",
+      "name": "Guard: secret + ERP_CASE + idempotencyKey",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [520, 300]
@@ -74,34 +84,41 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "rejected",
-              "name": "rejected",
-              "value": "payload was not a valid ERP_CASE dispatch (missing actionType or idempotencyKey)",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"erpCaseKey\": $json.erpCaseKey } }}",
+        "options": { "responseCode": 200 }
       },
-      "id": "reject",
-      "name": "Reject malformed payload",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [780, 400]
+      "id": "respond-ok",
+      "name": "Respond 200 (guarded work completed)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1040, 220]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": false, \"error\": \"rejected: bad or missing webhook secret, or payload was not a valid ERP_CASE dispatch\" } }}",
+        "options": { "responseCode": 403 }
+      },
+      "id": "respond-reject",
+      "name": "Respond 403 (rejected)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1040, 400]
     }
   ],
   "connections": {
     "ERP_CASE webhook": {
-      "main": [[{ "node": "Guard: ERP_CASE + idempotencyKey present", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Guard: secret + ERP_CASE + idempotencyKey", "type": "main", "index": 0 }]]
     },
-    "Guard: ERP_CASE + idempotencyKey present": {
+    "Guard: secret + ERP_CASE + idempotencyKey": {
       "main": [
         [{ "node": "Upsert ERP case (replace with your ERP node)", "type": "main", "index": 0 }],
-        [{ "node": "Reject malformed payload", "type": "main", "index": 0 }]
+        [{ "node": "Respond 403 (rejected)", "type": "main", "index": 0 }]
       ]
+    },
+    "Upsert ERP case (replace with your ERP node)": {
+      "main": [[{ "node": "Respond 200 (guarded work completed)", "type": "main", "index": 0 }]]
     }
   },
   "settings": { "executionOrder": "v1" },

@@ -12,7 +12,10 @@ const RunRequestSchema = z.object({
   // retired "SCN-LAUNCH-001" default would route every bare run at an unknown
   // scenario -> a 500. Present values are still validated as a string.
   scenarioId: z.string().optional(),
-  useLiveSignals: z.boolean().default(true),
+  // Default FALSE (2026-07-16 re-review, B-05): a zero-config call must not reach out to
+  // live GDELT/NWS — the keyless posture is "no live call unless explicitly asked", and a
+  // forgotten flag falls back to the recorded replay signals, never to the network.
+  useLiveSignals: z.boolean().default(false),
   // Live-AI opt-in. Default FALSE: billing the Gemini budget requires an EXPLICIT
   // per-request opt-in even behind the approval token (do not mirror useLiveSignals's
   // default-true -- a forgotten flag must fall back to the free deterministic run, not
@@ -62,7 +65,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const headerIdempotencyKey = request.headers.get(IDEMPOTENCY_KEY_HEADER)?.trim();
+  // `|| undefined` (2026-07-16 re-review, B-07): a present-but-blank header trims to ""
+  // — which is falsy for the validation guard below but NOT nullish, so it would win the
+  // `??` fallback and silently suppress a valid body idempotency key.
+  const headerIdempotencyKey = request.headers.get(IDEMPOTENCY_KEY_HEADER)?.trim() || undefined;
   if (
     headerIdempotencyKey &&
     !/^[A-Za-z0-9_.:-]{8,120}$/.test(headerIdempotencyKey)

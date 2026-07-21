@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Lock, Check, Copy, Download, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,21 @@ export function CounselGate({ packet }: { packet: CustomsDefensePacket }) {
   const pending = state === "PENDING_COUNSEL_REVIEW";
   const nameOk = reviewer.trim().length > 0;
   const reasonOk = note.trim().length > 0;
+
+  // Terminal-transition a11y (2026-07-16 re-review, B-15): the decision controls
+  // disappear on approve/reject, so keyboard and screen-reader users need (a) an
+  // announcement of the state change (the persistent live region below — a
+  // conditionally-mounted node does NOT announce) and (b) a focus handoff onto the
+  // result region so the reading position never silently evaporates.
+  const resultRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!pending) resultRef.current?.focus();
+  }, [pending]);
+  const stateAnnouncement = pending
+    ? ""
+    : state === "APPROVED_FOR_EXPORT"
+      ? "Packet approved for export. Export controls are now available."
+      : "Packet rejected. The decision is recorded below.";
 
   // Exercise the REAL export door every render: a non-approved state throws, and we
   // surface that exact message rather than inventing a disabled reason.
@@ -108,6 +123,11 @@ export function CounselGate({ packet }: { packet: CustomsDefensePacket }) {
       aria-labelledby="gate-h"
     >
       <div className="border-t-2 border-accent" />
+      {/* Persistent live region (B-15): always mounted; its TEXT changes on a terminal
+          decision so assistive tech announces the transition without moving focus. */}
+      <div role="status" aria-live="polite" className="sr-only" data-testid="gate-status">
+        {stateAnnouncement}
+      </div>
       <div className="p-5">
         <div className="flex items-center justify-between gap-3">
           <h2
@@ -202,7 +222,13 @@ export function CounselGate({ packet }: { packet: CustomsDefensePacket }) {
         ) : null}
 
         {state === "APPROVED_FOR_EXPORT" && reviewable.approval.state === "APPROVED_FOR_EXPORT" ? (
-          <div className="mt-4">
+          <div
+            className="mt-4 outline-none"
+            ref={resultRef}
+            tabIndex={-1}
+            role="group"
+            aria-label="Approval result"
+          >
             <p className="tnum text-[0.8125rem] text-ink">
               Approved for export by{" "}
               <span className="font-medium">{reviewable.approval.reviewer}</span> on{" "}
@@ -265,7 +291,13 @@ export function CounselGate({ packet }: { packet: CustomsDefensePacket }) {
         ) : null}
 
         {state === "REJECTED" && reviewable.approval.state === "REJECTED" ? (
-          <div className="mt-4">
+          <div
+            className="mt-4 outline-none"
+            ref={resultRef}
+            tabIndex={-1}
+            role="group"
+            aria-label="Rejection result"
+          >
             <p className="tnum text-[0.8125rem] text-ink">
               Rejected by <span className="font-medium">{reviewable.approval.reviewer}</span> on{" "}
               <span className="font-mono">{reviewable.approval.rejectedOn}</span>.

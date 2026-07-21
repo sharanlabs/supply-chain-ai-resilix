@@ -18,14 +18,19 @@
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   // Opt-out for environments that want a fully passive boot (e.g. a build probe).
-  if (process.env.DISABLE_BOOT_RECONCILE === "true") return;
+  // Robust boolean parse (2026-07-16 re-review, B-13): "True"/"1"/"yes"/" true " must all
+  // opt out — a strict === "true" silently ignores an operator's clear intent (the P2.7
+  // fail-open lesson, applied to an opt-out).
+  const disableRaw = (process.env.DISABLE_BOOT_RECONCILE ?? "").trim().toLowerCase();
+  if (["true", "1", "yes", "on"].includes(disableRaw)) return;
 
-  // Dynamic import so this heavy module is not pulled into the edge bundle.
-  const { reconcileAllStrandedDispatches } = await import("@/lib/server/action-executor");
   try {
+    // Dynamic import INSIDE the catch scope (B-13): a module-evaluation throw in the
+    // executor graph must not crash the server boot — the sweep is best-effort by contract.
+    const { reconcileAllStrandedDispatches } = await import("@/lib/server/action-executor");
     await reconcileAllStrandedDispatches();
   } catch {
     // reconcileAllStrandedDispatches is already fail-safe; this is belt-and-braces
-    // so a boot can never be taken down by dispatch recovery.
+    // so a boot can never be taken down by dispatch recovery (including a failed import).
   }
 }

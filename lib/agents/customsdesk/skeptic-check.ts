@@ -9,9 +9,11 @@ import type { SyntheticCase } from "./synthetic-entries";
 import {
   DEMO_INTEREST,
   DEMO_NOTICE_MAILED_ON,
+  policyCitationFigures,
   runCustomsDefenseCase,
   type CustomsDefenseOutcome,
 } from "./pipeline";
+import type { PolicyCitation } from "./policy-table";
 import { findCell } from "./edge-case-matrix";
 import { quarantineAll } from "./exhibit-quarantine";
 import { assessSufficiency } from "./evidence-sufficiency";
@@ -70,10 +72,18 @@ export function skepticReview(input: SyntheticCase, outcome: CustomsDefenseOutco
   // because the packet is internally consistent). The expected set is an ALLOWLIST
   // (Codex D6 R2 #1): a cited figure whose sourceRef the Skeptic cannot re-derive is
   // itself an objection -- injected "made-up#figure" refs cannot launder prose numbers.
-  const expectedFigures = new Map<string, number>();
-  expectedFigures.set("case-generator#seed", input.seed);
-  expectedFigures.set("exhibit-quarantine#count", cell ? quarantineAll(input.exhibits).length : 0);
+  // Multi-value allowlist (a policy-table ref can carry several statutory numerals,
+  // e.g. "19 CFR 162.74" -> 19 and 162.74 under one sourceRef).
+  const expectedFigures = new Map<string, number[]>();
+  const expect = (ref: string, value: number) => {
+    const list = expectedFigures.get(ref) ?? [];
+    list.push(value);
+    expectedFigures.set(ref, list);
+  };
+  expect("case-input#seed", input.seed);
+  expect("exhibit-quarantine#count", cell ? quarantineAll(input.exhibits).length : 0);
   let rederivedDeadlines: DeadlineClock[] = [];
+  let rederivedCitations: PolicyCitation[] = [];
   if (outcome.disposition === "PROCEED") {
     const scope = scopeEntryPopulation(input.entries, {});
     const actualLorCents = scope.totalDeclaredDutyCents; // the packet's stated LOR model
@@ -97,18 +107,29 @@ export function skepticReview(input: SyntheticCase, outcome: CustomsDefenseOutco
       ? computeDeadlines([{ kind: "CF28_RESPONSE", mailedOn: DEMO_NOTICE_MAILED_ON } as NoticeEvent])
       : [];
 
-    expectedFigures.set("entry-scoper#entryCount", scope.entryCount);
-    expectedFigures.set("entry-scoper#lineCount", scope.lineCount);
-    expectedFigures.set("entry-scoper#totalEnteredValue", scope.totalEnteredValueCents / 100);
-    expectedFigures.set("entry-scoper#totalDeclaredDuty", scope.totalDeclaredDutyCents / 100);
-    expectedFigures.set("lor-model#actual", actualLorCents / 100);
-    expectedFigures.set("penalty-exposure#caught.min", caught.minCents / 100);
-    expectedFigures.set("penalty-exposure#caught.max", caught.maxCents / 100);
-    expectedFigures.set("penalty-exposure#disclosed.max", disclosed.maxCents / 100);
-    expectedFigures.set("lor-model#interestRateAssumption", DEMO_INTEREST.annualRatePct);
-    expectedFigures.set("lor-model#interestDaysAssumption", DEMO_INTEREST.days);
-    for (const d of rederivedDeadlines) expectedFigures.set(`deadline-clocks#${d.kind}`, d.windowDays);
+    expect("entry-scoper#entryCount", scope.entryCount);
+    expect("entry-scoper#lineCount", scope.lineCount);
+    expect("entry-scoper#totalEnteredValue", scope.totalEnteredValueCents / 100);
+    expect("entry-scoper#totalDeclaredDuty", scope.totalDeclaredDutyCents / 100);
+    expect("lor-model#actual", actualLorCents / 100);
+    expect("penalty-exposure#caught.min", caught.minCents / 100);
+    expect("penalty-exposure#caught.max", caught.maxCents / 100);
+    expect("penalty-exposure#disclosed.max", disclosed.maxCents / 100);
+    expect("demo-model#interestRateAssumption", DEMO_INTEREST.annualRatePct);
+    expect("demo-model#interestDaysAssumption", DEMO_INTEREST.days);
+    for (const d of rederivedDeadlines) expect(`deadline-clocks#${d.kind}`, d.windowDays);
+    rederivedCitations = [...caught.citations, ...disclosed.citations];
+  } else if (cell) {
+    // Mirror the pipeline's refusal-citation rule from the RE-DERIVED gaps, never
+    // from the packet's own citation list.
+    const verdict = assessSufficiency(cell.workflow, quarantineAll(input.exhibits), input.meta);
+    rederivedCitations = verdict.gaps.includes("INELIGIBLE:INVESTIGATION_COMMENCED")
+      ? [{ sourceId: "eCFR", section: "19 CFR 162.74 (prior disclosure)", asOf: "2026-07-03", layer: "operative" }]
+      : [];
   }
+  // Statutory-section numerals in the rendered policy appendix (C-01) — re-derived
+  // through the same structured-field extraction the pipeline binds them with.
+  for (const f of policyCitationFigures(rederivedCitations)) expect(f.sourceRef, f.value);
 
   // Every cited figure must be re-derivable (allowlist) AND carry the re-derived
   // value -- checked per entry, not via a map, so a duplicate-ref tamper (correct
@@ -117,8 +138,8 @@ export function skepticReview(input: SyntheticCase, outcome: CustomsDefenseOutco
     const expected = expectedFigures.get(c.sourceRef);
     if (expected === undefined) {
       objections.push(`cited figure ${c.value} carries sourceRef ${c.sourceRef} the skeptic cannot re-derive`);
-    } else if (c.value !== expected) {
-      objections.push(`${c.sourceRef} cited as ${c.value}, re-derived ${expected}`);
+    } else if (!expected.includes(c.value)) {
+      objections.push(`${c.sourceRef} cited as ${c.value}, re-derived ${expected.join("/")}`);
     }
   }
   for (const ref of expectedFigures.keys()) {
@@ -151,7 +172,12 @@ export function skepticReview(input: SyntheticCase, outcome: CustomsDefenseOutco
   // the grader (dates masked) and the structured comparison -- so every ISO date in
   // the rendered text must belong to a re-derived clock, and every re-derived due
   // date must actually appear in the text that presents a clock.
-  const allowedDates = new Set(rederivedDeadlines.flatMap((d) => [d.mailedOn, d.dueOn]));
+  // Policy-citation asOf dates render in the appendix (C-01) — they come from the
+  // RE-DERIVED citation set, never from the packet's own list.
+  const allowedDates = new Set([
+    ...rederivedDeadlines.flatMap((d) => [d.mailedOn, d.dueOn]),
+    ...rederivedCitations.map((c) => c.asOf),
+  ]);
   for (const iso of rendered.match(/\d{4}-\d{2}-\d{2}/g) ?? []) {
     if (!allowedDates.has(iso)) {
       objections.push(`prose date ${iso} matches no re-derived deadline clock`);

@@ -412,7 +412,13 @@ describe("(B6) a direct non-orchestrated loop call outside tests is rejected (no
 // reservation would tip the post-loop Skeptic over the cap, the Skeptic instead runs clean.
 // ---------------------------------------------------------------------------
 describe("(B7) a mid-step throw leaves no phantom reservation in the running budget", () => {
-  it("the post-loop Skeptic sees the reconciled (not inflated) spend", async () => {
+  // REVERSED 2026-07-16 (re-review D-05, supersedes the earlier "reconciled spend" pin): a
+  // mid-step throw leaves the step's real cost UNKNOWN (it may have partially billed), so the
+  // reservation is now KEPT as the conservative upper bound — the "$5 cap is never exceeded"
+  // claim requires erring toward blocking, and the already-degrading run's downstream agents
+  // fail closed (deterministic fallbacks / a Skeptic HOLD), never as if the money was proven
+  // unspent.
+  it("a mid-step throw KEEPS its reservation as an unknown-cost upper bound (conservative cap)", async () => {
     const R = estimateLiveCallCostUsd(resolvedGeminiModel());
     const S = estimateLiveCallCostUsd(resolvedSkepticModel());
     const ctx = buildCtx(getActionOpsScenario("SCN-HORMUZ"));
@@ -429,9 +435,10 @@ describe("(B7) a mid-step throw leaves no phantom reservation in the running bud
         throw new Error("mock doStream unused");
       }
     };
-    // Seed so: prepareStep passes (reserves R), and the post-loop Skeptic passes ONLY if the
-    // reservation was cleared -- a leaked R would push it over the cap. cap - max(R,S) satisfies
-    // both regardless of which estimate is larger.
+    // Seed so: prepareStep passes (reserves R), then the model throws mid-step. Under the
+    // conservative accounting the KEPT reservation leaves no headroom for the Skeptic call
+    // -- its pre-call budget check must block, and the critic fails CLOSED. cap - max(R,S)
+    // guarantees the seed admits the first reservation regardless of which estimate is larger.
     let skepticGenerateCalled = false;
     const result = await runInvestigatorLoop(ctx, {
       model: throwingModel,
@@ -439,16 +446,20 @@ describe("(B7) a mid-step throw leaves no phantom reservation in the running bud
       skeptic: {
         generate: async () => {
           skepticGenerateCalled = true;
-          return { object: { accepted: true, reason: "ran clean -- no phantom reservation" } };
+          return { object: { accepted: true, reason: "should never run -- reservation held" } };
         }
       }
     });
 
-    // No phantom: the completion-run Skeptic budget-checked clean and ACCEPTED -> ACT.
-    expect(skepticGenerateCalled).toBe(true);
-    const skepticRun = result.agentRuns.find((r) => r.agentName === "Skeptic");
-    expect(skepticRun?.errorClass).not.toBe("BUDGET_EXCEEDED");
-    expect(result.recommendation).toBe("ACT");
+    // Conservative: the unknown-cost reservation stays inside the running total, so the
+    // near-cap Skeptic call never bills — it fails closed instead of running on money the
+    // run cannot prove it still has.
+    expect(skepticGenerateCalled).toBe(false);
+    // The held reservation is persisted visibly on the Investigator audit run.
+    const investigatorRun = result.agentRuns.find((r) => r.agentName === "Investigator");
+    expect(investigatorRun?.summary).toMatch(/unknown-cost reservation/);
+    // And the fail-closed critic HOLDS the finding: no ACT on an unverifiable-budget run.
+    expect(result.recommendation).toBe("NO_ACTION");
   });
 });
 

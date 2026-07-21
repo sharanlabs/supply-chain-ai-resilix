@@ -461,7 +461,9 @@ describe("Dispatcher firewall score-leak backstop (P1: the internal score never 
     // The impact-assessment request legitimately asks about the supplier's own sub-tier
     // exposure (n-tier visibility) -- this must NOT trip the internal-risk-prose gate (no
     // false positive on the question vs. an internal-risk DISCLOSURE).
-    const exposureResults = twoExposures();
+    // Single-exposure input (2026-07-16): the firewall now binds the recipient SET to the
+    // code-derived top-N (A-06), so this one-draft control runs on a one-exposure input.
+    const exposureResults = twoExposures().slice(0, 1);
     const clean: DispatcherLlmResult = {
       messages: [
         {
@@ -479,8 +481,34 @@ describe("Dispatcher firewall score-leak backstop (P1: the internal score never 
     expect(outcome.ok, outcome.ok ? "" : outcome.reason).toBe(true);
   });
 
-  it("CONTROL: an impact-assessment request that cites NO internal figure crosses", () => {
+  it("REJECTS a draft set that omits an expected top-exposure supplier (recipient binding, A-06)", () => {
+    // Two exposures, one draft: membership/dedup/cap all pass, but the silent omission of
+    // the second expected recipient must reject the whole set (falls back to deterministic
+    // drafts that cover everyone) — the model chooses words, never the audience.
     const exposureResults = twoExposures();
+    const partial: DispatcherLlmResult = {
+      messages: [
+        {
+          supplierId: exposureResults[0].supplierId,
+          subject: "Supply-chain disruption: impact-assessment request",
+          body:
+            "We are tracking a supply-chain disruption that may affect your inbound lanes. " +
+            "Please confirm your current shipment dates and recovery timeline.",
+          claims: []
+        }
+      ]
+    };
+    const outcome = applyDispatcherFirewall(partial, { exposureResults });
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) {
+      expect(outcome.reason).toMatch(/omits expected top-exposure supplier/);
+      expect(outcome.reason).toContain(exposureResults[1].supplierId);
+    }
+  });
+
+  it("CONTROL: an impact-assessment request that cites NO internal figure crosses", () => {
+    // Single-exposure input (2026-07-16): recipient-set binding (A-06) — see the control above.
+    const exposureResults = twoExposures().slice(0, 1);
     // The clean draft asks for the supplier's own status and cites nothing internal --
     // it must PASS, proving the backstop rejects the score citation, not the draft itself.
     const clean: DispatcherLlmResult = {

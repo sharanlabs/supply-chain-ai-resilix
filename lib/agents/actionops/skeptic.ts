@@ -31,8 +31,11 @@ import { skepticGateEnabled } from "@/lib/server/env-flags";
 // Skeptic (Phase 4: the cross-family critic). An INDEPENDENT, fail-closed adversarial reviewer
 // that challenges the pipeline's finding BEFORE it is accepted to ACT. It sits after the
 // deterministic findings (Sentinel -> Verifier -> Atlas -> Simulator) and BEFORE the act/refuse
-// gate (decideRecommendation); its verdict is a boolean GATE -- a non-accept HOLDS the finding,
-// forcing NO_ACTION.
+// gate (decideRecommendation). Its verdict gates STRENGTH-AWARE (applySkepticGate below, the
+// 2026-06-28 false-veto fix): a non-accept HARD-VETOES (forces NO_ACTION) unless the finding is
+// deterministically STRONG (corroborated + confidence >= floor + real exposure + no geo conflict),
+// in which case the objection DOWNGRADES to an ANNOTATED caution on the ACT packet -- the critic
+// informs, the deterministic evidence decides. An errored/broken critic always hard-vetoes.
 //
 // WHY a SECOND, CROSS-FAMILY model (ADR-0002): the self-preference bias -- a model rating its OWN
 // family's output more leniently -- is the most validated judge/critic bias (Panickssery, NeurIPS

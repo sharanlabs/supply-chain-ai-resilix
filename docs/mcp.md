@@ -36,8 +36,11 @@ it can never act.**
 | `get_decision_packet` | the recorded war-room REPLAY packet or the recorded agent-loop capture | approve, execute, dispatch, or mutate anything |
 | `query_supplier_exposure` | exposure rows filtered by score / an exact packet-known supplier id | fuzzy-match or echo unknown input back |
 | `get_audit_trail` | the packet's append-only audit trail | append to it |
+| `query_customs_policy` | top-cited chunks from the committed customs policy corpus (BM25, page-cited) | fetch anything live or uncited |
 
-There are no authority tools. A structural test pins the registry to exactly these three names and
+The first three tools are pure reads of the recorded replay fixtures; `query_customs_policy` reads
+the committed, page-cited policy corpus (still $0/keyless/deterministic — a different committed
+source, disclosed per response). There are no authority tools. A structural test pins the registry to exactly these four names and
 asserts no tool name carries an authority verb (`evals/mcp-server.test.ts`); mutation-shaped calls
 are protocol errors; plain GET/POST without a valid bearer is 401.
 

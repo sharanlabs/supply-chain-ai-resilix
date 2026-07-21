@@ -372,6 +372,23 @@ test.describe("customs / axe WCAG 2.2 AA", () => {
     await assertAxeClean(page, results, "customs proceed approved");
   });
 
+  // The REJECTED terminal state is a SIBLING of the approved one (same focus-handoff
+  // result container, same aria wiring). Only the approved branch was scanned, so the
+  // 2026-07-16 B-15 `aria-label`-on-a-roleless-div defect shipped twice and axe saw one.
+  // Both terminal states get their own scan now -- fix the class, cover the class.
+  test("no axe violations on the PROCEED case after rejection (export stays blocked)", async ({
+    page
+  }) => {
+    await page.goto(PROCEED_CASE);
+    await page.getByLabel(/Reviewer name/).fill("D. Ferreira, trade counsel");
+    await page.getByLabel("Reason or note").fill("Origin file needs the tier-2 affidavit first.");
+    await page.getByRole("button", { name: /Reject — record a reason/ }).click();
+    await expect(page.getByText(/Rejected by/)).toBeVisible();
+    await settle(page);
+    const results = await new AxeBuilder({ page }).withTags([...WCAG_AA_TAGS]).analyze();
+    await assertAxeClean(page, results, "customs proceed rejected");
+  });
+
   test("no axe violations on the REFUSE case", async ({ page }) => {
     await page.goto(REFUSE_CASE);
     await expect(page.getByRole("heading", { name: "Do not disclose yet" })).toBeVisible();
