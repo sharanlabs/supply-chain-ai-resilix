@@ -1,10 +1,32 @@
-# HANDOFF — resume pointer (updated 2026-07-21: Phase-1 fix tail CLOSED + COMMITTED; verify:full green first-hand; 4 defects found + fixed)
+# HANDOFF — resume pointer (updated 2026-07-21: Phase-1 fix tail CLOSED + Batch 5 CI done; all COMMITTED; verify green first-hand)
 
-> ## ▶ RESUME HERE (2026-07-21 — `/claude-os` review+verify session; owner: "commit all")
+> ## ▶ RESUME HERE (2026-07-21 — `/claude-os` review+verify session, continuing the fix tail)
 >
-> **Tree is COMMITTED and clean.** `63e5179` (this repo) lands the 2026-07-16 fix batches 1–4,
-> B-14, and four defects found by running the suites first-hand. `3cbde89` in `~/claude-os`
-> fixes the skill-estate prune (one file only; that repo has other sessions' work in flight).
+> **Tree is COMMITTED and clean.** Commits this session: `63e5179` (fix batches 1–4 + B-14 +
+> 4 defects) · `6400bf9` (handoff + lessons R-1…R-5) · **`6ec07a3` (Batch 5 CI: B-09/B-10/B-11
+> + the B-14 live-DB behavioral proof)**. `3cbde89` in `~/claude-os` fixes the skill-estate prune.
+>
+> **▶ NEXT = Batch 6 (evals teeth).** The accepted EV set from the gate record
+> (`gates/rework-2026-07-14/RIGHT-SIZED-PASS-2026-07-16.md` § "Section C"): EV-14 six→seven text ·
+> EV-15 ordered loop assertion · EV-09 calibration errors ≠ TPs · EV-11 recorder
+> stage-then-atomic-replace · EV-13 rate-limit hard-cap eviction · EV-05 extractor gaps · EV-06
+> unit registry + positive-control pass===true (folds P-01) · EV-10 a11y per-node/form-controls ·
+> EV-03/04 shared output-surface enumerator. Dispose-at-fix effort call each; record-defer
+> EV-01/02/07/08/12 (already record-deferred). Then moat trio (S-01/S-02) → Batch 7 (Gemini
+> recency: `DEFAULT_GEMINI_MODEL` still `gemini-2.5-flash`) → owner-flagged disposition re-check
+> (only the ones that changed SHIPPED behaviour) → acceptance-gate → Phase 2 (08-deck build).
+>
+> **B-14 is now proven against a LIVE database, first-hand — the standing caveat is RETIRED.**
+> A local ephemeral Postgres 17 cluster (brew `postgresql@17`, NO Docker — see the recipe in
+> lessons R-6 / [[resilix-dev-machine-no-docker]]) ran `db:push` + the new
+> `evals/db-referential-integrity.test.ts` + the whole `test:db` suite (10 tests) green;
+> positive-controlled. CI now runs this on every PR via an ephemeral postgres service (B-11).
+>
+> ----- Phase-1 fix-tail detail (2026-07-21, still current) below -----
+>
+> **`63e5179` lands the 2026-07-16 fix batches 1–4, B-14, and four defects found first-hand.**
+> `3cbde89` in `~/claude-os` fixes the skill-estate prune (one file only; that repo has other
+> sessions' work in flight).
 >
 > **Evidence, first-hand 2026-07-21:** `npm run verify` exit 0 — **881 unit / 34 golden** /
 > lint / contrast / build / secret-scan. `npm run test:e2e` exit 0 — **57 passed, 0 failed**.
