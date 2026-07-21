@@ -1,6 +1,55 @@
-# HANDOFF — resume pointer (updated 2026-07-16 MID-SESSION WRAP: rework re-review RAN, fix batches ~80% done, tree UNCOMMITTED)
+# HANDOFF — resume pointer (updated 2026-07-21: Phase-1 fix tail CLOSED + COMMITTED; verify:full green first-hand; 4 defects found + fixed)
 
-> ## ▶ RESUME HERE (2026-07-16 wrap — owner: "wrap exactly where you have left; we will continue where its left")
+> ## ▶ RESUME HERE (2026-07-21 — `/claude-os` review+verify session; owner: "commit all")
+>
+> **Tree is COMMITTED and clean.** `63e5179` (this repo) lands the 2026-07-16 fix batches 1–4,
+> B-14, and four defects found by running the suites first-hand. `3cbde89` in `~/claude-os`
+> fixes the skill-estate prune (one file only; that repo has other sessions' work in flight).
+>
+> **Evidence, first-hand 2026-07-21:** `npm run verify` exit 0 — **881 unit / 34 golden** /
+> lint / contrast / build / secret-scan. `npm run test:e2e` exit 0 — **57 passed, 0 failed**.
+> Logs in the session scratchpad; the durable record is `gates/rework-2026-07-14/` (now tracked).
+>
+> **What got fixed beyond the recorded tail (all positive-controlled):**
+> 1. **B-15 introduced an a11y violation** — `aria-label` on a roleless div (aria-prohibited-attr,
+>    SERIOUS) in BOTH terminal branches; only approval was scanned. `role="group"` + a
+>    rejection-branch axe scan. (lessons R-3)
+> 2. **A-01's live cap missed the DEFAULT route** — `ENABLE_AGENT_LOOP` defaults ON → the loop
+>    decided on uncapped model confidence. Extracted `capUncorroboratedLiveConfidence` into
+>    `recommendation.ts`; BOTH routes coupled to it + pinned by
+>    `evals/actionops-live-confidence-cap.test.ts`. (lessons R-1)
+> 3. **A false honesty claim had SHIPPED** — the explainer claimed golden figures are pinned to
+>    hand-computed literals; the oracle carries no figures. Corrected. (lessons R-2)
+> 4. **B-14** — audit-bearing FKs cascade→restrict + migration `0004` (verified: nothing deletes
+>    a packet, so purely protective).
+>
+> **⚠ TWO DISPOSITIONS ARE RE-OPENED, NOT SETTLED: C-05 and D-12.** Both were narrowed on the
+> claim "the golden suite already pins the values", which is FALSE. Re-dispose them on real ground.
+>
+> **▶ THE EXACT NEXT ACTIONS (in order):**
+> 1. **Batch 5 (CI):** B-09 `verify.yml` runs full `npm run verify` · **B-11 ephemeral Postgres for
+>    PR CI — do this one first**, it retires the standing caveat that B-14's RESTRICT is verified
+>    structurally but never against a live database (no Docker on this machine) · B-10 prod CSP smoke.
+> 2. **Batch 6 (evals teeth)** — the accepted EV set; record-defer what doesn't land cleanly.
+> 3. **Moat trio:** S-01 gatekeeper schema coherence · S-02 supplier display-field caps.
+> 4. **Batch 7 (recency Δ1):** `DEFAULT_GEMINI_MODEL` is still `gemini-2.5-flash` (Gemini 2.0 shut
+>    down 2026-06-01); live-verify current GA + pricing, bump `PRICING_VERSION`.
+> 5. **Owner-flagged:** re-check the remaining dispositions **that changed shipped behaviour**
+>    (2 of 9 sampled were overturned on evidence — not all 50; doc-wording ones don't warrant it).
+> 6. **acceptance-gate** on the re-review record → then **Phase 2**.
+>
+> **Owner decisions taken 2026-07-21:** Phase 2 design = **build `samples/2026/arc/08-deck.html`
+> into the app** (owner picked; supersedes the 07-16 plan's "fresh directions round"). Review depth =
+> targeted re-check of the self-refuted/narrowed dispositions (RAN — 3 CONFIRMED / 5 PARTIAL / 1 REFUTED).
+>
+> **Estate note:** `~/claude-os` `audit.py` was FAIL — 1 HIGH (57 dead skills incl. `careful`/`freeze`)
+> because `sync.sh` pruned them every session boot; now **0 HIGH**. Five skills this project's own
+> plan names (`ai-security`, `evaluation-methodology`, `ce-frontend-design`, `documentation`,
+> `skill-tester`) were unreachable and are now live.
+>
+> ----- prior top block (2026-07-16 wrap) below -----
+
+> ## ▶ (superseded) RESUME (2026-07-16 wrap — owner: "wrap exactly where you have left; we will continue where its left")
 >
 > **The owner-approved plan** (4 phases): `~/.claude/plans/review-the-project-once-wobbly-lake.md` —
 > Phase 1 right-sized re-review (IN PROGRESS, this wrap) → Phase 2 visual design, fresh-directions
