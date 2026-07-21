@@ -40,36 +40,65 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Unit and eval tests
-        run: npm run test
-
-      - name: Production build
-        run: npm run build
-
-      - name: Secret scan
-        run: npm run secrets:scan
+      # B-09 (2026-07-16 re-review): run the SAME gate the repo runs locally, not a
+      # hand-maintained subset. `npm run verify` = typecheck · lint · contrast-check ·
+      # unit/eval tests · customs:golden · production build · secret scan. The earlier
+      # per-step list silently dropped contrast-check.mjs and customs:golden, so CI could
+      # go green while the local gate was red — calling the script makes drift impossible.
+      - name: Verify (typecheck · lint · contrast · tests · customs:golden · build · secrets)
+        run: npm run verify
 
       - name: Dependency audit
         run: npm audit --audit-level=high
 
       # No "playwright install" step: Chromium is pre-baked into the container image.
-
       - name: Playwright e2e + accessibility (axe / keyboard / WCAG 2.2)
         run: npm run test:e2e
 
+      # B-10 (2026-07-16 re-review): the PROD CSP is nonce-based and strips 'unsafe-eval',
+      # so it differs from the dev CSP the e2e exercises — a nonce/strict-dynamic regression
+      # passes verify:full and still white-screens prod. This drives a real browser against a
+      # real `next start` (the build from `npm run verify` above) and asserts the policy is
+      # strict AND the page hydrates under it. Same-container, post-build, so no rebuild.
+      - name: Production CSP smoke (real next start + browser)
+        run: |
+          npx next start -p 3011 &
+          SERVER_PID=$!
+          for i in $(seq 1 60); do
+            curl -sf http://127.0.0.1:3011/ >/dev/null 2>&1 && break
+            sleep 1
+          done
+          SMOKE_URL=http://127.0.0.1:3011 npm run smoke:csp
+          STATUS=$?
+          kill "$SERVER_PID" 2>/dev/null || true
+          exit $STATUS
+
   postgres:
-    name: Optional Postgres/Neon Proof
+    name: Postgres integrity proof
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: app
+    # B-11 (2026-07-16 re-review): an EPHEMERAL Postgres service, so the DB integration
+    # suite ALWAYS runs on every PR — it no longer depends on an owner-configured
+    # DATABASE_URL secret (which silently SKIPPED the whole proof when unset: a false green).
+    # This is the only place the B-14 ON DELETE RESTRICT/CASCADE behavior is exercised
+    # against a real engine (evals/db-referential-integrity.test.ts).
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: resilix_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/resilix_test
       ENABLE_LIVE_AI: "false"
       RUN_DB_INTEGRATION_TESTS: "true"
 
@@ -86,14 +115,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Skip DB proof when secret is absent
-        if: env.DATABASE_URL == ''
-        run: echo "DATABASE_URL secret is not configured; skipping Postgres/Neon proof."
-
+      # drizzle-kit push applies schema.ts (incl. the B-14 restrict FKs) directly.
       - name: Push schema
-        if: env.DATABASE_URL != ''
         run: npm run db:push
 
-      - name: Run DB integration proof
-        if: env.DATABASE_URL != ''
+      - name: DB integration proof (persistence · concurrency · execution · B-14 referential integrity)
         run: npm run test:db
