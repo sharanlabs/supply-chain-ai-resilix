@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 
 import { buildDecisionPacket } from "@/lib/pipeline/build-packet";
+import { atomicWriteFileSync } from "@/evals/_helpers/atomic-write";
 
 // S-L loop-trajectory recorder (gated RUN_LIVE_LOOP_RECORD=true -- BILLS ~$0.005).
 // Records ONE flagship scenario through the REAL Investigator loop with the REAL
@@ -43,8 +44,8 @@ describe.skipIf(!RECORD)("record one REAL loop trajectory (BILLS, gated)", () =>
       expect(skeptic?.model).not.toBe("deterministic-rules");
       expect(packet.skepticGateOutcome).toBeDefined();
 
-      writeFileSync(`${OUT_DIR}/LOOP-${SCENARIO.replace("SCN-", "")}.json`, `${JSON.stringify(packet, null, 2)}\n`);
-      writeFileSync(
+      atomicWriteFileSync(`${OUT_DIR}/LOOP-${SCENARIO.replace("SCN-", "")}.json`, `${JSON.stringify(packet, null, 2)}\n`);
+      atomicWriteFileSync(
         `${OUT_DIR}/_summary.json`,
         `${JSON.stringify(
           [

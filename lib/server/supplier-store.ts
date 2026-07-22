@@ -1,6 +1,28 @@
 import { suppliers as suppliersTable } from "@/db/schema";
-import { SectorSchema, type Supplier } from "@/lib/schemas";
+import { SectorSchema, SupplierSchema, type Supplier } from "@/lib/schemas";
 import { getDatabaseUrl, getDb } from "@/lib/server/db";
+
+// S-02 write-door validation (Codex cross-model finding): the compile-time `Supplier[]`
+// contract is bypassable at runtime (an `as Supplier` caller), so BOTH store
+// implementations re-parse every row through SupplierSchema before persisting -- the
+// display-field caps (length/control chars) hold at the ONE write door regardless of
+// caller. Fail loud: a typed caller handing over an invalid row is a bug, not data.
+// DELIBERATE RESIDUAL: a row written to Postgres OUTSIDE this port (manual SQL) is not
+// re-validated on read -- direct DB access is inside the operator trust boundary; the
+// columns stay open `text` and fromSupplierRow trusts them.
+function parseSupplierRows(rows: Supplier[]): Supplier[] {
+  return rows.map((row) => {
+    const parsed = SupplierSchema.safeParse(row);
+    if (!parsed.success) {
+      throw new Error(
+        `upsertSuppliers: row ${row?.id ?? "<no id>"} failed SupplierSchema: ${parsed.error.issues
+          .map((i) => i.message)
+          .join("; ")}`
+      );
+    }
+    return parsed.data;
+  });
+}
 
 // ---------------------------------------------------------------------------
 // P2.5 supplier store port. Mirrors the dual (pg / in-memory) branching of the
@@ -27,7 +49,7 @@ const memorySuppliers = new Map<string, Supplier>();
 
 const memoryStore: SupplierStore = {
   async upsertSuppliers(rows) {
-    for (const row of rows) {
+    for (const row of parseSupplierRows(rows)) {
       memorySuppliers.set(row.id, row);
     }
     return rows.length;
@@ -47,12 +69,13 @@ const postgresStore: SupplierStore = {
     if (rows.length === 0) {
       return 0;
     }
+    const validated = parseSupplierRows(rows);
     const db = getDb();
     // One transaction for the whole batch: an upload either lands fully or not at
     // all (no half-ingested supplier set). last-write-wins via onConflictDoUpdate
     // on the primary key (the canonical id).
     await db.transaction(async (tx) => {
-      for (const row of rows) {
+      for (const row of validated) {
         await tx
           .insert(suppliersTable)
           .values(toSupplierRow(row))

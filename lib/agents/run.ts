@@ -19,15 +19,18 @@ import type { AgentRunUsage } from "@/lib/agents/actionops/agent-run";
 import { assertWithinBudget, DEFAULT_BUDGET_CAP_USD, LIVE_RETRY_RESERVE } from "@/lib/agents/budget";
 import { costUsd } from "@/lib/agents/pricing";
 
-// Default GA Gemini model. gemini-2.5-flash is the GA best-value model ON THE KEY
-// -- a live ListModels against this project's key (2026-06-18) tops out at the 2.5
-// lineup; no 3.x is enabled, so the prior "gemini-3.5-flash" default would 404 at
-// the first live call. 2.5-flash is the quality-per-cost pick for agentic work;
-// gemini-2.5-flash-lite is the budget floor. Override per deployment with
-// GEMINI_MODEL (empty/whitespace falls back here). The preflight check below turns
-// a future Google retirement of this id into a one-line config bump, not a silent
-// mid-run fallback.
-const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+// Default GA Gemini model: gemini-3.5-flash, Google's current GA default. Both halves
+// live-verified 2026-07-22: (a) pricing/GA status against ai.google.dev + an independent
+// tracker, and (b) availability ON THIS PROJECT'S KEY via a real ListModels call, which
+// now returns the full 3.x lineup incl. gemini-3.5-flash -- superseding the 2026-06-18
+// observation that the key topped out at 2.5 (which is why an earlier 3.5 default was
+// once reverted; that constraint no longer holds). The prior default gemini-2.5-flash is
+// deprecation-scheduled 2026-10-16 -- bumped BEFORE the retirement, not after, the exact
+// stale-default pattern the Gemini 2.0 shutdown burned once. gemini-3.1-flash-lite is
+// the budget floor. Override per deployment with GEMINI_MODEL (empty/whitespace falls
+// back here). The preflight check below turns a future Google retirement of this id into
+// a one-line config bump, not a silent mid-run fallback.
+const DEFAULT_GEMINI_MODEL = "gemini-3.5-flash";
 
 // The configured model id, resolved once: an explicit GEMINI_MODEL override (trimmed)
 // wins, else the GA default. Single source so the preflight check, the live call, and

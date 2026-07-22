@@ -95,7 +95,7 @@ Hard rules, no exceptions:
 ## Live, replay, synthetic — all disclosed
 
 - **Live signals:** GDELT DOC 2.0 (primary) and the National Weather Service API, replay-first and resilient (a fetch outage surfaces a `CACHED`/`FAILED` marker, never a faked live read).
-- **Live AI:** the LLM agents call Gemini (`gemini-2.5-flash` default, GA, with a ListModels preflight that fails loud if the configured model is unavailable). Model + pricing verified as-of 2026-06-18; Gemini 2.5 retires no earlier than 2026-10-16, and the preflight + single `GEMINI_MODEL` config point make a retirement a one-line bump, never a silent mid-run fallback. Off by default (`ENABLE_LIVE_AI`); the deterministic spine runs identically with the key off.
+- **Live AI:** the LLM agents call Gemini (`gemini-3.5-flash` default, GA, with a ListModels preflight that fails loud if the configured model is unavailable). Model + pricing verified as-of 2026-07-22; the prior `gemini-2.5-flash` default is deprecation-scheduled 2026-10-16 and stays in the pinned price table so recorded runs keep pricing correctly. The preflight + single `GEMINI_MODEL` config point make any retirement a one-line bump, never a silent mid-run fallback. Off by default (`ENABLE_LIVE_AI`); the deterministic spine runs identically with the key off.
 - **Live orchestration (the agentic capstone, default-on since 2026-06-29):** with live AI enabled, the run is driven by a **tool-using Investigator loop** rather than the fixed waterfall above — it decides which tools to call, but binds every packet number from deterministic *tool return values* (never model prose), re-runs the act/refuse decision in code, and is hard-stopped by the same $5 budget cap. The "How it decides" waterfall is the **byte-for-byte opt-out** (`ENABLE_AGENT_LOOP=false`) and the path the default key-off demo runs; the loop preserves every invariant above (authoritative-binding, evidence-links, human approval). It was promoted only after its trajectory evals beat the waterfall live (ACT on the corroborated flagship, no safety regression, within budget).
 - **Replay-first demo:** each scenario carries dated, synthetic signal fixtures; replay is always labelled, never presented as live. The landing page itself serves a frozen, real live-captured packet relabelled `REPLAY` ($0, reproducible).
 - **Synthetic enterprise data:** a seeded ~150-row US supplier dataset, disclosed as such; seed-derived figures are stamped and never mixed into results from your own upload.
@@ -167,7 +167,7 @@ Open `http://localhost:3000`. The default mode needs no credentials and no datab
 Optional environment (`cp .env.example .env`):
 
 - `ENABLE_LIVE_AI=true` + `GEMINI_API_KEY` — turn on the live agent layer (secure mode; requires `APPROVAL_TOKEN` on mutation routes).
-- `GEMINI_MODEL` — override the default `gemini-2.5-flash`.
+- `GEMINI_MODEL` — override the default `gemini-3.5-flash`.
 - `DATABASE_URL` — switch packet storage from in-memory to PostgreSQL (`npm run db:push` after setting).
 
 ## Validation

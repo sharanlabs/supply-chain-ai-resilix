@@ -48,7 +48,7 @@ describe("D.8 pricing table + cost formula (hand-pinned, R4-10)", () => {
   it("pins the GA price list and version (the contract the costs are computed against)", () => {
     // The version + prices are the load-bearing contract. Pinned literally so a silent
     // re-price (which would retroactively change stored costs) fails this test loudly.
-    expect(PRICING_VERSION).toBe("2026-06-22");
+    expect(PRICING_VERSION).toBe("2026-07-22");
     expect(GEMINI_PRICING["gemini-2.5-flash"]).toEqual({
       inputPerMillionUsd: 0.3,
       outputPerMillionUsd: 2.5
@@ -294,8 +294,9 @@ describe("D.8 live-path cost threading (DI, key-OFF behavior, no network)", () =
       })
     });
     expect(agentRun.mode).toBe("LIVE_AI");
-    // The reported 1M+500k usage priced at the hand-pinned flash $1.55.
-    expect(agentRun.costUsd).toBeCloseTo(1.55, 10);
+    // The reported 1M+500k usage priced at the resolved default gemini-3.5-flash,
+    // hand-computed independently: 1.0M x $1.50 + 0.5M x $9.00/M = $1.50 + $4.50 = $6.00.
+    expect(agentRun.costUsd).toBeCloseTo(6.0, 10);
     expect(agentRun.inputTokens).toBe(1_000_000);
     expect(agentRun.finishReason).toBe("stop");
   });

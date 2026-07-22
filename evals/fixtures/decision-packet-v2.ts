@@ -72,6 +72,15 @@ export function makeV2Packet(
             value: 50_000,
             unit: "USD",
             sourcePath: "simulation.horizons[0].revenueAtRiskUsd"
+          },
+          // The "7-day" in the body is the 7-day horizon -- a real asserted figure that needs a
+          // backing claim. The EV-06 positive control (clean packet MUST pass the citation grader)
+          // caught it as an unsourced numeral: the fixture had shipped subtly unclean, which is
+          // exactly the vacuity that control exists to catch.
+          {
+            value: 7,
+            unit: "days",
+            sourcePath: "simulation.horizons[0].days"
           }
         ],
         approvalRequired: true

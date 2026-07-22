@@ -1,4 +1,16 @@
 import { z } from "zod";
+import { MAX_FIELD_LEN, containsControlChars } from "@/lib/signals/sanitize";
+
+// Bounded, control-free display text for supplier fields (S-02): non-empty, capped at the
+// shared trust-boundary field length, no C0/DEL/C1 control characters. A VALIDATION, not a
+// transform -- the schema rejects, the ingest reports the row, nothing is silently repaired.
+function supplierDisplayText(label: string) {
+  return z
+    .string()
+    .min(1, `${label} must be non-empty`)
+    .max(MAX_FIELD_LEN, `${label} exceeds ${MAX_FIELD_LEN} characters`)
+    .refine((s) => !containsControlChars(s), `${label} contains control characters`);
+}
 
 // CSP compatibility: Zod v4 JIT-compiles validators with `new Function`, which the
 // strict nonce-based CSP (proxy.ts, no 'unsafe-eval' in production) blocks -- the
@@ -149,13 +161,44 @@ export const RecoveryOptionSchema = z.object({
   approvalRequired: z.boolean()
 });
 
-export const GatekeeperReportSchema = z.object({
-  status: z.enum(["PASS", "BLOCKED", "WARN"]),
-  failures: z.array(z.string()),
-  warnings: z.array(z.string()),
-  approvedForHumanReview: z.boolean(),
-  checkedAt: z.string().datetime()
-});
+export const GatekeeperReportSchema = z
+  .object({
+    status: z.enum(["PASS", "BLOCKED", "WARN"]),
+    failures: z.array(z.string()),
+    warnings: z.array(z.string()),
+    approvedForHumanReview: z.boolean(),
+    checkedAt: z.string().datetime()
+  })
+  // S-01 coherence (2026-07-16 re-review): a report that is BLOCKED or carries failures can
+  // NEVER declare approvedForHumanReview=true -- both gatekeepers derive the trio from
+  // failures.length, so an incoherent report is by construction tampered or hand-built wrong,
+  // and the approval gate keys off the boolean. Pinned at the schema so an incoherent report
+  // fails PARSE (fail loud, lessons P2.3 -- never silently repair), not just approval.
+  .superRefine((report, ctx) => {
+    if ((report.status === "BLOCKED" || report.failures.length > 0) && report.approvedForHumanReview) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Gatekeeper report incoherent: BLOCKED status or non-empty failures cannot carry approvedForHumanReview=true"
+      });
+    }
+  });
+
+// The ONE approval-boundary predicate (S-01): every approval mutation gates on this, so the
+// invariant lives in one place (lessons P3.1 -- DRY a safety invariant into one helper) and a
+// stored packet whose gatekeeper trio is incoherent (predating the schema refine above, or
+// tampered in the DB payload) still cannot be approved on the strength of the boolean alone.
+export function gatekeeperClearsApproval(report: {
+  status: "PASS" | "BLOCKED" | "WARN";
+  failures: string[];
+  approvedForHumanReview: boolean;
+}): boolean {
+  return (
+    report.approvedForHumanReview === true &&
+    report.status !== "BLOCKED" &&
+    report.failures.length === 0
+  );
+}
 
 export const ExecutionDraftSchema = z.object({
   supplierMessage: z.string(),
@@ -504,9 +547,15 @@ export const DataTierSchema = z.enum(["TIER_1", "TIER_2", "SEEDED"]);
 //     (cross-supplier linkage is later-phase relational territory); it stays null.
 export const SupplierSchema = z.object({
   id: z.string(),
-  name: z.string(),
+  // S-02 (2026-07-16 re-review): name + region are DISPLAY fields sourced from an untrusted
+  // CSV upload -- they render on the glass and ride into model prompts (dispatcher top-5
+  // context). Length-capped + control-char-rejected AT THE SCHEMA, so an oversized or
+  // control-laden cell fails the ingest row loudly (per-row report reason) rather than
+  // persisting; MAX_FIELD_LEN is the same shared trust-boundary cap the signal layer uses
+  // (one boundary, lessons P3.2 -- a new path can't skip it).
+  name: supplierDisplayText("Supplier name"),
   country: CountryCodeSchema,
-  region: z.string(),
+  region: supplierDisplayText("Region"),
   riskTier: SeveritySchema,
   backupSupplierId: z.string().nullish(),
   standardLeadTimeDays: z.number().int().nonnegative(),

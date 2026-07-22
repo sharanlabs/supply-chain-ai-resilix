@@ -3,6 +3,7 @@ import { POST as approvePacket } from "@/app/api/decision-packets/[id]/approve/r
 import { POST as runException } from "@/app/api/run-exception/route";
 import { runExceptionPipeline } from "@/lib/pipeline/run-exception";
 import { IDEMPOTENCY_KEY_HEADER } from "@/lib/server/security";
+import { GatekeeperReportSchema, gatekeeperClearsApproval } from "@/lib/schemas";
 import { saveDecisionPacket } from "@/lib/server/store";
 
 describe("api hardening", () => {
@@ -98,6 +99,73 @@ describe("api hardening", () => {
 
     expect(response.status).toBe(422);
     expect(body.error).toBe("BLOCKED");
+  });
+
+  // S-01 (2026-07-16 re-review): the approval boundary must gate on the WHOLE gatekeeper trio,
+  // not the boolean alone. A stored report tampered to approvedForHumanReview=true while still
+  // BLOCKED with failures (saveDecisionPacket does not re-parse, so this state is reachable --
+  // exactly the DB-payload-tamper shape) used to sail through the boolean check and get APPROVED.
+  it("prevents approval when a TAMPERED report says approved=true but is BLOCKED with failures", async () => {
+    const packet = await runExceptionPipeline({ useLiveSignals: false });
+    const tampered = await saveDecisionPacket({
+      ...packet,
+      id: `${packet.id}-tampered-gk`,
+      approvalStatus: "PENDING",
+      gatekeeper: {
+        ...packet.gatekeeper,
+        status: "BLOCKED",
+        failures: ["real failure the tamper tried to bury"],
+        approvedForHumanReview: true // the tamper
+      }
+    });
+
+    const response = await approvePacket(
+      approvalRequest("APPROVED"),
+      routeParams(tampered.id)
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(body.error).toBe("BLOCKED");
+  });
+});
+
+describe("S-01 gatekeeper coherence (schema + the ONE approval predicate)", () => {
+  const coherent = {
+    status: "PASS" as const,
+    failures: [],
+    warnings: [],
+    approvedForHumanReview: true,
+    checkedAt: "2026-07-22T00:00:00.000Z"
+  };
+
+  it("the schema REJECTS an incoherent report (BLOCKED or failures with approved=true)", () => {
+    expect(GatekeeperReportSchema.safeParse(coherent).success).toBe(true);
+    expect(
+      GatekeeperReportSchema.safeParse({ ...coherent, status: "BLOCKED" }).success
+    ).toBe(false);
+    expect(
+      GatekeeperReportSchema.safeParse({ ...coherent, failures: ["f"] }).success
+    ).toBe(false);
+    // Coherent BLOCKED (approved=false) still parses -- the refine pins the UNSAFE combination
+    // only, it does not reject legitimate blocked reports.
+    expect(
+      GatekeeperReportSchema.safeParse({
+        ...coherent,
+        status: "BLOCKED",
+        failures: ["f"],
+        approvedForHumanReview: false
+      }).success
+    ).toBe(true);
+  });
+
+  it("gatekeeperClearsApproval requires the WHOLE trio, not the boolean", () => {
+    expect(gatekeeperClearsApproval(coherent)).toBe(true);
+    expect(gatekeeperClearsApproval({ ...coherent, approvedForHumanReview: false })).toBe(false);
+    expect(gatekeeperClearsApproval({ ...coherent, status: "BLOCKED" })).toBe(false);
+    expect(gatekeeperClearsApproval({ ...coherent, failures: ["f"] })).toBe(false);
+    // WARN with no failures is approvable (warnings never block).
+    expect(gatekeeperClearsApproval({ ...coherent, status: "WARN" })).toBe(true);
   });
 });
 

@@ -267,15 +267,43 @@ export function adversarialSupplierScenario(): ActionOpsScenario {
 // the opaque canonical id, exactly as an uploaded malicious row would. Placed in ADVERSARIAL_REGION
 // so adversarialSupplierScenario() matches it. RFC-4180-quoted so a comma/quote in the payload is
 // one field.
-export function adversarialSupplier(raw: string): Supplier {
+export type AdversarialIngest =
+  | { outcome: "INGESTED"; supplier: Supplier }
+  | { outcome: "REJECTED_AT_BOUNDARY"; reason: string };
+
+// Like adversarialSupplier, but an ingest-time VALIDATION rejection is a first-class result,
+// not a harness error: since S-02 capped supplier display fields at the schema, some corpus
+// mutations (e.g. zero-width interleave pushing the name past MAX_FIELD_LEN) are legitimately
+// cut at the trust boundary itself -- the strongest cut there is, and the red-team loop counts
+// it as such (with the per-row reason as evidence it was fail-loud, not silently dropped).
+export function tryAdversarialSupplier(raw: string): AdversarialIngest {
   const quoted = `"${raw.replace(/"/g, '""')}"`;
   const csv = [
     "name,country,region,risk_tier,standard_lead_time_days",
     `${quoted},AE,${ADVERSARIAL_REGION},HIGH,12`
   ].join("\n");
   const result = ingestSupplierCsv(csv);
-  if (result.aborted || result.suppliers.length !== 1) {
-    throw new Error(`adversarialSupplier: CSV ingest did not yield exactly one supplier for raw="${raw.slice(0, 40)}"`);
+  if (result.suppliers.length === 1) {
+    return { outcome: "INGESTED", supplier: result.suppliers[0] };
   }
-  return result.suppliers[0];
+  // The reason must be the INGEST'S OWN recorded evidence (the per-row report), never a string
+  // this helper invents -- a manufactured fallback here would let an ingest regression that
+  // silently drops rows (no report) still read as "fail-loud" to the red-team floor (the Codex
+  // cross-model pass caught an earlier draft doing exactly that). No recorded reason -> empty
+  // string -> the caller treats it as a silent drop and fails the case.
+  const row = result.report.rows[0];
+  const reason = result.aborted
+    ? `ingest aborted: ${result.report.rows.length} rows`
+    : row && row.outcome === "UNMATCHED"
+      ? row.reason
+      : "";
+  return { outcome: "REJECTED_AT_BOUNDARY", reason };
+}
+
+export function adversarialSupplier(raw: string): Supplier {
+  const result = tryAdversarialSupplier(raw);
+  if (result.outcome !== "INGESTED") {
+    throw new Error(`adversarialSupplier: CSV ingest rejected raw="${raw.slice(0, 40)}" (${result.reason})`);
+  }
+  return result.supplier;
 }

@@ -54,7 +54,7 @@ describe("golden records: schema-valid + pass every grader (pre-key: spec self-c
     });
   }
 
-  it("covers all six eval scenarios", () => {
+  it("covers all seven eval scenarios", () => {
     const ids = new Set(GOLDEN_SCENARIOS.map((s) => s.id));
     for (const required of [
       "hormuz",

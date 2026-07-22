@@ -596,12 +596,56 @@ test.describe("S4 / customs policy-corpus evidence lookup (?ask=)", () => {
     await expect(page.getByTestId("lookup-results")).toHaveCount(0);
   });
 
-  test("the lookup landing has no axe WCAG 2.2 AA violations", async ({ page }) => {
+  // EV-10: these two scans used to be ONE test that (a) claimed "landing" while actually
+  // scanning the results state, and (b) asserted only `violations`, silently discarding
+  // `incomplete` -- the exact vacuity class assertAxeClean exists to close (an undecided
+  // contrast node on this state passed with zero coverage). Both lookup BRANCHES now go
+  // through the same per-node triage as every other customs state (lessons R-3: when a
+  // surface has N branches, scan all N, not the one the happy path reaches).
+  test("no axe violations on the lookup RESULTS state (per-node incomplete triage)", async ({
+    page
+  }) => {
     await page.goto("/customs?ask=how%20much%20if%20I%20file%20a%20prior%20disclosure");
     await settle(page);
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-      .analyze();
-    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+    await expect(page.getByTestId("lookup-results")).toBeVisible();
+    const results = await new AxeBuilder({ page }).withTags([...WCAG_AA_TAGS]).analyze();
+    await assertAxeClean(page, results, "customs lookup results");
+  });
+
+  test("no axe violations on the lookup NO-MATCH state (per-node incomplete triage)", async ({
+    page
+  }) => {
+    await page.goto("/customs?ask=zzzzz%20quux%20blorptastic");
+    await settle(page);
+    await expect(page.getByTestId("lookup-no-match")).toBeVisible();
+    const results = await new AxeBuilder({ page }).withTags([...WCAG_AA_TAGS]).analyze();
+    await assertAxeClean(page, results, "customs lookup no-match");
+  });
+
+  // EV-10 (form controls): every customs input/textarea must carry a PROGRAMMATICALLY
+  // associated label -- placeholder text is not a name (it vanishes on input and is not
+  // reliably announced). Asserted explicitly rather than left to axe's `label` rule alone,
+  // so a refactor that swaps a <label htmlFor> for a bare placeholder fails with a named
+  // control, not a generic axe dump.
+  test("every customs form control has a programmatically associated label", async ({ page }) => {
+    // The search input lives on the lookup landing; the counsel fields on a pending case.
+    await page.goto(PROCEED_CASE);
+    await settle(page);
+    for (const id of ["counsel-reviewer", "counsel-note"]) {
+      const control = page.locator(`#${id}`);
+      await expect(control).toBeVisible();
+      await expect(
+        page.locator(`label[for="${id}"]`),
+        `#${id} has no <label for> -- placeholder-only naming is a WCAG 4.1.2/3.3.2 failure`
+      ).toHaveCount(1);
+    }
+    await page.goto("/customs");
+    await settle(page);
+    const ask = page.locator("#ask");
+    await expect(ask).toBeVisible();
+    await expect(
+      page.locator('label[for="ask"]'),
+      "#ask has no <label for> -- the sr-only label must stay bound to the control"
+    ).toHaveCount(1);
   });
 });

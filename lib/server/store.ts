@@ -13,7 +13,7 @@ import type {
   DecisionPacket,
   RequestedMode
 } from "@/lib/schemas";
-import { DecisionPacketSchema } from "@/lib/schemas";
+import { DecisionPacketSchema, gatekeeperClearsApproval } from "@/lib/schemas";
 import { getDatabaseUrl, getDb } from "@/lib/server/db";
 import { stableHash } from "@/lib/utils";
 
@@ -177,7 +177,9 @@ const memoryStore: PacketStore = {
       return { status: "NOT_FOUND" };
     }
 
-    if (!existing.gatekeeper.approvedForHumanReview) {
+    // S-01 approval boundary: the ONE shared predicate (boolean AND status AND failures),
+    // so a tampered/incoherent stored report cannot be approved on the boolean alone.
+    if (!gatekeeperClearsApproval(existing.gatekeeper)) {
       return {
         status: "BLOCKED",
         packet: existing,
@@ -413,7 +415,9 @@ const postgresStore: PacketStore = {
           return { status: "NOT_FOUND" as const };
         }
 
-        if (!existing.packet.gatekeeper.approvedForHumanReview) {
+        // S-01 approval boundary: same shared predicate as the memory path (P3.1 -- one
+        // helper, both routes; the DB payload is as tamperable as any stored JSON).
+        if (!gatekeeperClearsApproval(existing.packet.gatekeeper)) {
           return {
             status: "BLOCKED" as const,
             packet: existing.packet,

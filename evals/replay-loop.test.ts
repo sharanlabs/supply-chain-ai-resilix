@@ -35,6 +35,25 @@ describe("loadLoopTrajectory -- the /loop recorded-run exhibit", () => {
     expect(t.toolSequence).toContain("challengeFinding");
   });
 
+  it("the recorded tool order RESPECTS the investigation preconditions (ordered, not just present)", () => {
+    // EV-15 (2026-07-16 re-review): the length + membership checks above pass for ANY order,
+    // including an invalid one. challengeFinding is the cross-family critic -- it can only
+    // validly run AFTER the tools that BUILD the finding it critiques (corroboration + exposure;
+    // the loop's activeToolsFor gates it on verifier+exposure existing). A regenerated fixture
+    // that challenged BEFORE it had a finding to challenge would score an empty finding and must
+    // fail HERE. So assert the ORDER, not just that the tools appear.
+    const t = loadLoopTrajectory();
+    const seq = t.toolSequence;
+    const challenge = seq.indexOf("challengeFinding");
+    const corroborate = seq.indexOf("checkCorroboration");
+    const exposure = seq.indexOf("assessExposure");
+    expect(challenge, "challengeFinding missing from the recorded loop").toBeGreaterThan(-1);
+    expect(corroborate, "checkCorroboration missing from the recorded loop").toBeGreaterThan(-1);
+    expect(exposure, "assessExposure missing from the recorded loop").toBeGreaterThan(-1);
+    expect(challenge).toBeGreaterThan(corroborate);
+    expect(challenge).toBeGreaterThan(exposure);
+  });
+
   it("carries the REAL cross-family Skeptic verdict, never injected or deterministic", () => {
     const t = loadLoopTrajectory();
     expect(t.skepticModel).not.toBe("deterministic-rules");

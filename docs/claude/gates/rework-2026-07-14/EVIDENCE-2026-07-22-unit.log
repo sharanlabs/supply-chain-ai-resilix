@@ -1,0 +1,13 @@
+
+> resilix-actionops@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.5 /Users/sharan_98/Desktop/supply-chain-ai-resilix
+
+
+ Test Files  68 passed | 10 skipped (78)
+      Tests  902 passed | 54 skipped (956)
+   Start at  15:00:32
+   Duration  6.23s (transform 3.32s, setup 0ms, import 26.53s, tests 5.41s, environment 664ms)
+

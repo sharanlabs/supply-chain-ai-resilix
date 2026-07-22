@@ -28,7 +28,10 @@ const data = await res.json();
 const names = (data.models ?? []).map((m) => m.name).filter((n) => typeof n === "string");
 const bare = names.map((n) => n.replace(/^models\//, ""));
 
-const wanted = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+// Same resolution as resolvedGeminiModel() in lib/agents/run.ts (this is a plain-Node
+// script, so the default is duplicated by necessity -- keep the two in lockstep): a
+// preflight that validates a DIFFERENT model than the app will call is a false green.
+const wanted = process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash";
 const wantedAvailable = bare.includes(wanted);
 
 console.log(`Available models on this key: ${names.length}`);

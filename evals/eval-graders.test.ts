@@ -167,6 +167,38 @@ describe("extractSourceableNumerals", () => {
     expect(b.unparseable).toContain("five thousand units");
   });
 
+  // EV-05 Gap A: a spelled-out LARGE MAGNITUDE with no trailing unit ("five million in exposure")
+  // is an asserted figure the ASCII regex cannot see, and SPELLED_OUT_QUANTITY (which requires a
+  // unit) misses it -- it used to pass with BOTH figures:[] and unparseable:[] (a silent fail-open).
+  it("flags a spelled-out large magnitude even without a unit (EV-05 Gap A)", () => {
+    const a = extractSourceableNumerals("roughly five million in exposure");
+    expect(a.figures).toEqual([]);
+    expect(a.unparseable).toContain("five million");
+  });
+
+  // EV-05 Gap B: parentheses around a $-figure denote an accounting NEGATIVE, so reading the inner
+  // value as positive would validate a sign-flipped claim (the MINUS_FIGURE trap, other notation).
+  it("flags a parenthesized $-negative, and a NON-$ parenthetical stays a real figure (EV-05 Gap B)", () => {
+    const neg = extractSourceableNumerals("a revenue impact of ($300)");
+    expect(neg.figures).not.toContain(300);
+    expect(neg.unparseable).toContain("($300)");
+    // Positive control -- the $-restriction keeps a legitimate positive parenthetical readable.
+    expect(extractSourceableNumerals("your exposure score (72)").figures).toContain(72);
+  });
+
+  // PINNED AMBIGUITY (Codex cross-model finding, disposed fail-closed-by-design): a bare
+  // parenthesized dollar amount in an APPOSITIVE reading -- "use the expedited lane ($300)" --
+  // is notationally identical to an accounting negative. The extractor cannot tell them apart,
+  // and in this domain the dangerous error is reading a negative as a positive; so BOTH
+  // readings go to `unparseable` (flag-for-review), never to `figures`. The cost is a false
+  // flag on appositive prose -- acceptable here because drafted outputs are instructed to
+  // carry no such construction, and a false FLAG degrades to review, not to a wrong number.
+  it("a positive-appositive $-parenthetical is ALSO flagged (deliberate conservative read)", () => {
+    const a = extractSourceableNumerals("use the expedited lane ($300)");
+    expect(a.figures).not.toContain(300);
+    expect(a.unparseable).toContain("($300)");
+  });
+
   // Fix #3: a bare number-WORD with no unit is ordinary prose, not a figure -- and a
   // word that merely CONTAINS a number-word ("components" has "one") must NOT fire.
   it("does NOT flag a bare number-word or a word that merely contains one", () => {
@@ -351,6 +383,16 @@ describe("other grader edge branches", () => {
     packet.exposureResults[0].evidenceIds = ["NOPE"];
     const result = gradeEvidence(packet, groundTruth());
     expect(result.failures.some((f) => /cites unknown evidence NOPE/.test(f))).toBe(true);
+  });
+
+  // EV-06 positive control: a CLEAN packet must PASS the citation grader (pass===true, no
+  // failures). Without this, the grader's non-vacuity was only proven transitively (through the
+  // gatekeeper + golden wrappers) -- a change that made it reject everything would still let those
+  // pass by other means. This asserts the grader accepts a valid draft directly.
+  it("gradeCitationCoverage PASSES a clean packet (non-vacuity control)", () => {
+    const result = gradeCitationCoverage(makeV2Packet());
+    expect(result.pass, result.failures.join(" | ")).toBe(true);
+    expect(result.failures).toEqual([]);
   });
 
   it("gradeCitationCoverage flags a claim whose sourcePath does not resolve", () => {

@@ -38,7 +38,12 @@ export const CITATION_INPUT_ROOTS = new Set(["threatCard", "publicSignals", "exp
 // happens to share the number) is caught on the unit even when the value matches.
 export const FIELD_UNITS: Record<string, string> = {
   revenueAtRiskUsd: "USD",
+  // marginAtRiskUsd + survivalDays are cite-able numeric leaves too (simulation.horizons[n].
+  // marginAtRiskUsd, simulation.survivalDays) that were missing from the registry (EV-06), so a
+  // claim citing marginAtRiskUsd with unit "days" skipped the unit check. Registered now.
+  marginAtRiskUsd: "USD",
   days: "days",
+  survivalDays: "days",
   exposureScore: "score",
   confidence: "ratio"
 };

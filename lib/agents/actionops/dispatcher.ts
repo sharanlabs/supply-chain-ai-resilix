@@ -313,6 +313,13 @@ export function applyDispatcherFirewall(
   // gatekeeper checks a message's supplierId against.
   const exposedSupplierIds = new Set(exposureResults.map((e) => e.supplierId));
 
+  // Model-controlled values quoted into a firewall REJECTION reason are sanitized + hard-capped
+  // first: the reason becomes AgentRun.summary, which renders on the glass and is scanned as an
+  // output prose surface (enumerateOutputProseSurfaces) -- an unbounded raw quote would carry a
+  // hostile "supplierId" straight into rendered prose. Sanitize-at-quote keeps the diagnostic
+  // useful while the leak scanners stay the enforcement backstop.
+  const quoted = (value: string) => sanitizeText(value, 80);
+
   const supplierMessages: SupplierMessageDraft[] = [];
   const seenSupplierIds = new Set<string>();
 
@@ -327,13 +334,13 @@ export function applyDispatcherFirewall(
     if (!exposedSupplierIds.has(supplierId)) {
       return {
         ok: false,
-        reason: `Dispatcher firewall: draft targets off-exposure supplier "${supplierId}" (not an exposed supplier this run).`
+        reason: `Dispatcher firewall: draft targets off-exposure supplier "${quoted(supplierId)}" (not an exposed supplier this run).`
       };
     }
     if (seenSupplierIds.has(supplierId)) {
       return {
         ok: false,
-        reason: `Dispatcher firewall: duplicate draft for supplier "${supplierId}" (one message per supplier).`
+        reason: `Dispatcher firewall: duplicate draft for supplier "${quoted(supplierId)}" (one message per supplier).`
       };
     }
     seenSupplierIds.add(supplierId);
@@ -343,7 +350,7 @@ export function applyDispatcherFirewall(
     if (body.length === 0) {
       return {
         ok: false,
-        reason: `Dispatcher firewall: draft to "${supplierId}" has an empty body after sanitization.`
+        reason: `Dispatcher firewall: draft to "${quoted(supplierId)}" has an empty body after sanitization.`
       };
     }
 
@@ -356,7 +363,7 @@ export function applyDispatcherFirewall(
     if (links.length > 0) {
       return {
         ok: false,
-        reason: `Dispatcher firewall: link "${links[0]}" smuggled into a supplier draft (a draft links to nothing external -- exfiltration risk).`
+        reason: `Dispatcher firewall: link "${quoted(links[0])}" smuggled into a supplier draft (a draft links to nothing external -- exfiltration risk).`
       };
     }
 
@@ -366,7 +373,7 @@ export function applyDispatcherFirewall(
     if (riskProse) {
       return {
         ok: false,
-        reason: `Dispatcher firewall: draft to "${supplierId}" discloses an internal risk assessment in prose (the internal risk read must not leave the building).`
+        reason: `Dispatcher firewall: draft to "${quoted(supplierId)}" discloses an internal risk assessment in prose (the internal risk read must not leave the building).`
       };
     }
 
@@ -398,7 +405,7 @@ export function applyDispatcherFirewall(
     if (claims.some((c) => /\.exposureScore$/.test(c.sourcePath))) {
       return {
         ok: false,
-        reason: `Dispatcher firewall: draft to "${supplierId}" cites the internal exposureScore -- the internal risk metric must not leave the building.`
+        reason: `Dispatcher firewall: draft to "${quoted(supplierId)}" cites the internal exposureScore -- the internal risk metric must not leave the building.`
       };
     }
 

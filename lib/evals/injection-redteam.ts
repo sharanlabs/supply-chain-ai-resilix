@@ -21,6 +21,7 @@
 import { deobfuscate } from "@/lib/evals/deobfuscate";
 import { findLinks } from "@/lib/pipeline/url-detect";
 import { normalizeForLeak } from "@/lib/evals/graders";
+import { enumerateOutputProseSurfaces } from "@/lib/evals/output-surfaces";
 import {
   collectCitationFailures,
   collectPlaybookNumeralFailures
@@ -51,27 +52,15 @@ function fold(text: string): string {
 // The OUTPUT prose surfaces an injection must never reach -- the drafted, downstream-of-
 // Sentinel text. DELIBERATELY EXCLUDES threatCard.summary and publicSignals[].summary:
 // those are the threat-card / signal RECORD itself, where (Sentinel-sanitized) event prose
-// legitimately lives; the leak we hunt is untrusted text crossing into the DRAFTED OUTPUT
-// that leaves the building. Mirrors gradeInjectionQuarantine's draftedProse scope, extended
-// with the recovery options (also withheld on NO_ACTION, also model-adjacent once live).
+// legitimately lives; the leak we hunt is untrusted text crossing into the DRAFTED OUTPUT that
+// leaves the building. The surface list is now the SHARED union (enumerateOutputProseSurfaces) so
+// this red-team scanner and gradeInjectionQuarantine can no longer drift apart (EV-03/04) -- the
+// prior local copy covered recoveryOptions but had silently fallen out of sync with the grader's
+// exposure-rationale coverage.
 export function outputProseSurfaces(
   packet: DecisionPacketV2
 ): { where: string; text: string }[] {
-  return [
-    ...packet.supplierMessages.flatMap((m) => [
-      { where: `message ${m.id} subject`, text: m.subject ?? "" },
-      { where: `message ${m.id} body`, text: m.body }
-    ]),
-    ...packet.playbooks.flatMap((p) => [
-      { where: `playbook ${p.id} summary`, text: p.summary },
-      ...p.steps.map((s, i) => ({ where: `playbook ${p.id} step ${i}`, text: s }))
-    ]),
-    ...packet.actionItems.map((a) => ({ where: `action item ${a.id}`, text: a.title })),
-    ...(packet.recoveryOptions ?? []).flatMap((r) => [
-      { where: `recovery ${r.id} title`, text: r.title },
-      { where: `recovery ${r.id} summary`, text: r.summary }
-    ])
-  ];
+  return enumerateOutputProseSurfaces(packet);
 }
 
 // Find every OUTPUT surface (drafts/playbooks/actions/recovery) into which `payload` leaked.

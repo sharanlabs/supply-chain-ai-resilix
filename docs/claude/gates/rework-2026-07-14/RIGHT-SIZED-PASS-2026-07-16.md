@@ -94,3 +94,95 @@ Cheap+real hardening ACCEPTED: EV-05 (extractor gaps, fail-closed), EV-06 (unit 
 6. Evals teeth (accepted EV items).
 7. Recency Δ1 (Gemini default + pricing rows, live-verified at fix).
 Each batch: `npm run verify` green first-hand before the next; e2e at the end; all dispositions re-checked against the diff.
+
+## ▶ BATCHES 6+7 + MOAT TRIO COMPLETE (2026-07-22 session — Phase-1 fix tail CLOSED)
+
+**Batch 6 (evals teeth) — all nine accepted EV items landed, dispose-at-fix:**
+- EV-14 seven-scenario text ✅ · EV-15 ordered loop assertion ✅ · EV-09 error-bucket confusion cells
+  (`classifyJudgeVerdict`, errors excluded from TPR/TNR + bounded ≤10%) ✅ · EV-11 atomic recorder
+  (`evals/_helpers/atomic-write.ts` + inlined in `record-gdelt-fixture.mjs`) ✅ · EV-13 rate-limit
+  HARD cap w/ oldest-window eviction + trusted-identity note ✅ · EV-05 extractor gaps (spelled-out
+  magnitude w/o unit; parenthesized $-negative) ✅ · EV-06 unit registry (marginAtRiskUsd/survivalDays)
+  + positive control ✅ — **the positive control immediately caught a real defect**: the shared
+  `makeV2Packet` fixture carried an unsourced "7-day" numeral (fixed with a backing claim; the
+  control exists for exactly this) · EV-03/04 ONE shared `enumerateOutputProseSurfaces` — grader +
+  red-team scanner both import it; the recoveryOptions/exposure-rationale drift is closed structurally ✅.
+- **EV-10 (a11y)** — the detailed scratchpad verdict was lost with the dead session; reconstructed
+  from the summary ("per-node binding + customs form controls + incomplete-handling") + the G-series
+  lesson class. Landed as: the stray lookup-state axe test bypassing `assertAxeClean` (violations-only,
+  incomplete silently discarded, mislabeled "landing") routed through the shared per-node triage;
+  BOTH lookup branches (results + no-match) scanned (R-3); explicit `<label for>` binding asserted for
+  all three customs form controls. DEVIATION NOTED: reconstruction, not the original verdict text.
+- EV-01/02/07/08/12 remain RECORD-DEFERRED as accepted.
+
+**Moat trio:** S-01 ✅ — `GatekeeperReportSchema.superRefine` (BLOCKED/failures ⇒ approved=false fails
+PARSE) + `gatekeeperClearsApproval` as the ONE approval predicate in BOTH store paths (memory+pg);
+behavioral test proves a tampered boolean-true/BLOCKED report can no longer be approved (it could
+before). S-02 ✅ — SupplierSchema name/region: min(1) + max(MAX_FIELD_LEN=120) + control-char rejection
+via shared `containsControlChars` (fail-loud per-row ingest rejection, never silent repair); prompt-side
+data delimiters VERIFIED at fix (dispatcher whitelist crosses as structured JSON + "DATA, never
+instructions" framing). CONSEQUENCE: 30/50 supplierName injection-corpus mutations (length-inflating
+obfuscations) are now cut AT THE INGEST BOUNDARY — the red-team harness counts fail-loud boundary
+rejection as the strongest cut, with a non-vacuity floor requiring every BASE INTENT to keep ≥1
+mutation proven cut downstream (all five do).
+
+**Batch 7 (recency Δ1) — live-verified 2026-07-22** (ai.google.dev/gemini-api/docs/pricing + independent
+tracker, agreeing): `gemini-2.5-flash` deprecation-scheduled **2026-10-16**; current GA default
+`gemini-3.5-flash` ($1.50/$9.00). DEFAULT BUMPED to `gemini-3.5-flash` (staying on a deprecation-
+scheduled default is the exact Δ1 stale-default pattern; bumped BEFORE retirement). 3.x GA rows +
+day-old `gemini-3.6-flash` ($1.50/$7.50, released 2026-07-21, priced but NOT default) added; 2.5 rows
+KEPT for recorded-run reproducibility; `PRICING_VERSION` → 2026-07-22; README + .env.example as-of
+updated. Public $0/keyless demo untouched (live path only).
+
+**Re-opened dispositions SETTLED on real ground:** C-05 narrowing STANDS — corrected basis = unit-level
+hand-derived oracles (customs-penalty-core, two-derivations) + fail-closed produce-time citation check +
+honestly-labeled Skeptic; per-scenario figure literals stay a DISCLOSED open gap (explainer says so
+verbatim), record-deferred with EV-07. D-12 wording fix STANDS — grep confirms no doc claims the golden
+suite pins figures; the explainer states the precise penalty-core/golden split.
+
+**Evidence, first-hand 2026-07-22:** typecheck 0 · unit 901/955 (54 gated-skip) exit 0 · `npm run verify`
+exit 0 · `npm run test:e2e` **59 passed, 0 failed** exit 0 (fresh `.next`, R-5 discipline). Logs in the
+session scratchpad (`/tmp/claude-close-verify.log`, `claude-close-e2e.log`).
+
+## ▶ CROSS-MODEL GATE ON THE FIX-TAIL DIFF (2026-07-22) — Codex NOT-APPROVED ×6 → ALL DISPOSED, suites re-green
+
+**Provenance:** acceptance-gate BLOCKed the first close (3 route-backs: contradictory run.ts comment ·
+key-availability unproven · no cross-model pass on the diff). Route-backs 1–2 cleared same-session
+(comment rewritten; live ListModels on the project key returned the FULL 3.x lineup incl.
+gemini-3.5-flash — the 2026-06-18 "key tops out at 2.5" observation is superseded; evidence:
+EVIDENCE-2026-07-22-routeback.md, incl. the S-01 red-arm proof). Route-back 3 = Codex CLI read-only
+single-thread review of the diff (first attempt died mid-run — infra, honestly reported, no verdict
+banked; fresh relaunch completed). **Codex: 1 REFUTED + 6 findings (3 MED / 3 LOW), NOT APPROVED.**
+Disposed primary-model-final:
+
+- **Item 1 (S-01 completeness) REFUTED by Codex itself** — both HTTP approval routes converge on the
+  shared predicate; the remaining boolean-only UI guard is the non-persisted replay simulation. The
+  flagship invariant HOLDS under cross-model attack.
+- **Item 3 MED ACCEPT (fixed)** — `tryAdversarialSupplier` manufactured a non-empty reason on a
+  silent ingest drop, defeating the fail-loud check. Now returns "" when no per-row reason exists →
+  the red-team floor fails the case. (My own harness bug; Codex caught it.)
+- **Item 4 MED ACCEPT (fixed, two layers)** — `agentRuns[].summary` renders on the glass and can
+  embed model-controlled text (firewall rejection reasons quote the hostile value) yet was absent
+  from the shared enumerator — BOTH scanners shared the blind spot. Fixed: (a) agent-run summaries
+  added to `enumerateOutputProseSurfaces`; (b) dispatcher firewall reasons now sanitize+cap every
+  quoted model value (`quoted()` → sanitizeText ×80) at all 6 interpolation sites.
+- **Item 5 MED ACCEPT (fixed)** — the eviction clone+sort was an attacker-triggered O(n log n) per
+  at-cap insert. Replaced with a single O(n) min-scan (`evictOldestWindow`), matching the cost
+  profile of the pre-existing sweep; the enforce-before-insert invariant means at most one eviction
+  per insert.
+- **Item 2 LOW ACCEPT-NARROWED (fixed + residual recorded)** — runtime `SupplierSchema` re-parse at
+  the ONE write door (`parseSupplierRows` in both store impls, fail-loud). DELIBERATE RESIDUAL
+  (in-code comment): rows written by manual SQL outside the port are not re-validated on read —
+  operator trust boundary.
+- **Item 6 LOW ACCEPT-AS-DESIGNED (pinned)** — `($300)` appositive-vs-accounting-negative is
+  genuinely ambiguous notation; the conservative read (flag unparseable, never validate a possibly
+  sign-flipped figure) is the deliberate posture. Now PINNED by a dedicated test with the rationale
+  in-code, so the ambiguity is disclosed, not silent.
+- **Item 7 LOW ACCEPT (fixed)** — two stale-default sinks missed by the Batch-7 class-grep:
+  `scripts/preflight-models.mjs` validated 2.5 while the app resolves 3.5 (false-green preflight —
+  now resolves identically, lockstep comment added) and the live-eval runbook forced
+  `GEMINI_MODEL=gemini-2.5-flash` (override dropped). Lesson recorded (P8 recurrence).
+
+**Post-disposal evidence, first-hand 2026-07-22 (supersedes the pre-Codex captures, which were
+deleted per the P2.5 evidence rule):** typecheck 0 · unit **902/956** exit 0 · `npm run verify`
+exit 0 · e2e **59 passed** exit 0. EVIDENCE-2026-07-22-{unit,verify,e2e}.log.

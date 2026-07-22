@@ -8,7 +8,16 @@
 // Pure Node (no TS), fail-loud: a non-200, non-JSON, or empty response exits 1
 // instead of writing a broken fixture. GDELT throttles to one request / 5s, so a 429
 // is reported with that guidance rather than silently retried.
-import { writeFileSync } from "node:fs";
+import { renameSync, writeFileSync } from "node:fs";
+
+// EV-11 (2026-07-16 re-review): stage-then-atomic-replace, so an interrupted write never
+// leaves a truncated fixture on disk (mirrors evals/_helpers/atomic-write.ts; inlined here
+// because this is a plain-Node .mjs script that cannot import the TS helper).
+function atomicWriteFileSync(path, contents) {
+  const tmp = `${path}.tmp-${process.pid}`;
+  writeFileSync(tmp, contents);
+  renameSync(tmp, path);
+}
 
 const GDELT_DOC_URL = "https://api.gdeltproject.org/api/v2/doc/doc";
 
@@ -47,7 +56,7 @@ async function main() {
   if (!body || !Array.isArray(body.articles) || body.articles.length === 0) {
     fail("no articles in response; refusing to write an empty fixture.");
   }
-  writeFileSync(outPath, `${JSON.stringify({ articles: body.articles })}\n`);
+  atomicWriteFileSync(outPath, `${JSON.stringify({ articles: body.articles })}\n`);
   console.log(`[record:signals] wrote ${body.articles.length} article(s) -> ${outPath}`);
   console.log(
     "[record:signals] to adopt as replay: point lib/signals/cached.ts at the new dated file"

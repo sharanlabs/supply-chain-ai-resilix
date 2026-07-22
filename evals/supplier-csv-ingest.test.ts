@@ -123,6 +123,47 @@ describe("P2.5 SupplierRowReportSchema (discriminated-union per-outcome contract
   });
 });
 
+describe("S-02 SupplierSchema display-field caps (length + control chars, fail-loud)", () => {
+  const valid = {
+    id: "SUP-abc123",
+    name: "Acme Components",
+    country: "US",
+    region: "West",
+    riskTier: "HIGH",
+    backupSupplierId: null,
+    standardLeadTimeDays: 30,
+    sector: "ELECTRONICS"
+  };
+
+  it("accepts a clean supplier (positive control)", () => {
+    expect(SupplierSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("rejects an oversized name and an oversized region at the schema", () => {
+    expect(SupplierSchema.safeParse({ ...valid, name: "x".repeat(121) }).success).toBe(false);
+    expect(SupplierSchema.safeParse({ ...valid, region: "x".repeat(121) }).success).toBe(false);
+    // Boundary: exactly the cap still parses.
+    expect(SupplierSchema.safeParse({ ...valid, name: "x".repeat(120) }).success).toBe(true);
+  });
+
+  it("rejects control characters in name/region (C0, DEL, C1)", () => {
+    expect(SupplierSchema.safeParse({ ...valid, name: "Acme\x07Corp" }).success).toBe(false); // C0 BEL
+    expect(SupplierSchema.safeParse({ ...valid, name: "Acme\x7fCorp" }).success).toBe(false); // DEL
+    expect(SupplierSchema.safeParse({ ...valid, region: "West\u0085side" }).success).toBe(false); // C1 NEL
+  });
+
+  it("an oversized-name CSV row is REJECTED with a per-row reason, not silently persisted", () => {
+    const longName = "A".repeat(200);
+    const result = ingestSupplierCsv(csv([`${longName},US,West,HIGH,ELECTRONICS,15`]));
+    expect(result.suppliers).toHaveLength(0);
+    expect(result.report.unmatched).toBe(1);
+    const row = result.report.rows[0];
+    expect(row.outcome).toBe("UNMATCHED");
+    if (row.outcome !== "UNMATCHED") throw new Error("expected an unmatched row");
+    expect(row.reason).toMatch(/exceeds 120/);
+  });
+});
+
 describe("P2.5 ingestSupplierCsv (core: parse, validate, sanitize, dedup, tier)", () => {
   it("matches a valid Tier-1 row and assigns a canonical ID", () => {
     const result = ingestSupplierCsv(

@@ -1,0 +1,104 @@
+
+> resilix-actionops@0.1.0 verify
+> npm run typecheck && npm run lint && node scripts/contrast-check.mjs && npm run test && npm run customs:golden && npm run build && npm run secrets:scan
+
+
+> resilix-actionops@0.1.0 typecheck
+> next typegen && node scripts/clean-next-dev-types.mjs && tsc --noEmit
+
+Generating route types...
+✓ Types generated successfully
+
+> resilix-actionops@0.1.0 lint
+> eslint . --max-warnings=0
+
+PASS  17.13:1  (bar 4.5)  ink on surface
+PASS  15.51:1  (bar 4.5)  ink on ground
+PASS  14.01:1  (bar 4.5)  ink on sink-deep
+PASS  7.47:1  (bar 4.5)  ink-muted on surface
+PASS  6.11:1  (bar 4.5)  ink-muted on sink-deep
+PASS  5.77:1  (bar 4.5)  ink-faint on surface
+PASS  5.22:1  (bar 4.5)  ink-faint on ground
+PASS  4.72:1  (bar 4.5)  ink-faint on sink-deep
+PASS  4.99:1  (bar 4.5)  accent on accent-soft (chip text)
+PASS  8.81:1  (bar 4.5)  accent-strong on surface (text)
+PASS  8.57:1  (bar 4.5)  accent-ink on accent-strong (button text)
+PASS  7.70:1  (bar 4.5)  positive on positive-soft (badge text)
+PASS  5.91:1  (bar 4.5)  sev-low-ink on sev-low-soft (badge text)
+PASS  5.67:1  (bar 4.5)  sev-medium-ink on sev-medium-soft (badge text)
+PASS  5.73:1  (bar 4.5)  sev-high-ink on sev-high-soft (badge text)
+PASS  5.84:1  (bar 4.5)  sev-critical-ink on sev-critical-soft (badge text)
+PASS  5.66:1  (bar 4.5)  caution-ink on caution-soft (badge text)
+PASS  5.71:1  (bar 3)  accent on surface (focus ring, non-text)
+PASS  4.41:1  (bar 3)  runway-edge vs sink (bar boundary, non-text)
+
+All 19 token pairs clear their bars (tokens parsed live from globals.css).
+
+> resilix-actionops@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.5 /Users/sharan_98/Desktop/supply-chain-ai-resilix
+
+
+ Test Files  68 passed | 10 skipped (78)
+      Tests  902 passed | 54 skipped (956)
+   Start at  15:00:59
+   Duration  6.08s (transform 3.17s, setup 0ms, import 25.96s, tests 5.59s, environment 552ms)
+
+
+> resilix-actionops@0.1.0 customs:golden
+> RUN_CUSTOMS_GOLDEN=true vitest run evals/customs-golden.test.ts
+
+
+ RUN  v4.1.5 /Users/sharan_98/Desktop/supply-chain-ai-resilix
+
+
+ Test Files  1 passed (1)
+      Tests  34 passed (34)
+   Start at  15:01:06
+   Duration  183ms (transform 54ms, setup 0ms, import 71ms, tests 33ms, environment 0ms)
+
+
+> resilix-actionops@0.1.0 build
+> next build
+
+▲ Next.js 16.2.9 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.1s
+  Running TypeScript ...
+  Finished TypeScript in 4.0s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/9) ...
+  Generating static pages using 7 workers (2/9) 
+  Generating static pages using 7 workers (4/9) 
+  Generating static pages using 7 workers (6/9) 
+✓ Generating static pages using 7 workers (9/9) in 168ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /api/decision-packets/[id]
+├ ƒ /api/decision-packets/[id]/approve
+├ ƒ /api/decision-packets/[id]/execute
+├ ƒ /api/mcp/[transport]
+├ ƒ /api/n8n/approval-callback
+├ ƒ /api/run-exception
+├ ƒ /api/scenarios
+├ ƒ /api/suppliers/upload
+├ ƒ /customs
+└ ƒ /loop
+
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+
+
+> resilix-actionops@0.1.0 secrets:scan
+> node scripts/secret-scan.mjs
+
+No high-confidence secret patterns found.

@@ -15,17 +15,26 @@
 // field carries, so the table key and the run's model never drift.
 
 // The pinned price-list version. Bump this whenever the TABLE changes -- a provider re-prices OR a
-// provider is added -- so the stamp on each run records which list was in force. Bumped to 2026-06-22
-// when the Groq judge rates were ADDED (the Gemini rows are unchanged from the 2026-06-18 verification;
-// the version tracks the table, not each row's individual verification date). Pure string id.
-export const PRICING_VERSION = "2026-06-22";
+// provider is added -- so the stamp on each run records which list was in force. Bumped to 2026-07-22
+// when the Gemini 3.x GA rows were ADDED and the default moved to gemini-3.5-flash (Batch 7 recency
+// fix: Gemini 2.5 Flash is deprecation-scheduled 2026-10-16; the 2.5 rows stay so recorded runs and
+// fixtures keep pricing correctly). Pure string id.
+export const PRICING_VERSION = "2026-07-22";
 
 // Per-model USD price per 1,000,000 tokens. Keyed on the BARE Gemini id (matches
-// resolvedGeminiModel()). gemini-2.5-flash is the GA default; -flash-lite the budget
-// floor; -pro the quality ceiling. All three are GA on the key (D.5 live ListModels).
+// resolvedGeminiModel()). Live-verified against ai.google.dev/gemini-api/docs/pricing +
+// an independent tracker, 2026-07-22 (standard-context paid-tier rows; the tiered >200k
+// rates on -pro are deliberately NOT modeled -- our calls never approach 200k input).
+// gemini-3.5-flash is the GA default; the 2.5 line is deprecation-scheduled 2026-10-16
+// but still serving, kept for recorded-run reproducibility; gemini-3.6-flash (released
+// 2026-07-21) is priced but NOT the default until it has more than a day of history.
 type ModelPrice = { inputPerMillionUsd: number; outputPerMillionUsd: number };
 
 export const GEMINI_PRICING: Record<string, ModelPrice> = {
+  "gemini-3.6-flash": { inputPerMillionUsd: 1.5, outputPerMillionUsd: 7.5 },
+  "gemini-3.5-flash": { inputPerMillionUsd: 1.5, outputPerMillionUsd: 9 },
+  "gemini-3.5-flash-lite": { inputPerMillionUsd: 0.3, outputPerMillionUsd: 2.5 },
+  "gemini-3.1-flash-lite": { inputPerMillionUsd: 0.25, outputPerMillionUsd: 1.5 },
   "gemini-2.5-flash": { inputPerMillionUsd: 0.3, outputPerMillionUsd: 2.5 },
   "gemini-2.5-flash-lite": { inputPerMillionUsd: 0.1, outputPerMillionUsd: 0.4 },
   "gemini-2.5-pro": { inputPerMillionUsd: 1.25, outputPerMillionUsd: 10 }

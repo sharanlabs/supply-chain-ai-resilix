@@ -45,10 +45,20 @@ export const MUTATION_RATE_LIMIT = { limit: 30, windowMs: 60_000 } as const;
 // (one noisy upload caller cannot exhaust the approve budget).
 const buckets = new Map<string, WindowState>();
 
-// Soft cap on distinct keys before we sweep. Without it a key-rotating caller (rotating a
-// spoofable client id) could grow the Map unbounded (Codex LOW). We sweep fully-elapsed
-// windows only when bucket CREATION crosses this cap, so the common path stays O(1) and
-// the Map stays bounded (60s windows expire fast, so the sweep reclaims aggressively).
+// HARD cap on distinct keys. A key-rotating caller (rotating a spoofable client id) could
+// otherwise grow the Map unbounded (Codex LOW). When bucket CREATION crosses this cap we first
+// sweep fully-elapsed windows (cheap, the common reclaim), and if that is not enough -- a burst
+// of DISTINCT still-ACTIVE keys, which pruneExpired cannot touch -- we EVICT the oldest windows
+// until we are back under the cap. So the Map size is genuinely bounded by MAX_TRACKED_KEYS, not
+// merely swept (EV-13, 2026-07-16 re-review: the prior sweep-only path was a SOFT cap that a
+// same-tick spoofed-id flood defeated).
+//
+// TRUSTED-IDENTITY NOTE: eviction fails OPEN for the evicted caller (their window is dropped, so
+// their next call starts fresh) -- never closed. That is acceptable ONLY because the production
+// limiter key must be a TRUSTED identity (an authenticated token, or a gateway/WAF-provided
+// client id), not a spoofable header; see clientIdFromRequest's preference order + the
+// single-instance caveat in the file header. On a spoofable-header deployment this cap bounds
+// MEMORY, not abuse -- the shared-store/gateway limiter is the real abuse control.
 const MAX_TRACKED_KEYS = 10_000;
 
 function pruneExpired(now: number, windowMs: number): void {
@@ -56,6 +66,35 @@ function pruneExpired(now: number, windowMs: number): void {
     if (now - state.windowStartMs >= windowMs) {
       buckets.delete(key);
     }
+  }
+}
+
+// Evict the single entry with the oldest window start, via ONE O(n) pass -- no clone, no sort.
+// Because enforceKeyCap runs before EVERY key insert, the Map can never exceed the cap, so at
+// most one eviction is ever needed per insert. A clone+sort here (an earlier draft) would have
+// turned every at-cap insert into an attacker-triggered O(n log n) allocation -- the Codex
+// cross-model pass caught that; a linear min-scan matches the cost profile the pre-existing
+// pruneExpired sweep already accepted (one O(n) pass per at-cap insert).
+function evictOldestWindow(): void {
+  let oldestKey: string | null = null;
+  let oldestStart = Infinity;
+  for (const [key, state] of buckets) {
+    if (state.windowStartMs < oldestStart) {
+      oldestStart = state.windowStartMs;
+      oldestKey = key;
+    }
+  }
+  if (oldestKey !== null) buckets.delete(oldestKey);
+}
+
+// Bring the Map strictly UNDER the cap before inserting a new key, so size never exceeds it.
+// Invariant: called before every new-key insert, so size <= MAX_TRACKED_KEYS always holds and
+// the while-loop below runs at most once per insert (it is a loop only as a safety backstop).
+function enforceKeyCap(now: number, windowMs: number): void {
+  if (buckets.size < MAX_TRACKED_KEYS) return;
+  pruneExpired(now, windowMs);
+  while (buckets.size >= MAX_TRACKED_KEYS) {
+    evictOldestWindow();
   }
 }
 
@@ -71,8 +110,11 @@ export function checkRateLimit(
   // This is the "window resets" behavior: once now >= windowStart + windowMs the
   // count is discarded, not decayed.
   if (!existing || now - existing.windowStartMs >= windowMs) {
-    if (buckets.size >= MAX_TRACKED_KEYS) {
-      pruneExpired(now, windowMs);
+    // A brand-new key grows the Map; enforce the hard cap first so a key-rotating flood
+    // cannot grow it without bound. Updating an EXISTING active window (the else path below)
+    // never adds a key, so it needs no cap check.
+    if (!existing) {
+      enforceKeyCap(now, windowMs);
     }
     buckets.set(bucketKey, { count: 1, windowStartMs: now });
     return { allowed: true, retryAfterSeconds: 0, remaining: limit - 1, limit };
@@ -142,3 +184,12 @@ export function enforceMutationRateLimit(
 export function __resetRateLimitForTest(): void {
   buckets.clear();
 }
+
+// Test-only: observe the tracked-key count so the hard-cap bound (EV-13) is assertable without
+// exporting the Map itself. NOT for production use.
+export function __rateLimitTrackedKeyCount(): number {
+  return buckets.size;
+}
+
+// Test-only: the hard cap, exported so a test pins the exact bound rather than a magic number.
+export const __MAX_TRACKED_KEYS_FOR_TEST = MAX_TRACKED_KEYS;

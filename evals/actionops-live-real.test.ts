@@ -16,7 +16,7 @@ import type { DecisionPacketV2 } from "@/lib/schemas";
 // scenario live and asserts the Success_Criteria "live mode is genuinely live" + "<=$5" +
 // "<5 min" rows on REAL Gemini output, plus the per-scenario coherence (the live Sentinel
 // classifies THIS scenario's disruption, not a generic one). Run:
-//   ENABLE_LIVE_AI=true GEMINI_MODEL=gemini-2.5-flash RUN_LIVE_AI_TESTS=true \
+//   ENABLE_LIVE_AI=true RUN_LIVE_AI_TESTS=true \
 //     node --env-file=.env node_modules/vitest/vitest.mjs run evals/actionops-live-real.test.ts
 // The key is loaded by --env-file (never printed).
 //

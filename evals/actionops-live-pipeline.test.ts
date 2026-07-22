@@ -29,7 +29,7 @@ import type { ActionOpsContext } from "@/lib/agents/actionops/types";
 import type { AgentRun } from "@/lib/schemas";
 
 const BASE_DATE = "2026-06-18T12:00:00.000Z";
-const MODEL = "gemini-2.5-flash"; // the resolved default; pricing keys off it
+const MODEL = "gemini-3.5-flash"; // the resolved default (2026-07-22 bump); pricing keys off it
 
 // A live context with real cached signals + the seed suppliers + the default (Hormuz)
 // scenario, which DOES produce exposures (so Strategist/Dispatcher actually fire live --

@@ -233,6 +233,24 @@ export function cohensKappa(c: { tp: number; fp: number; tn: number; fn: number 
   return (po - pe) / (1 - pe);
 }
 
+// Classify one judge verdict against its human label into a confusion cell -- or "error"
+// (EV-09, 2026-07-16 re-review). A verdict that ERRORED (threw / unparseable / budget breach /
+// LIVE_AI disabled) fails closed to supported:false OPERATIONALLY -- the right safety default --
+// but it is NOT evidence the judge DISCRIMINATED anything. Counting an errored fail-closed as a
+// true positive would INFLATE TPR with the judge's own failures (the exact opposite of what the
+// prior comment claimed). So errors are their OWN bucket, excluded from tp/fp/tn/fn, and bounded
+// by a separate assertion so exclusion is not a loophole a high-error judge could hide behind.
+export type ConfusionCell = "tp" | "fp" | "tn" | "fn" | "error";
+export function classifyJudgeVerdict(
+  labelSupported: boolean,
+  verdict: { supported: boolean; errored: boolean }
+): ConfusionCell {
+  if (verdict.errored) return "error";
+  const flagged = verdict.supported === false;
+  if (!labelSupported) return flagged ? "tp" : "fn";
+  return flagged ? "fp" : "tn";
+}
+
 // Held-out split. DEV is reserved as the few-shot exemplar source (used when the billed
 // recalibration adds critique-then-verdict few-shot -- ADR-0002); TEST is the held-out set the
 // live metrics are reported over, so TPR/TNR/kappa are never measured on prose the judge prompt
@@ -330,6 +348,25 @@ describe("G-5 judge: fail-closed mechanics (no spend)", () => {
   });
 });
 
+describe("classifyJudgeVerdict: an errored verdict is never a true positive (EV-09, no spend)", () => {
+  it("an errored fail-closed verdict on an UNSUPPORTED item is 'error', NOT 'tp'", () => {
+    // The exact miscount the prior tally made: errored -> supported:false -> counted as a
+    // detection on an unsupported item, inflating TPR with the judge's failures.
+    expect(classifyJudgeVerdict(false, { supported: false, errored: true })).toBe("error");
+  });
+  it("a GENUINE flag (not errored) on an unsupported item is 'tp'", () => {
+    expect(classifyJudgeVerdict(false, { supported: false, errored: false })).toBe("tp");
+  });
+  it("an errored verdict on a SUPPORTED item is 'error', NOT 'fp'", () => {
+    expect(classifyJudgeVerdict(true, { supported: false, errored: true })).toBe("error");
+  });
+  it("genuine cells are unaffected: pass-on-supported=tn, miss-on-unsupported=fn, flag-on-supported=fp", () => {
+    expect(classifyJudgeVerdict(true, { supported: true, errored: false })).toBe("tn");
+    expect(classifyJudgeVerdict(false, { supported: true, errored: false })).toBe("fn");
+    expect(classifyJudgeVerdict(true, { supported: false, errored: false })).toBe("fp");
+  });
+});
+
 describe.skipIf(!LIVE)("G-5 judge: live calibration (BILLS, gated)", () => {
   it(
     "clears the TPR/TNR bar over the labelled set, counting judge-error as fail-closed",
@@ -338,12 +375,14 @@ describe.skipIf(!LIVE)("G-5 judge: live calibration (BILLS, gated)", () => {
       let spentUsd = 0;
       // Confusion tallies. "Flag" = judge says supported:false. Positive class = UNSUPPORTED
       // (the thing we want to catch). TPR = flagged / actually-unsupported; TNR =
-      // passed / actually-supported. A judge error counts as a FLAG (fail-closed), so it can
-      // only hurt TNR (a false flag), never inflate TPR.
+      // passed / actually-supported. A verdict that ERRORED is NOT counted in these cells
+      // (EV-09) -- it is a `errors` reliability bucket, so the judge's failures cannot inflate
+      // TPR by masquerading as detections; the error rate is bounded by its own assertion below.
       let tp = 0;
       let fn = 0;
       let tn = 0;
       let fp = 0;
+      let errors = 0;
       const misses: string[] = [];
 
       // Report over the HELD-OUT test split only (DEV is the few-shot reserve -- ADR-0002), so
@@ -361,20 +400,26 @@ describe.skipIf(!LIVE)("G-5 judge: live calibration (BILLS, gated)", () => {
           }
         });
         spentUsd += estimateLiveCallCostUsd(model);
-        const flagged = verdict.supported === false; // includes fail-closed errors
 
-        if (!ex.supported) {
-          if (flagged) tp++;
-          else {
+        switch (classifyJudgeVerdict(ex.supported, verdict)) {
+          case "tp":
+            tp++;
+            break;
+          case "fn":
             fn++;
             misses.push(`FN ${ex.id}: judge PASSED an unsupported claim`);
-          }
-        } else {
-          if (!flagged) tn++;
-          else {
+            break;
+          case "tn":
+            tn++;
+            break;
+          case "fp":
             fp++;
-            misses.push(`FP ${ex.id}: judge FLAGGED grounded prose (${verdict.errored ? "error" : verdict.reason})`);
-          }
+            misses.push(`FP ${ex.id}: judge FLAGGED grounded prose (${verdict.reason})`);
+            break;
+          case "error":
+            errors++;
+            misses.push(`ERR ${ex.id}: judge call errored (${verdict.errorClass ?? "unknown"}) -- excluded from TPR/TNR`);
+            break;
         }
       }
 
@@ -385,6 +430,7 @@ describe.skipIf(!LIVE)("G-5 judge: live calibration (BILLS, gated)", () => {
       console.log(`TPR (catches unsupported): ${(tpr * 100).toFixed(1)}%  (${tp}/${tp + fn})`);
       console.log(`TNR (passes grounded):     ${(tnr * 100).toFixed(1)}%  (${tn}/${tn + fp})`);
       console.log(`kappa (chance-corrected):  ${kappa.toFixed(3)}`);
+      console.log(`errors (excluded from rates): ${errors}/${calibrationSet.length}`);
       console.log(`spend (est): $${spentUsd.toFixed(4)}`);
       if (misses.length) console.log("misses:\n  " + misses.join("\n  "));
       console.log("=========================================\n");
@@ -397,6 +443,10 @@ describe.skipIf(!LIVE)("G-5 judge: live calibration (BILLS, gated)", () => {
       // Chance-corrected agreement must clear "substantial" (Landis-Koch >= 0.6) -- this is what a
       // "flag everything" judge (high TPR, useless TNR) fails, so it backstops the raw rates.
       expect(kappa, `kappa ${kappa.toFixed(3)} below 0.60 (substantial)`).toBeGreaterThanOrEqual(0.6);
+      // EV-09: errors are excluded from TPR/TNR, so exclusion cannot become a loophole -- bound the
+      // error rate directly. A judge erroring on >10% of the calibration set is unreliable as a
+      // gate input regardless of how the completed calls scored.
+      expect(errors / calibrationSet.length, `judge error rate ${errors}/${calibrationSet.length} too high`).toBeLessThanOrEqual(0.1);
     },
     600_000
   );

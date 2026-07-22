@@ -19,6 +19,18 @@ export function sanitizeText(value: unknown, maxLen: number): string {
   return out.replace(/\s+/g, " ").trim().slice(0, maxLen);
 }
 
+// True when the string carries any C0/DEL/C1 control character -- the same codepoint
+// class sanitizeText strips. Exported as a PREDICATE so schema-level validation (e.g.
+// SupplierSchema's display fields, S-02) can REJECT fail-loud at the trust boundary
+// instead of silently repairing (lessons P2.3); one codepoint definition, two postures.
+export function containsControlChars(value: string): boolean {
+  for (const ch of value) {
+    const code = ch.codePointAt(0) ?? 0;
+    if (code <= 0x1f || (code >= 0x7f && code <= 0x9f)) return true;
+  }
+  return false;
+}
+
 // Only http/https urls are safe to render as a sourceUrl link (no javascript:/data:).
 export function isSafeHttpUrl(url: string): boolean {
   try {

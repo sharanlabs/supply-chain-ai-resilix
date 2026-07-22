@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 
 import { buildDecisionPacket } from "@/lib/pipeline/build-packet";
 import { ACTIONOPS_SCENARIOS } from "@/lib/data/actionops-scenarios";
+import { atomicWriteFileSync } from "@/evals/_helpers/atomic-write";
 
 // Replay-fixture recorder (D.9, gated RUN_LIVE_AI_RECORD=true -- BILLS). Runs each scenario
 // live ONCE and freezes the resulting packet to evals/fixtures/live/<id>.json. "Spend once,
@@ -33,7 +34,7 @@ describe.skipIf(!RECORD)("record live packets per scenario (BILLS, gated)", () =
             })
           }
         });
-        writeFileSync(`${OUT_DIR}/${scenario.id}.json`, `${JSON.stringify(packet, null, 2)}\n`);
+        atomicWriteFileSync(`${OUT_DIR}/${scenario.id}.json`, `${JSON.stringify(packet, null, 2)}\n`);
         const row = {
           id: scenario.id,
           eventType: packet.threatCard.eventType,
@@ -53,7 +54,7 @@ describe.skipIf(!RECORD)("record live packets per scenario (BILLS, gated)", () =
         expect(packet.effectiveMode).toBe("LIVE_AI");
       }
       // A compact, readable index of what was captured (the coherence eyeball + evidence).
-      writeFileSync(`${OUT_DIR}/_summary.json`, `${JSON.stringify(summary, null, 2)}\n`);
+      atomicWriteFileSync(`${OUT_DIR}/_summary.json`, `${JSON.stringify(summary, null, 2)}\n`);
     },
     600_000
   );

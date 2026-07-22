@@ -105,6 +105,24 @@ const SPELLED_OUT_QUANTITY = new RegExp(
   "gi"
 );
 
+// Spelled-out LARGE MAGNITUDES with NO trailing unit ("roughly five million in exposure",
+// "eight billion"): a magnitude word (thousand/million/billion) preceded by a number word is an
+// asserted FIGURE even without a unit, and SPELLED_OUT_QUANTITY (which REQUIRES a trailing unit)
+// misses it -- so "five million in exposure" used to pass with figures:[] AND unparseable:[], a
+// silent fail-OPEN (EV-05 Gap A). "hundred" is deliberately excluded from the magnitude tail: it
+// reads idiomatically often enough ("a hundred reasons") that requiring the unit is the right bar.
+const SPELLED_OUT_MAGNITUDE = new RegExp(
+  `\\b(?:${NUMBER_WORDS.join("|")})(?:\\s+(?:${NUMBER_WORDS.join("|")})){0,3}\\s+(?:thousand|million|billion)\\b`,
+  "gi"
+);
+
+// Accounting-style PARENTHESIZED NEGATIVE of a $-figure ("($300)", "( $1.2M )"): in financial
+// prose the parentheses denote a NEGATIVE, so reading the inner 300 as +300 validates a
+// sign-flipped claim -- the exact trap MINUS_FIGURE guards, on a different notation (EV-05 Gap B).
+// Restricted to the $-form so a legitimate positive parenthetical ("exposure score (72)") is
+// untouched. Flagged unparseable AND masked so FIGURE cannot re-read the digits as positive.
+const PAREN_NEGATIVE = /\(\s*\$\d[\d,]*(?:\.\d+)?[KMBkmb]?\s*\)/g;
+
 // Normalize a raw figure or a claim's `value` to a comparable number. Strips
 // presentation affixes ($ , %), applies a trailing K/M/B magnitude, so "$1,200,000",
 // "1.2M", and the numeric 1_200_000 all compare equal. Returns null for anything
@@ -161,6 +179,11 @@ export function extractSourceableNumerals(text: string): ExtractedNumerals {
     unparseable.push(phrase);
   }
 
+  // Spelled-out large magnitudes with no unit (EV-05 Gap A) -- e.g. "five million in exposure".
+  for (const phrase of text.match(SPELLED_OUT_MAGNITUDE) ?? []) {
+    unparseable.push(phrase);
+  }
+
   // Minus-signed figures: flagged unparseable (fail-closed -- a "-5%" parsed as 5
   // would validate a sign-flipped claim), then masked so FIGURE cannot re-read the
   // digits as a positive quantity. Runs after SCIENTIFIC so "-1e6" is already gone.
@@ -169,8 +192,14 @@ export function extractSourceableNumerals(text: string): ExtractedNumerals {
     unparseable.push(signed);
   }
 
+  // Parenthesized $-negatives (EV-05 Gap B) -- e.g. "a revenue impact of ($300)".
+  for (const paren of preMasked.match(PAREN_NEGATIVE) ?? []) {
+    unparseable.push(paren);
+  }
+
   const masked = preMasked
     .replace(MINUS_FIGURE, " ")
+    .replace(PAREN_NEGATIVE, " ")
     .replace(SLASH_RATIO, " ")
     .replace(ID_TOKEN, " ");
 

@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   MUTATION_RATE_LIMIT,
+  __MAX_TRACKED_KEYS_FOR_TEST,
+  __rateLimitTrackedKeyCount,
   __resetRateLimitForTest,
   checkRateLimit,
   clientIdFromRequest,
@@ -75,6 +77,45 @@ describe("rate-limit: core fixed-window decision", () => {
     const breach = checkRateLimit("k", win, t0 + (win.windowMs - 200));
     expect(breach.allowed).toBe(false);
     expect(breach.retryAfterSeconds).toBe(1);
+  });
+});
+
+describe("rate-limit: the tracked-key Map is HARD-bounded (EV-13)", () => {
+  beforeEach(() => __resetRateLimitForTest());
+  afterEach(() => __resetRateLimitForTest());
+
+  it("a flood of DISTINCT still-active keys (same tick) never exceeds the cap", () => {
+    // The attack pruneExpired cannot answer: every window is active, so sweeping the elapsed
+    // reclaims nothing. Only real eviction keeps the Map bounded.
+    const now = 5_000_000; // one fixed tick -> no window elapses during the flood
+    const flood = __MAX_TRACKED_KEYS_FOR_TEST + 2_500;
+    for (let i = 0; i < flood; i += 1) {
+      checkRateLimit(`spoof-${i}`, MUTATION_RATE_LIMIT, now);
+    }
+    expect(__rateLimitTrackedKeyCount()).toBeLessThanOrEqual(__MAX_TRACKED_KEYS_FOR_TEST);
+  });
+
+  it("eviction drops the OLDEST windows, and a fresh caller is still admitted", () => {
+    // Seed one caller at t0, then flood distinct keys at a LATER tick still inside the window.
+    const t0 = 6_000_000;
+    checkRateLimit("early-bird", MUTATION_RATE_LIMIT, t0);
+    const later = t0 + 1_000; // same window, so nothing elapses
+    for (let i = 0; i < __MAX_TRACKED_KEYS_FOR_TEST + 500; i += 1) {
+      checkRateLimit(`later-${i}`, MUTATION_RATE_LIMIT, later);
+    }
+    // Still bounded...
+    expect(__rateLimitTrackedKeyCount()).toBeLessThanOrEqual(__MAX_TRACKED_KEYS_FOR_TEST);
+    // ...and a brand-new caller is admitted rather than starved (fail-open, never closed).
+    expect(checkRateLimit("newcomer", MUTATION_RATE_LIMIT, later).allowed).toBe(true);
+    expect(__rateLimitTrackedKeyCount()).toBeLessThanOrEqual(__MAX_TRACKED_KEYS_FOR_TEST);
+  });
+
+  it("normal low-cardinality traffic never triggers eviction (the common path is untouched)", () => {
+    const now = 7_000_000;
+    for (let i = 0; i < 50; i += 1) {
+      checkRateLimit(`caller-${i}`, MUTATION_RATE_LIMIT, now);
+    }
+    expect(__rateLimitTrackedKeyCount()).toBe(50);
   });
 });
 
