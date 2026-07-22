@@ -1,27 +1,48 @@
-# HANDOFF — resume pointer (updated 2026-07-21: Phase-1 fix tail CLOSED + Batch 5 CI done; all COMMITTED; verify green first-hand)
+# HANDOFF — resume pointer (updated 2026-07-22: PHASE 1 COMPLETE — fix tail closed, Codex-gated, SHIP, committed)
 
-> ## ▶ RESUME HERE (2026-07-21 — `/claude-os` review+verify session, continuing the fix tail)
+> ## ▶ RESUME HERE (2026-07-22 — Phase-1 re-review CLOSED end-to-end)
 >
-> **Tree is COMMITTED and clean.** Commits this session: `63e5179` (fix batches 1–4 + B-14 +
-> 4 defects) · `6400bf9` (handoff + lessons R-1…R-5) · **`6ec07a3` (Batch 5 CI: B-09/B-10/B-11
-> + the B-14 live-DB behavioral proof)**. `3cbde89` in `~/claude-os` fixes the skill-estate prune.
+> **Tree COMMITTED and clean at `53440d1`** (on `e81986b`). Phase 1 of the owner-approved rework plan
+> (`~/.claude/plans/review-the-project-once-wobbly-lake.md`) is DONE: all 60 findings of the 2026-07-16
+> right-sized pass are disposed AND their fix tail fully landed — Batches 1–5 (prior sessions) +
+> **Batch 6 (all nine accepted EV items) + moat trio S-01/S-02 + Batch 7 Gemini recency (this session)**.
+> Re-opened C-05/D-12 settled on real ground. EV-01/02/07/08/12 record-deferred as accepted.
 >
-> **▶ NEXT = Batch 6 (evals teeth).** The accepted EV set from the gate record
-> (`gates/rework-2026-07-14/RIGHT-SIZED-PASS-2026-07-16.md` § "Section C"): EV-14 six→seven text ·
-> EV-15 ordered loop assertion · EV-09 calibration errors ≠ TPs · EV-11 recorder
-> stage-then-atomic-replace · EV-13 rate-limit hard-cap eviction · EV-05 extractor gaps · EV-06
-> unit registry + positive-control pass===true (folds P-01) · EV-10 a11y per-node/form-controls ·
-> EV-03/04 shared output-surface enumerator. Dispose-at-fix effort call each; record-defer
-> EV-01/02/07/08/12 (already record-deferred). Then moat trio (S-01/S-02) → Batch 7 (Gemini
-> recency: `DEFAULT_GEMINI_MODEL` still `gemini-2.5-flash`) → owner-flagged disposition re-check
-> (only the ones that changed SHIPPED behaviour) → acceptance-gate → Phase 2 (08-deck build).
+> **Gate chain on the closure (all in `gates/rework-2026-07-14/`):** acceptance-gate BLOCK → 3
+> route-backs discharged (run.ts comment truth; LIVE on-key ListModels proof — the key now serves the
+> full 3.x lineup, superseding 2026-06-18; S-01 red-arm) → **Codex cross-model pass on the diff**
+> (first attempt died mid-run, honestly recorded; relaunch: 1 REFUTED — S-01 held under attack — + 6
+> findings 3 MED/3 LOW, ALL disposed with fixes) → **re-gate SHIP**. Evidence logs + route-back record
+> committed alongside.
 >
-> **B-14 is now proven against a LIVE database, first-hand — the standing caveat is RETIRED.**
-> A local ephemeral Postgres 17 cluster (brew `postgresql@17`, NO Docker — see the recipe in
-> lessons R-6 / [[resilix-dev-machine-no-docker]]) ran `db:push` + the new
-> `evals/db-referential-integrity.test.ts` + the whole `test:db` suite (10 tests) green;
-> positive-controlled. CI now runs this on every PR via an ephemeral postgres service (B-11).
+> **Suites first-hand at commit:** 902 unit / 34 golden / **59 e2e** / verify exit 0 / secret-scan
+> clean. Public demo stays $0/keyless/byte-identical (frozen fixtures untouched — verified in the diff
+> footprint). Live default is now `gemini-3.5-flash` (PRICING_VERSION 2026-07-22; 2.5 rows kept).
 >
+> **▶ NEXT = PHASE 2 (visual design): build `samples/2026/arc/08-deck.html` into the app** — the
+> owner picked this direction 2026-07-21 (supersedes the 07-16 "fresh directions round"). Owner-
+> satisfaction-gated. Design skills installed for it: `better-colors` / `better-typography` /
+> `better-ui` (~/.claude/skills/). Then Phase 3 walkthrough re-align → Phase 4 owner deploy LAST.
+>
+> **Owner queue (unchanged):** push `53440d1` (owner-gated) · Phase-2 design review on completion ·
+> deploy + walkthrough at Phase 4 · deferred: loop/Skeptic live promotion, billable homepage
+> re-capture.
+>
+> **▶ CORRECTED DEPLOY RECIPE (D-07 — supersedes every older recipe below):**
+> 1. `npx vercel` (link the project)
+> 2. `npx vercel env add ENABLE_CUSTOMS_DESK production` → `true`
+> 3. `npx vercel env add REQUIRE_APPROVAL_TOKEN production` → `true`
+> 4. **`npx vercel env add APPROVAL_TOKEN production` → a strong value (≥16 chars).** Setting only
+>    `REQUIRE_APPROVAL_TOKEN` yields **503 AUTH_NOT_CONFIGURED** on mutations (fail-closed misconfig
+>    signal), NOT 401 — the 401 path requires the token to actually be configured.
+> 5. For the public MCP surface: `MCP_ACCESS_TOKEN` (strong, ≥16 chars) + `MCP_PUBLIC_ORIGIN` (the
+>    deploy URL).
+> 6. `npx vercel --prod` → smoke: `/`, `/customs`, `/loop` render; `/api/mcp/mcp` 401 bare; mutations
+>    401 with wrong token / 503 with no token configured; keyless surfaces make no live call.
+>
+> **Stale-block note (D-14):** everything below this block is HISTORY (superseded resume blocks kept
+> for the audit trail) — do not execute recipes or "next actions" from them.
+
 > ----- Phase-1 fix-tail detail (2026-07-21, still current) below -----
 >
 > **`63e5179` lands the 2026-07-16 fix batches 1–4, B-14, and four defects found first-hand.**

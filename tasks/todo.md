@@ -1,5 +1,13 @@
 # todo — project tasks
 
+## ⚠️ CURRENT (2026-07-22) — rework Phase 1 CLOSED; next = Phase 2 design
+- [x] **Rework Phase 1 (re-review + fix tail) — DONE 2026-07-22 (`53440d1`, Codex-gated, re-gate SHIP):**
+  60 findings disposed; Batches 1–7 + moat trio landed; Gemini default → 3.5-flash (on-key verified);
+  902 unit / 34 golden / 59 e2e green. Record: `docs/claude/gates/rework-2026-07-14/`.
+- [ ] **Phase 2 — build `samples/2026/arc/08-deck.html` into the app** (owner-picked 2026-07-21;
+  owner-satisfaction-gated; design skills better-colors/better-typography/better-ui installed).
+- [ ] Phase 3 — walkthrough re-align · Phase 4 — owner deploy LAST (corrected recipe in HANDOFF top).
+
 ## Idea (2026-06-11 21:20)
 > RESILIX ActionOps — crisis-to-action war room: live disruption signal + supplier CSV → evidence-cited, human-approved action packet in under 5 minutes
 
