@@ -19,10 +19,16 @@
 > clean. Public demo stays $0/keyless/byte-identical (frozen fixtures untouched — verified in the diff
 > footprint). Live default is now `gemini-3.5-flash` (PRICING_VERSION 2026-07-22; 2.5 rows kept).
 >
-> **▶ NEXT = PHASE 2 (visual design): build `samples/2026/arc/08-deck.html` into the app** — the
-> owner picked this direction 2026-07-21 (supersedes the 07-16 "fresh directions round"). Owner-
-> satisfaction-gated. Design skills installed for it: `better-colors` / `better-typography` /
-> `better-ui` (~/.claude/skills/). Then Phase 3 walkthrough re-align → Phase 4 owner deploy LAST.
+> **▶ PHASE 2 BUILT + DOUBLE-GATED (`c14bd3c`, 2026-07-22) — CURRENT GATE = OWNER DESIGN REVIEW.**
+> The 08-deck register ships on `/` (components/deck/), packet-driven, every invariant ported;
+> acceptance-gate BLOCK→SHIP (7 route-backs) + Codex cross-model (10 findings, all fixed).
+> Records: `gates/phase2-deck/`. Suites at HEAD: 911 unit / 34 golden / 59 e2e / verify 0.
+> Recorded scope cut: /loop + /customs keep the old register — owner call at the review.
+>
+> **▶ AFTER the review = PLAYGROUND (owner-fixed 2026-07-22):** "a real product anyone can
+> test" — deterministic own-data loop ($0/keyless) + live AI on the OWNER key behind a hard
+> daily cap + per-IP limits (BYOK declined). Plan: `PLAN-PLAYGROUND-2026-07-22.md`. Then
+> Phase 3 walkthrough re-align → Phase 4 owner deploy LAST.
 >
 > **Owner queue (unchanged):** push `53440d1` (owner-gated) · Phase-2 design review on completion ·
 > deploy + walkthrough at Phase 4 · deferred: loop/Skeptic live promotion, billable homepage
