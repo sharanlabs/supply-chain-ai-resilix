@@ -8,8 +8,23 @@ import { test, expect, type Page } from "@playwright/test";
 
 async function settle(page: Page): Promise<void> {
   await page.evaluate(async () => {
+    // Await only FINITE animations: an ambient infinite loop (the deck's scroll
+    // cue) has a `finished` promise that never resolves by definition, and
+    // awaiting it would hang every settle-gated test to its timeout. Transient
+    // entrance/transition animations are the ones that can poison a geometry or
+    // axe read (lesson G); an infinite ambient loop is steady-state by design.
     await Promise.all(
-      document.getAnimations().map((a) => a.finished.catch(() => undefined))
+      document.getAnimations().map((a) => {
+        // Scroll/view-timeline animations (the deck's card-stack settle) have no
+        // time-based end -- their `finished` promise resolves on scroll progress,
+        // not on a clock -- so awaiting them hangs forever, exactly like an
+        // infinite loop's. Await only FINITE, DOCUMENT-TIMELINE animations: those
+        // are the transient entrance/transition effects that can poison a read.
+        if (a.timeline !== document.timeline) return undefined;
+        const timing = a.effect?.getTiming();
+        if (timing && timing.iterations === Infinity) return undefined;
+        return a.finished.catch(() => undefined);
+      })
     );
   });
 }

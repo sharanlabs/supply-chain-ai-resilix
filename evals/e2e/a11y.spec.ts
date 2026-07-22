@@ -73,8 +73,23 @@ async function resolveSrgb(page: Page, cssColor: string): Promise<number[]> {
 // produce phantom contrast "violations". Settling guarantees the final frame.
 async function settle(page: Page): Promise<void> {
   await page.evaluate(async () => {
+    // Await only FINITE animations: an ambient infinite loop (the deck's scroll
+    // cue) has a `finished` promise that never resolves by definition, and
+    // awaiting it would hang every settle-gated test to its timeout. Transient
+    // entrance/transition animations are the ones that can poison a geometry or
+    // axe read (lesson G); an infinite ambient loop is steady-state by design.
     await Promise.all(
-      document.getAnimations().map((a) => a.finished.catch(() => undefined))
+      document.getAnimations().map((a) => {
+        // Scroll/view-timeline animations (the deck's card-stack settle) have no
+        // time-based end -- their `finished` promise resolves on scroll progress,
+        // not on a clock -- so awaiting them hangs forever, exactly like an
+        // infinite loop's. Await only FINITE, DOCUMENT-TIMELINE animations: those
+        // are the transient entrance/transition effects that can poison a read.
+        if (a.timeline !== document.timeline) return undefined;
+        const timing = a.effect?.getTiming();
+        if (timing && timing.iterations === Infinity) return undefined;
+        return a.finished.catch(() => undefined);
+      })
     );
   });
 }
@@ -89,16 +104,25 @@ function axeTargets(nodes: AxeNode[]): string[] {
 // One clean-check used by EVERY axe scan. It asserts `violations` is empty and
 // triages `incomplete` per node -- NOT by a blind rule-id allow-list (which
 // would let a real, uncovered node pass). `incomplete` means "axe could not
-// DECIDE": here the only legitimate cause is text over a background axe cannot
-// composite to a single solid color. There are TWO such backgrounds on this
-// surface, so a color-contrast incomplete is forgiven ONLY on one of them, and
-// only after its REAL WCAG ratio is measured by ground truth:
+// DECIDE": here the only legitimate causes are text over a background axe cannot
+// composite to a single solid color, or text geometrically OCCLUDED by another
+// element. There are THREE such cases on this surface, so a color-contrast
+// incomplete is forgiven ONLY on one of them, and only after its REAL WCAG ratio
+// is measured by ground truth:
 //   (1) the approve-rail CSS gradient (text inside .bg-gradient-to-b) -- measured
 //       against the gradient's darkest effective stop (accent-soft/60 over surface);
 //   (2) the translucent, blurred sticky masthead (text under .backdrop-blur-xl) --
 //       it paints var(--color-ground) at 80% alpha and the page behind it (at the
 //       scanned page-top -- none of the layer-1 scans scroll) is also
 //       var(--color-ground), so the composite is exactly ground; measured against it.
+//   (3) a deck card's text (inside .dk-card): the pin-and-stack layout lets a
+//       LATER sticky card overlap the settled one, so axe reports the overlap as
+//       "partially obscured" -- but the text's OWN background is its nearest
+//       actually-painted ancestor background (usually the card's solid surface),
+//       so its true ratio is measurable against that solid; the day-scale wash
+//       (the one in-card gradient) measures against its darkest stop.
+//   (+) a node whose content is ONLY non-text glyphs (the decorative arrows) has
+//       no text to rate under SC 1.4.3 -- exempt ONLY if aria-hidden (asserted).
 // So:
 //   - any incomplete rule OTHER than color-contrast is a genuine undecided gap
 //     -> fail loud;
@@ -152,6 +176,19 @@ async function assertAxeClean(
 
   for (const node of ccNodes) {
     const selector = node.target[node.target.length - 1] as string;
+    // A node axe rated incomplete because its content is ONLY non-text glyphs
+    // (the deck's decorative arrows) has no text to rate under SC 1.4.3 -- but
+    // ONLY when it is genuinely decorative: it must sit inside aria-hidden, or
+    // the glyph is conveying meaning without a contrast guarantee -> fail loud.
+    const checkMessages = [
+      ...(node.any ?? []),
+      ...(node.all ?? []),
+      ...(node.none ?? [])
+    ].map((c) => c.message ?? "");
+    const nonTextOnly =
+      checkMessages.length > 0 &&
+      checkMessages.every((m) => /only non-text characters/i.test(m));
+
     const info = await page
       .locator(selector)
       .first()
@@ -161,20 +198,60 @@ async function assertAxeClean(
           color: s.color,
           fontPx: parseFloat(s.fontSize),
           weight: parseInt(s.fontWeight, 10) || 400,
+          ariaHidden: el.closest('[aria-hidden="true"]') !== null,
           onRailGradient: el.closest(".bg-gradient-to-b") !== null,
-          onMasthead: el.closest(".backdrop-blur-xl") !== null
+          onMasthead: el.closest(".backdrop-blur-xl") !== null,
+          onScaleZone: el.closest(".dk-scale") !== null,
+          onDeckCard: el.closest(".dk-card") !== null,
+          // Sharpened (gate route-back): the node's TRUE painted background is
+          // the nearest non-transparent ancestor background at or below the
+          // card, not blindly the card surface -- a tinted chip/pill between
+          // the text and the card would otherwise be measured against the
+          // wrong solid. Walk up to the card and report what actually paints.
+          nearestOpaqueBg: (() => {
+            let cur: Element | null = el;
+            while (cur) {
+              const bg = getComputedStyle(cur).backgroundColor;
+              if (bg && !/^rgba\(\s*\d+,\s*\d+,\s*\d+,\s*0\)$/.test(bg) && bg !== "transparent") {
+                return bg;
+              }
+              if (cur.classList.contains("dk-card")) break;
+              cur = cur.parentElement;
+            }
+            return null;
+          })()
         };
       });
-    // Every incomplete node MUST sit on one of the two known uncompositable
-    // backgrounds; anything else is a genuine uncovered gap -> fail loud.
+    // Decorative-glyph exemption: no text, no 1.4.3 ratio to measure -- but the
+    // aria-hidden requirement is asserted, never assumed.
+    if (nonTextOnly) {
+      expect(
+        info.ariaHidden,
+        `[${label}] "${selector}" contains only non-text glyphs but is NOT aria-hidden -- either hide it from AT or give the glyph a contrast guarantee`
+      ).toBe(true);
+      continue;
+    }
+
+    // Every incomplete node MUST sit on one of the known cases; anything else is
+    // a genuine uncovered gap -> fail loud. The day-scale wash (the ONE in-card
+    // gradient) measures against its darkest stop (danger-soft), conservative;
+    // other card nodes measure against the node's NEAREST actually-painted
+    // background inside the card (falling back to the card surface only when
+    // everything between is transparent).
     const knownBg = info.onRailGradient
       ? railBg
       : info.onMasthead
         ? mastheadBg
-        : null;
+        : info.onScaleZone
+          ? await resolveSrgb(page, "var(--color-danger-soft)")
+          : info.onDeckCard
+            ? info.nearestOpaqueBg
+              ? await resolveSrgb(page, info.nearestOpaqueBg)
+              : surface
+            : null;
     expect(
       knownBg,
-      `[${label}] color-contrast incomplete "${selector}" is on neither known uncompositable background (approve-rail gradient or translucent masthead) -- it needs a real fix or its own dedicated coverage, not a blanket pass`
+      `[${label}] color-contrast incomplete "${selector}" is on none of the known cases (approve-rail gradient, translucent masthead, day-scale wash, sticky-overlapped deck card) -- it needs a real fix or its own dedicated coverage, not a blanket pass`
     ).not.toBeNull();
     // WCAG large-text threshold: >=24px, or >=18.66px bold -> 3:1, else 4.5:1.
     const large =
@@ -223,16 +300,19 @@ test("the `/` surface renders REPLAY with a dated capture, never labeled live", 
   await expect(provenance).toBeVisible();
   await expect(provenance).toContainText(/\d{4}-\d{2}-\d{2}/);
 
-  // The briefing's mode chip reads as the human label "Recorded" (the relabeled
-  // effectiveMode -- the raw REPLAY enum is humanized on the calm glass, kept only
-  // in the chip's title for an auditor). The audit trail still records the exact
-  // "REPLAY_SERVED" provenance entry -- that is the honest compliance log, not the
-  // briefing spine, so REPLAY legitimately appears there.
+  // The deck's mode chips read as the human label "Recorded" (the relabeled
+  // effectiveMode -- the raw REPLAY enum is humanized on the calm glass, kept for
+  // an auditor in the chip's title, which the deck writes as "Recorded replay
+  // (REPLAY)": readable AND carrying the exact enum). The audit trail still
+  // records the exact "REPLAY_SERVED" provenance entry -- the honest compliance
+  // log, not the briefing spine, so REPLAY legitimately appears there.
   const packetView = page.getByTestId("actionops-packet");
-  // Specific, not generic: the mode chip is genuinely REPLAY (its title attribute)
-  // AND is humanized to "Recorded" on the glass -- so this can't pass from
-  // unrelated "Recorded" copy, and proves the raw enum was relabeled.
-  await expect(packetView.locator('[title="REPLAY"]')).toContainText("Recorded");
+  // Specific, not generic: at least one mode chip is genuinely REPLAY (the enum
+  // in its title) AND humanized to "Recorded" in its text -- so this can't pass
+  // from unrelated "Recorded" copy, and proves the raw enum was relabeled.
+  const modeChip = packetView.locator('[title*="(REPLAY)"]').first();
+  await expect(modeChip).toHaveCount(1);
+  await expect(modeChip).toContainText(/Recorded/);
 
   // Never labeled live: the surface must never claim a live AI call, and the raw
   // run-mode enum must not be the visible label.
@@ -277,6 +357,17 @@ test.describe("a11y / layer 1 -- axe WCAG 2.2 AA", () => {
   test("no axe violations on the briefing (default state)", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("actionops-packet")).toBeVisible();
+    // Wait for the hero reveal to have STARTED (`.dk-in` is added client-side)
+    // plus two frames so its transitions are registered -- then settle() awaits
+    // them. Without this, under parallel load axe can catch a hero node
+    // mid-reveal (opacity-blended) and report a phantom incomplete (lesson G).
+    await page.waitForSelector(".dk-rv.dk-in");
+    await page.evaluate(
+      () =>
+        new Promise((r) =>
+          requestAnimationFrame(() => requestAnimationFrame(r))
+        )
+    );
     await settle(page);
 
     const results = await new AxeBuilder({ page })
@@ -286,17 +377,42 @@ test.describe("a11y / layer 1 -- axe WCAG 2.2 AA", () => {
   });
 
   test("no axe violations with every disclosure expanded", async ({ page }) => {
-    // The consolidated briefing folds the signal feed, the per-draft bodies, the
-    // role playbooks + task list, and the older audit entries behind <details>.
-    // Open them all so axe scans that on-demand content too -- each was its own
-    // tab/panel before the consolidation.
+    // The deck folds the claim source traces, the raw-signal detail, and the
+    // agent trail behind <details>. Open them all so axe scans that on-demand
+    // content too. Wait for HYDRATION first (`.dk-in` is only ever added by the
+    // client-side reveal effect): mutating `open` on the server HTML before
+    // React attaches produced a hydration-mismatch warning -- test-induced
+    // noise, not an app defect, and this ordering removes it.
+    //
+    // Then WALK the deck before scanning (Codex cross-model finding): a page-top
+    // scan leaves offscreen cards' `.dk-rv` content at opacity 0, which axe
+    // EXCLUDES -- so the expanded claim traces in card 6 and the trail were
+    // scanned by nothing. Walking reveals every card; opening disclosures after
+    // the walk puts their content on the glass at full contrast.
     await page.goto("/");
     await expect(page.getByTestId("actionops-packet")).toBeVisible();
+    await page.waitForSelector(".dk-rv.dk-in");
+    await page.evaluate(async () => {
+      for (let y = 0; y <= document.body.scrollHeight; y += 400) {
+        window.scrollTo(0, y);
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+    });
     await page.evaluate(() =>
       document
         .querySelectorAll("details")
         .forEach((d) => d.setAttribute("open", ""))
     );
+    await page
+      .waitForFunction(
+        () =>
+          Array.from(document.querySelectorAll(".dk-rv:not(.dk-in)")).filter(
+            (el) => !el.closest("details:not([open])")
+          ).length === 0,
+        undefined,
+        { timeout: 5000 }
+      )
+      .catch(() => undefined); // asserted strictly in the approved-state test
     await settle(page);
 
     const results = await new AxeBuilder({ page })
@@ -307,13 +423,69 @@ test.describe("a11y / layer 1 -- axe WCAG 2.2 AA", () => {
 
   test("no axe violations after the packet is approved", async ({ page }) => {
     await page.goto("/");
-    // Approve flips the status pill to its positive state and writes an audit
-    // line -- scan THAT reached state too, not just the default PENDING one.
+    // Approve flips the stamps to RELEASED and writes the audit line -- scan THAT
+    // reached state too, not just the default PENDING one. The deck communicates
+    // the decision via the logged line (the button keeps its label and disables),
+    // so the reached-state anchor is the audit text, not the button text.
+    // Wait for hydration + the hero's own reveal BEFORE walking: the reveal
+    // observer only attaches client-side, and a walk that starts pre-hydration
+    // scrolls away from the hero before the observer exists -- leaving the hero
+    // permanently unrevealed (caught by the precondition below).
+    await page.waitForSelector(".dk-rv.dk-in");
+    // Walk the deck the way a reader does (stepwise, not a teleport): the reveal
+    // IntersectionObserver fires per card as it enters, so by the bottom EVERY
+    // .dk-rv is revealed and the released-state scan below reads the whole deck
+    // at full contrast -- the recorded AT2 substitute for per-card scans.
+    await page.evaluate(async () => {
+      for (let y = 0; y <= document.body.scrollHeight; y += 400) {
+        window.scrollTo(0, y);
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+    });
     const approve = page.getByTestId("approve-action");
     await expect(approve).toBeEnabled();
     await approve.click();
-    await expect(page.getByTestId("approve-action")).toHaveText(/Approved/);
+    await expect(page.getByTestId("decision-logged")).toContainText(
+      /Signed & released/
+    );
+    await expect(approve).toBeDisabled();
+    // The released visual state actually reached the letters (AT1's letter):
+    // every letter card flips to its released stamp on the one packet decision.
+    expect(
+      await page.locator(".dk-lcard.released").count()
+    ).toBeGreaterThan(0);
     await settle(page);
+
+    // REVEAL PRECONDITION (gate route-back): unrevealed `.dk-rv` content sits at
+    // opacity 0, which axe EXCLUDES from contrast -- so a reveal regression
+    // would silently hollow this scan while staying green. Pin that every
+    // REVEALABLE node is revealed before axe reads the stacked deck. Nodes
+    // inside a CLOSED <details> are display:none -- they can never intersect,
+    // are not axe-scannable either way, and are covered by the expanded scan.
+    // IntersectionObserver delivers its callbacks ASYNCHRONOUSLY after the
+    // scroll walk, so this is a bounded WAIT (the race settles), not a snapshot
+    // count -- a node that never reveals still fails loud after the timeout,
+    // with the offenders named.
+    try {
+      await page.waitForFunction(
+        () =>
+          Array.from(document.querySelectorAll(".dk-rv:not(.dk-in)")).filter(
+            (el) => !el.closest("details:not([open])")
+          ).length === 0,
+        undefined,
+        { timeout: 5000 }
+      );
+    } catch {
+      const offenders = await page.evaluate(() =>
+        Array.from(document.querySelectorAll(".dk-rv:not(.dk-in)"))
+          .filter((el) => !el.closest("details:not([open])"))
+          .map((el) => `${el.tagName.toLowerCase()}.${[...el.classList].join(".")}`)
+      );
+      expect(
+        offenders,
+        `revealable .dk-rv nodes never revealed -- the scan would skip their text: ${offenders.join(" | ")}`
+      ).toEqual([]);
+    }
 
     const results = await new AxeBuilder({ page })
       .withTags([...WCAG_AA_TAGS])
@@ -361,7 +533,7 @@ test.describe("a11y / layer 1 -- axe WCAG 2.2 AA", () => {
       await assertAxeClean(page, uncoveredIncomplete, "flake-guard control");
     } catch (e) {
       threw = true;
-      expect(String(e)).toContain("neither known uncompositable background");
+      expect(String(e)).toContain("none of the known cases");
     }
     expect(
       threw,
@@ -470,8 +642,11 @@ test.describe("a11y / SC 2.4.11 focus not obscured", () => {
     // Behavioral proof, made non-vacuous: scroll the link fully out of view,
     // CONFIRM it is obscured (above the masthead band) before focus, then focus
     // and confirm (a) the focus drove a real corrective scroll and (b) the link
-    // lands BELOW the masthead, never behind it.
-    const link = page.getByTestId("actionops-packet").getByRole("link").first();
+    // lands BELOW the masthead, never behind it. Deck realignment: the packet
+    // root's FIRST link is now the position:fixed dot rail, which never scrolls
+    // and so can never be obscured -- anchor to a link INSIDE the scrolling
+    // content (a card-1 feed source link) instead.
+    const link = page.locator(".dk-fsrc a").first();
     await expect(link).toBeVisible();
 
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -546,69 +721,51 @@ test.describe("a11y / SC 2.5.8 target size (G-3)", () => {
 });
 
 // ===========================================================================
-// G-4 -- SC 1.4.11 Non-text Contrast for the runway/exposure bars.
+// G-4 -- SC 1.4.11 Non-text Contrast for the supplier exposure bars.
 // ===========================================================================
 test.describe("a11y / SC 1.4.11 non-text contrast (G-4)", () => {
-  test("every runway bar on the briefing clears >=3:1 against its own track", async ({
+  test("every supplier exposure bar on the deck clears >=3:1 against its own track", async ({
     page
   }) => {
     // The bar conveys magnitude by LENGTH; to read the length the filled extent
-    // must stay distinguishable from the track. The numeric label beside each bar
+    // must stay distinguishable from the track. The numeric score beside each bar
     // already covers SC 1.4.1 (use of color) -- this checks the graphical object.
-    const sink = await resolveSrgb(page, "var(--color-sink)");
-
-    // Document WHY the hue-independent edge is needed: the lighter severity fills
-    // fall below 3:1 against the near-white track on their own.
+    //
+    // Deck realignment (2026-07-22): the old briefing's .runway-fill bars carried
+    // a hue-independent 1px EDGE token because its lighter severity fills fell
+    // below 3:1 against the near-white track. The deck's card-3 bars (.s-fill on
+    // .s-track) fill with solid ink or the risk red -- both clear 3:1 against the
+    // hairline track DIRECTLY, so the honest 1.4.11 read is fill-vs-track,
+    // measured per element (never assumed from the token sheet). If a future
+    // lighter fill drops below 3:1 this fails loud and the edge pattern returns.
     await page.goto("/");
     await settle(page);
-    const fillReport: Record<string, number> = {};
-    for (const [sev, color] of Object.entries({
-      low: "var(--color-sev-low-soft)",
-      medium: "var(--color-sev-medium)",
-      high: "var(--color-sev-high)",
-      critical: "var(--color-sev-critical)"
-    })) {
-      fillReport[sev] = Number(
-        contrastRatio(await resolveSrgb(page, color), sink).toFixed(2)
-      );
-    }
 
-    // Check EVERY rendered bar in the consolidated briefing -- the WHO-IS-HIT
-    // exposure bars AND the runway horizon bars both draw .runway-fill. Each must
-    // carry a >=1px edge clearing 3:1 against ITS OWN track background (read
-    // per-element, not assumed). The page is already at "/" and settled above.
-    const fills = page.locator(".runway-fill");
+    const fills = page.locator(".dk-sup .s-fill");
     const n = await fills.count();
-    expect(n, "no exposure/runway bars on the briefing").toBeGreaterThan(0);
+    expect(n, "no supplier exposure bars on the deck").toBeGreaterThan(0);
     let totalBars = 0;
     for (let i = 0; i < n; i++) {
       const data = await fills.nth(i).evaluate((el) => {
         const s = getComputedStyle(el);
-        const track = el.closest(".runway-track");
+        const track = el.closest(".s-track");
         return {
-          edgeColor: s.borderTopColor,
-          edgeWidth: parseFloat(s.borderTopWidth),
+          fillColor: s.backgroundColor,
           trackBg: track ? getComputedStyle(track).backgroundColor : ""
         };
       });
-      expect(
-        data.edgeWidth,
-        `bar #${i} has no >=1px boundary`
-      ).toBeGreaterThanOrEqual(1);
-      const trackRgb = data.trackBg
-        ? await resolveSrgb(page, data.trackBg)
-        : sink;
+      expect(data.trackBg, `bar #${i} has no .s-track ancestor`).not.toBe("");
       const ratio = contrastRatio(
-        await resolveSrgb(page, data.edgeColor),
-        trackRgb
+        await resolveSrgb(page, data.fillColor),
+        await resolveSrgb(page, data.trackBg)
       );
       expect(
         ratio,
-        `bar #${i} edge vs its track = ${ratio.toFixed(2)}:1 < 3 (fills vs sink: ${JSON.stringify(fillReport)})`
+        `bar #${i} fill vs its track = ${ratio.toFixed(2)}:1 < 3`
       ).toBeGreaterThanOrEqual(3);
       totalBars++;
     }
-    // Sanity: this exercised many bars (exposure + runway), not a single one.
+    // Sanity: this exercised the full supplier grid, not a single bar.
     expect(totalBars).toBeGreaterThanOrEqual(5);
   });
 });

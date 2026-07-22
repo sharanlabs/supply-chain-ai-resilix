@@ -6,6 +6,11 @@
   902 unit / 34 golden / 59 e2e green. Record: `docs/claude/gates/rework-2026-07-14/`.
 - [ ] **Phase 2 — build `samples/2026/arc/08-deck.html` into the app** (owner-picked 2026-07-21;
   owner-satisfaction-gated; design skills better-colors/better-typography/better-ui installed).
+  IN FLIGHT 2026-07-22: built + Codex-gated (10 findings disposed), closing — owner review next.
+- [ ] **Playground — "a real product anyone can test" (owner-fixed 2026-07-22, AFTER deck close):**
+  deterministic own-data loop ($0/keyless: scenario picker + own-CSV upload + real pipeline +
+  deck render) + live AI on the OWNER key behind a hard daily cap + per-IP limits, honest
+  degradation when spent. BYOK declined. Plan: `docs/claude/PLAN-PLAYGROUND-2026-07-22.md`.
 - [ ] Phase 3 — walkthrough re-align · Phase 4 — owner deploy LAST (corrected recipe in HANDOFF top).
 
 ## Idea (2026-06-11 21:20)

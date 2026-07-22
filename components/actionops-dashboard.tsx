@@ -4,26 +4,27 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { ShieldCheck, Workflow, Scale } from "lucide-react";
 import { ActionOpsPacketView } from "@/components/action-packet-view";
+import { DeckView } from "@/components/deck/deck-view";
 import { makeDemoPacket } from "@/lib/data/demo-packet";
 import type { DecisionPacketV2 } from "@/lib/schemas";
 
 // Re-export so the existing eval (evals/actionops-packet-view.test.tsx) keeps
 // importing the V2 view from this module path. The implementation lives in its
-// own file (action-packet-view.tsx).
+// own file (action-packet-view.tsx) and remains the unit-tested V2 briefing;
+// the `/` route now renders the DECK register below (Phase 2, D1).
 export { ActionOpsPacketView };
 
 // The ActionOps command surface.
 //
-// The calm-command-center rework folded the former FOUR-tab analyst layer
-// (Events / Exposure / Simulation / Packet) into ONE flowing briefing. The
-// research on consumer crisis-to-action surfaces (emergency alerts, Amazon
-// A-to-z, bank fraud, Baymard) is unanimous: the single scrolling narrative is
-// the universal pattern for a non-technical user in a "something broke" moment,
-// while the multi-tab control board is the operator-tool anti-pattern (PagerDuty
-// -- built for the person who FIXES the machine, the opposite of a procurement
-// lead in hour one). The raw signal feed (the old Events tab) now lives as an
-// on-demand disclosure inside the threat section, so no content was lost; the
-// exposure table and runway simulation were already in the briefing spine.
+// Phase 2 (2026-07-22): the `/` briefing moved from the single-scroll
+// war-room spine (ActionOpsPacketView) to THE DECK -- the owner-picked
+// 08-deck synthesis register (samples/2026/arc/08-deck.src.html): six
+// premium cards that pin and stack on scroll, driven by the SAME packet.
+// The masthead below stays -- the /loop + flag-gated /customs exhibit
+// links, the dated "Recorded signals" provenance chip -- restyled only as
+// far as sitting on the deck's pure-white gallery ground requires, and the
+// "Synthetic data" disclosure joins it (the deck spec carries it in the
+// mast; previously the loop/customs surfaces carried their own).
 export function ActionOpsDashboard({
   packet,
   customsEnabled = false
@@ -48,9 +49,11 @@ export function ActionOpsDashboard({
     <div className="min-h-[100dvh]">
       {/* The masthead -- a translucent, blurred sticky band lifted off the canvas
           by a tinted shadow (axe composites the alpha-over-solid background, so
-          the blur stays a11y-clean). A hairline-strong divider grounds it. */}
-      <header className="sticky top-0 z-20 border-b border-line bg-ground/80 shadow-[var(--shadow-e2)] backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-3.5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+          the blur stays a11y-clean). Restyled minimally for the deck register:
+          white glass over the pure-white gallery (bg-surface), full-bleed with
+          the sample mast's 44px inset instead of the old max-w container. */}
+      <header className="sticky top-0 z-20 border-b border-line bg-surface/85 shadow-[var(--shadow-e2)] backdrop-blur-xl">
+        <div className="flex flex-col gap-4 px-4 py-3.5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-11">
           <div className="flex items-center gap-3.5">
             {/* The brand mark -- a deep graphite tile with an accent top-edge
                 highlight, so it catches the same "lit from above" light as the
@@ -109,12 +112,20 @@ export function ActionOpsDashboard({
                 </span>
               ) : null}
             </span>
+            {/* Honest synthetic-data disclosure on the primary surface (the deck
+                spec's mast chip): the supplier list is a disclosed synthetic
+                dataset; the signals are recorded captures. */}
+            <span className="inline-flex items-center rounded-full border border-danger/40 px-3 py-1.5 font-mono text-[0.625rem] tracking-[0.14em] text-danger uppercase">
+              Synthetic data — demonstration
+            </span>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-        <ActionOpsPacketView packet={data} />
+      {/* The deck runs full-bleed (its own 7-9vw insets and 1180px card
+          measure) -- the old max-w-6xl container would fight the register. */}
+      <main>
+        <DeckView packet={data} />
       </main>
     </div>
   );

@@ -20,8 +20,23 @@ import { test, expect, type Page } from "@playwright/test";
 // so a mid-fade frame never trips a visibility assertion (mirrors a11y.spec.ts).
 async function settle(page: Page): Promise<void> {
   await page.evaluate(async () => {
+    // Await only FINITE animations: an ambient infinite loop (the deck's scroll
+    // cue) has a `finished` promise that never resolves by definition, and
+    // awaiting it would hang every settle-gated test to its timeout. Transient
+    // entrance/transition animations are the ones that can poison a geometry or
+    // axe read (lesson G); an infinite ambient loop is steady-state by design.
     await Promise.all(
-      document.getAnimations().map((a) => a.finished.catch(() => undefined))
+      document.getAnimations().map((a) => {
+        // Scroll/view-timeline animations (the deck's card-stack settle) have no
+        // time-based end -- their `finished` promise resolves on scroll progress,
+        // not on a clock -- so awaiting them hangs forever, exactly like an
+        // infinite loop's. Await only FINITE, DOCUMENT-TIMELINE animations: those
+        // are the transient entrance/transition effects that can poison a read.
+        if (a.timeline !== document.timeline) return undefined;
+        const timing = a.effect?.getTiming();
+        if (timing && timing.iterations === Infinity) return undefined;
+        return a.finished.catch(() => undefined);
+      })
     );
   });
 }
@@ -84,6 +99,10 @@ test.describe("Phase 6 / deliberation trajectory", () => {
 
   test("no agent-step mode is ever rendered as the raw enum text", async ({ page }) => {
     await page.goto("/");
+    // Wait for hydration (`.dk-in` is only added client-side) BEFORE mutating
+    // `open` -- doing it against the server HTML raced React hydration and
+    // produced mismatch warnings (test-induced noise, not an app defect).
+    await page.waitForSelector(".dk-rv.dk-in");
     await page.evaluate(() =>
       document.querySelectorAll("details").forEach((d) => d.setAttribute("open", ""))
     );
@@ -170,16 +189,25 @@ test.describe("S-D.2 / BLUF verdict bar", () => {
     // Verdict chip: the frozen Hormuz packet is an ACT recommendation.
     await expect(bluf.getByText("Act", { exact: true })).toBeVisible();
 
-    // The figures are the packet's own: the suppliers count matches the
-    // EXPOSURE table's row count rendered below (same derivation, one source
-    // of truth) -- scoped to the exposure section, since the packet renders
-    // other tables (runway data) whose rows are not suppliers.
-    const supplierRows = page
-      .locator('section[aria-labelledby="exp-h"]')
-      .locator("table tbody tr");
-    const rowCount = await supplierRows.count();
-    expect(rowCount).toBeGreaterThan(0);
-    await expect(bluf.getByText(`${rowCount}`, { exact: true })).toBeVisible();
+    // The figures are the packet's own: the exposed-supplier figure matches the
+    // supplier CARD count rendered in card 3 (same derivation, one source of
+    // truth). Deck realignment (2026-07-22): the old briefing rendered suppliers
+    // as an exposure TABLE; the deck renders them as the scored card grid --
+    // the cross-check is identical, only the anchor moved.
+    const supplierCards = page.locator(".dk-sup");
+    const cardCount = await supplierCards.count();
+    expect(cardCount).toBeGreaterThan(0);
+    // EXACT equality, not containment (Codex finding: contains("5") lets "15"
+    // or "50" pass): parse the stat's LEADING integer and compare numerically.
+    const statText = await bluf
+      .locator(".dk-stat", { hasText: /suppliers exposed/i })
+      .locator(".v")
+      .innerText();
+    const statCount = parseInt(statText.trim(), 10);
+    expect(
+      statCount,
+      `BLUF "suppliers exposed" reads ${statText.trim()} but ${cardCount} cards render`
+    ).toBe(cardCount);
 
     // The approve affordance is an anchor to the decision panel, which exists
     // exactly once -- the BLUF bar adds a path, not a second door.
@@ -187,11 +215,14 @@ test.describe("S-D.2 / BLUF verdict bar", () => {
     await expect(cta).toHaveAttribute("href", "#approve-h");
     await expect(page.locator("#approve-h")).toHaveCount(1);
 
-    // BLUF sits ABOVE the narrative lede in reading order.
+    // BLUF sits ABOVE the narrative in reading order. Deck realignment: the hero
+    // (headline + verdict + figures + the door anchor) IS the BLUF unit, and the
+    // narrative it must precede is the six-card deck -- so the bar sits above the
+    // FIRST CARD, not above the hero's own headline.
     const blufBox = await bluf.boundingBox();
-    const lede = page.getByRole("heading", { level: 1 });
-    const ledeBox = await lede.boundingBox();
-    expect(blufBox && ledeBox && blufBox.y < ledeBox.y).toBe(true);
+    const firstCard = page.locator(".dk-slot").first();
+    const cardBox = await firstCard.boundingBox();
+    expect(blufBox && cardBox && blufBox.y < cardBox.y).toBe(true);
   });
 
   // The fixture predates the Skeptic (6 runs, no Skeptic) -- the 2nd-AI chip

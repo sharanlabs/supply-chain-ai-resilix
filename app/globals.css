@@ -58,20 +58,21 @@
   --color-ink-muted: oklch(0.45 0.016 286);
   --color-ink-faint: oklch(0.51 0.016 286);
 
-  /* One confident accent -- FOREST GREEN (hue 148, owner-picked 2026-07-08 from
-     an accessibility-ranked board; supersedes the steel-blue and the old
-     "no green" bar line -- green-as-decoration stays banned, green-as-THE-accent
-     is the deliberate choice). The decision UI's voice (the approve path, claim
-     ticks, the gatekeeper PASS, the validated pill) in a single deep green that
-     clears 3:1 non-text on white (the WCAG 1.4.11 bar lighter greens/teals
-     failed in live verification), while the only OTHER saturated color remains
-     the amber->red severity ramp. Measured (scripts/contrast-check.mjs):
-     accent-strong on surface 8.81, accent on accent-soft 4.99, accent-ink on
-     accent-strong 8.57, accent on surface 5.71 (non-text bar 3.0) -- all AA. */
-  --color-accent: oklch(0.5 0.11 148);
-  --color-accent-strong: oklch(0.4 0.1 148);
-  --color-accent-soft: oklch(0.95 0.035 148);
-  --color-accent-ink: oklch(0.99 0.004 148);
+  /* One confident accent -- ELECTRIC COBALT (hue 264, the deck register's
+     #2E45E6, owner-picked 2026-07-21 with the 08-deck synthesis direction;
+     supersedes the Forest green of the S-D register -- the Phase-2 token
+     RE-POINT, not a new system: only the accent family moves hue, every
+     neutral and severity token stays). The decision UI's voice (the sign &
+     release path, claim ticks, the gatekeeper PASS, the deck's thread and
+     dot rail) in a single deep cobalt that clears 3:1 non-text on white,
+     while the only OTHER saturated color remains the amber->red severity
+     ramp (risk red stays semantic-only). Measured (scripts/contrast-check.mjs):
+     accent-strong on surface 8.91, accent on accent-soft 5.89, accent-ink on
+     accent-strong 8.66, accent on surface 6.61 (non-text bar 3.0) -- all AA. */
+  --color-accent: oklch(0.49 0.21 264);
+  --color-accent-strong: oklch(0.42 0.19 264);
+  --color-accent-soft: oklch(0.96 0.018 264);
+  --color-accent-ink: oklch(0.99 0.004 264);
 
   /* Semantic severity -- a single perceptual ramp, calm -> alarm. The -edge
      value is a touch deeper/brighter for the trailing end of a runway gradient
@@ -249,7 +250,7 @@ summary:focus-visible,
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: 4px;
-  box-shadow: 0 0 0 4px oklch(0.5 0.11 148 / 0.16);
+  box-shadow: 0 0 0 4px oklch(0.49 0.21 264 / 0.16);
 }
 
 /* All figures align in columns and read as data, not prose. Lining figures
@@ -490,6 +491,1839 @@ summary:focus-visible,
   .animate-ping,
   .animate-pulse,
   .animate-bounce {
+    animation: none !important;
+  }
+}
+
+/* ===========================================================================
+   THE DECK -- the Phase-2 `/` register (samples/2026/arc/08-deck.src.html,
+   the owner-picked spec of record). Six premium cards on pure white that PIN
+   and STACK on scroll, count-ups, the day scale, hover-lift cards, and the
+   cobalt wet-stamp HELD->RELEASED gate. Ported from the sample's CSS system
+   (lines 10-300) with two deliberate re-points:
+     - every color maps to the AA-tuned token system above (the sample's
+       #979CA6 caption gray measured ~2.5:1 and is NOT shipped -- captions
+       read in ink-muted/ink-faint, which clear 4.5:1);
+     - classes carry a `dk-` prefix so the layer cannot collide with the
+       /loop and /customs register (scope cut: they keep their surfaces).
+   Desktop-only (min-width posture, [[resilix-web-desktop-only]]), light-only.
+   All motion is driven by React hooks (components/deck/deck-motion.ts) --
+   the strict per-request-nonce CSP forbids inline <script>, so the sample's
+   IIFE becomes hooks with identical mechanics and reduced-motion parity.
+   =========================================================================== */
+
+.dk-root {
+  /* The deck's own posture: a pure-white gallery ground (the app canvas keeps
+     its tonal 286 ground for /loop + /customs) and the sample's fixed desktop
+     minimum. Type scale follows the sample's 17px base. */
+  min-width: 1280px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.dk-root ::selection {
+  background: var(--color-accent);
+  color: var(--color-surface);
+}
+
+/* Scroll progress -- the 3px cobalt thread across the very top of the
+   viewport (sample .prg). Width is driven by useScrollProgress. */
+.dk-prg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: var(--color-accent);
+  z-index: 60;
+  width: 0;
+}
+
+/* Card index dots, right edge (sample .dots). The visual dot stays 9px, but
+   each link is a 24px hit target (WCAG 2.2 SC 2.5.8 -- the one upgrade over
+   the sample's raw 9px anchors, per the plan's "port with AA semantics"). */
+.dk-dots {
+  position: fixed;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dk-dots a {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dk-dots a::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-line-strong);
+  transition: all 0.3s var(--dk-ease);
+}
+
+.dk-dots a.dk-on::before {
+  background: var(--color-accent);
+  transform: scale(1.35);
+}
+
+.dk-dots a:hover::before {
+  background: var(--color-ink-faint);
+}
+
+/* The deck's shared easing + card radius (sample :root vars, deck-scoped). */
+.dk-root {
+  --dk-ease: cubic-bezier(0.19, 0.7, 0.22, 1);
+  --dk-card-r: 22px;
+}
+
+/* ---------- hero ---------- */
+.dk-hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 120px 9vw 60px;
+  position: relative;
+}
+
+.dk-kick {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 34px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.28em;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+}
+
+.dk-kick::before {
+  content: "";
+  width: 42px;
+  height: 3px;
+  background: var(--color-accent);
+  border-radius: 2px;
+}
+
+.dk-hero h1 {
+  margin: 0;
+  font-size: 104px;
+  font-weight: 810;
+  letter-spacing: -0.05em;
+  line-height: 0.94;
+  max-width: 13ch;
+  text-wrap: balance;
+  font-variation-settings: "wght" 810;
+}
+
+.dk-b {
+  color: var(--color-accent);
+}
+
+.dk-r {
+  color: var(--color-danger);
+}
+
+.dk-standfirst {
+  margin: 36px 0 0;
+  font-size: 20px;
+  color: var(--color-ink-muted);
+  max-width: 48ch;
+  line-height: 1.55;
+}
+
+.dk-standfirst b {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.dk-statrow {
+  margin-top: 56px;
+  display: flex;
+  gap: 14px;
+}
+
+.dk-stat {
+  flex: 1;
+  max-width: 224px;
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  padding: 18px 20px 16px;
+  transition:
+    transform 0.3s var(--dk-ease),
+    box-shadow 0.3s var(--dk-ease),
+    border-color 0.3s;
+  background: var(--color-surface);
+}
+
+.dk-stat:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-line-strong);
+  box-shadow: 0 18px 40px -24px oklch(0.3 0.02 286 / 0.25);
+}
+
+.dk-stat .k {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+}
+
+.dk-stat .v {
+  margin-top: 8px;
+  font-size: 24px;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.dk-stat .v.red {
+  color: var(--color-danger);
+}
+
+.dk-scrollcue {
+  margin-top: 70px;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+}
+
+.dk-scrollcue .ln {
+  width: 1.5px;
+  height: 36px;
+  background: var(--color-ink-faint);
+  animation: dk-cue 2.2s var(--dk-ease) infinite;
+  transform-origin: top;
+}
+
+@keyframes dk-cue {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+/* Reveal system (sample .rv/.in) -- the IntersectionObserver lives in
+   useReveal; it adds .dk-in exactly as the sample's io does. */
+.dk-rv {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.75s var(--dk-ease),
+    transform 0.75s var(--dk-ease);
+}
+
+.dk-rv.dk-in {
+  opacity: 1;
+  transform: none;
+}
+
+.dk-rv.dk-d1 {
+  transition-delay: 0.1s;
+}
+.dk-rv.dk-d2 {
+  transition-delay: 0.2s;
+}
+.dk-rv.dk-d3 {
+  transition-delay: 0.3s;
+}
+
+/* ---------- the deck ---------- */
+.dk-deck {
+  position: relative;
+  padding: 0 7vw 40px;
+}
+
+.dk-slot {
+  min-height: 104vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.dk-card {
+  position: sticky;
+  top: 92px;
+  width: 100%;
+  max-width: 1180px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--dk-card-r);
+  box-shadow:
+    0 1px 2px oklch(0.16 0.005 286 / 0.05),
+    0 40px 90px -50px oklch(0.16 0.005 286 / 0.3);
+  padding: 54px 64px 58px;
+  min-height: 66vh;
+  transform-origin: top center;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Stacked cards settle: as a card's slot exits, it scales back and dims --
+   exactly the sample's scroll-driven mechanism (@supports-gated, so browsers
+   without animation-timeline simply stack without the settle). */
+@supports (animation-timeline: view()) {
+  .dk-slot:not(:last-child) .dk-card {
+    animation: dk-settle linear both;
+    animation-timeline: view();
+    animation-range: exit-crossing 0% exit-crossing 90%;
+  }
+
+  /* The settled card recedes by scale + lift + blur ONLY -- deliberately NO
+     opacity dim. The sample dimmed to 0.55, but element opacity multiplies into
+     computed text contrast: the faint captions sit near the 4.5:1 AA floor, so
+     ANY dim drops scrolled-past (still legible) text below AA -- axe measured it
+     as a real violation in the approved-state scan. Blur+scale carry the depth
+     cue without touching the contrast math. */
+  @keyframes dk-settle {
+    to {
+      transform: scale(0.955) translateY(-14px);
+      filter: blur(1px);
+    }
+  }
+}
+
+.dk-chead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 26px;
+}
+
+.dk-ckick {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.dk-ckick::before {
+  content: "";
+  width: 34px;
+  height: 2.5px;
+  background: var(--color-accent);
+  border-radius: 2px;
+}
+
+.dk-cn {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  color: var(--color-ink-faint);
+}
+
+.dk-card h2 {
+  margin: 26px 0 0;
+  font-size: 56px;
+  font-weight: 770;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  text-wrap: balance;
+  max-width: 16ch;
+  font-variation-settings: "wght" 770;
+}
+
+.dk-dek {
+  margin: 18px 0 0;
+  font-size: 17.5px;
+  color: var(--color-ink-muted);
+  max-width: 56ch;
+  line-height: 1.55;
+}
+
+.dk-dek b {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+/* card 1: feed rows */
+.dk-feedlist {
+  margin-top: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dk-feedcard {
+  display: grid;
+  grid-template-columns: 16px 240px 1fr 190px;
+  gap: 24px;
+  align-items: baseline;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  padding: 20px 24px;
+  transition:
+    transform 0.25s var(--dk-ease),
+    box-shadow 0.25s var(--dk-ease),
+    border-color 0.25s;
+}
+
+.dk-feedcard:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-line-strong);
+  box-shadow: 0 16px 36px -26px oklch(0.16 0.005 286 / 0.3);
+}
+
+.dk-fdot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  align-self: center;
+}
+
+.dk-fdot.high {
+  background: var(--color-danger);
+  box-shadow: 0 0 0 4px var(--color-danger-soft);
+}
+
+.dk-fdot.mid {
+  background: var(--color-ink-muted);
+}
+
+.dk-fdot.low {
+  background: none;
+  border: 1.5px solid var(--color-ink-faint);
+}
+
+.dk-fwho b {
+  font-size: 16px;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+}
+
+.dk-fwho span {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+}
+
+.dk-fwhat {
+  font-size: 14.5px;
+  color: var(--color-ink-muted);
+  line-height: 1.55;
+}
+
+.dk-fsrc {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  line-height: 1.9;
+  color: var(--color-ink-muted);
+  text-align: right;
+  letter-spacing: 0.03em;
+}
+
+.dk-fsrc a {
+  color: var(--color-ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-ink-faint);
+  /* SC 2.5.8: the mono source link renders ~14px tall; pad the HIT target to
+     >=24px without moving the visual baseline (padding in, margin back out --
+     the same treatment the old briefing's evidence links carried). */
+  display: inline-block;
+  padding-block: 5px;
+  margin-block: -5px;
+}
+
+.dk-fsrc a:hover {
+  border-color: var(--color-ink);
+}
+
+.dk-rulenote {
+  margin: 20px 0 0;
+  font-size: 15px;
+  color: var(--color-ink-muted);
+  max-width: 58ch;
+}
+
+.dk-rulenote b {
+  color: var(--color-ink);
+}
+
+/* card 2: confidence */
+.dk-confrow {
+  display: flex;
+  gap: 64px;
+  align-items: center;
+  margin-top: 26px;
+  flex: 1;
+}
+
+.dk-confbig {
+  font-size: 200px;
+  font-weight: 830;
+  letter-spacing: -0.06em;
+  line-height: 0.8;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-variation-settings: "wght" 830;
+}
+
+.dk-confbig sup {
+  font-size: 64px;
+  font-weight: 700;
+}
+
+.dk-confbig small {
+  display: block;
+  margin-top: 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  color: var(--color-ink-muted);
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.dk-confside {
+  max-width: 44ch;
+}
+
+.dk-confside p {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--color-ink);
+}
+
+.dk-confside p + p {
+  margin-top: 16px;
+  font-size: 15.5px;
+  color: var(--color-ink-muted);
+}
+
+.dk-confside .dk-r {
+  font-weight: 640;
+}
+
+.dk-pill {
+  margin-top: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+}
+
+.dk-pill i {
+  font-style: normal;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-danger);
+}
+
+/* The evidence-source link row (card 2) -- the shipped "every figure traces
+   to a named source" surface in deck styling; >=24px targets (SC 2.5.8). */
+.dk-evidence {
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+}
+
+.dk-evidence a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-ink-faint);
+}
+
+.dk-evidence a:hover {
+  color: var(--color-ink);
+  border-color: var(--color-ink);
+}
+
+/* card 3: supplier cards */
+.dk-supgrid {
+  margin-top: 34px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.dk-sup {
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  padding: 20px 18px 18px;
+  position: relative;
+  transition:
+    transform 0.28s var(--dk-ease),
+    box-shadow 0.28s var(--dk-ease),
+    border-color 0.28s;
+}
+
+.dk-sup:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 44px -28px oklch(0.16 0.005 286 / 0.32);
+  border-color: var(--color-line-strong);
+}
+
+.dk-sup.nb {
+  border-color: color-mix(in srgb, var(--color-danger) 34%, white);
+}
+
+.dk-sup .s-score {
+  font-size: 52px;
+  font-weight: 820;
+  letter-spacing: -0.05em;
+  line-height: 0.85;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.dk-sup.nb .s-score {
+  color: var(--color-danger);
+}
+
+.dk-sup .s-track {
+  margin-top: 12px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-line);
+  overflow: hidden;
+}
+
+.dk-sup .s-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-ink);
+  width: 0;
+  transition: width 1s var(--dk-ease) 0.2s;
+}
+
+.dk-sup.nb .s-fill {
+  background: var(--color-danger);
+}
+
+.dk-in .dk-sup .s-fill {
+  width: var(--w);
+}
+
+.dk-sup .s-name {
+  margin-top: 14px;
+  font-size: 14px;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.dk-sup .s-geo {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+}
+
+/* The Atlas rationale, verbatim -- the quiet WHY under the score (ported).
+   Ink-faint clears AA on white; sentence case, never a mono constant. */
+.dk-sup .s-why {
+  margin-top: 6px;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--color-ink-faint);
+}
+
+.dk-sup .s-tag {
+  margin-top: 12px;
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 5px 9px;
+  border-radius: 6px;
+}
+
+.dk-sup.nb .s-tag {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.dk-sup:not(.nb) .s-tag {
+  color: var(--color-ink-muted);
+  background: var(--color-sink);
+}
+
+.dk-sup .s-rec {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.08em;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+}
+
+/* card 4: runway */
+.dk-runrow {
+  display: flex;
+  gap: 60px;
+  align-items: flex-end;
+  margin-top: 8px;
+}
+
+.dk-runbig {
+  font-size: 210px;
+  font-weight: 830;
+  letter-spacing: -0.06em;
+  line-height: 0.8;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-variation-settings: "wght" 830;
+}
+
+.dk-runbig small {
+  display: block;
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--color-ink-muted);
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.dk-runside {
+  flex: 1;
+  padding-bottom: 8px;
+}
+
+.dk-scale {
+  position: relative;
+  height: 120px;
+  margin-top: 10px;
+}
+
+.dk-scale .track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 34px;
+  height: 3px;
+  background: var(--color-ink);
+  border-radius: 2px;
+}
+
+/* The red-wash exposure zone -- the sample's own single sanctioned gradient
+   (a soft danger wash rising off the track; not decorative chrome). Its left
+   edge is data (the stockout day), set inline from the packet. */
+.dk-scale .zone {
+  position: absolute;
+  bottom: 37px;
+  right: 0;
+  height: 54px;
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(to top, var(--color-danger-soft), transparent);
+  pointer-events: none;
+}
+
+.dk-tick {
+  position: absolute;
+  bottom: 28px;
+  width: 2px;
+  height: 15px;
+  background: var(--color-ink-faint);
+  border-radius: 1px;
+}
+
+.dk-tick.big {
+  background: var(--color-ink);
+  height: 21px;
+}
+
+.dk-tick.red {
+  background: var(--color-danger);
+}
+
+.dk-slab {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.dk-sval {
+  position: absolute;
+  bottom: 52px;
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.dk-sval b {
+  display: block;
+  font-size: 22px;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--color-danger);
+}
+
+.dk-sval span {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+}
+
+.dk-runouts {
+  margin-top: 18px;
+  display: flex;
+  gap: 12px;
+}
+
+.dk-rocard {
+  flex: 1;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: baseline;
+}
+
+.dk-rocard .mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-size: 11px;
+  color: var(--color-ink-muted);
+}
+
+/* card 5: verdict + roles */
+.dk-actline {
+  margin-top: 22px;
+  font-size: 120px;
+  font-weight: 830;
+  letter-spacing: -0.05em;
+  line-height: 0.85;
+  font-variation-settings: "wght" 830;
+}
+
+.dk-rolecards {
+  margin-top: 36px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.dk-rolecard {
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  padding: 22px 24px 18px;
+  transition:
+    transform 0.28s var(--dk-ease),
+    box-shadow 0.28s var(--dk-ease);
+}
+
+.dk-rolecard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 42px -28px oklch(0.16 0.005 286 / 0.3);
+}
+
+.dk-rolecard h3 {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.dk-rolecard p {
+  margin: 10px 0 0;
+  font-size: 14px;
+  font-weight: 560;
+  line-height: 1.45;
+}
+
+.dk-rolecard ul {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dk-rolecard li {
+  position: relative;
+  padding: 8px 0 8px 20px;
+  font-size: 12.5px;
+  color: var(--color-ink-muted);
+  line-height: 1.5;
+  border-top: 1px solid var(--color-line);
+}
+
+.dk-rolecard li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 15px;
+  width: 7px;
+  height: 2px;
+  background: var(--color-accent);
+  border-radius: 1px;
+}
+
+/* The missing-evidence list on a NO_ACTION packet (the RefusalCard's content
+   in deck styling -- what is required, what is absent, what would flip it). */
+.dk-missing {
+  margin: 30px 0 0;
+  padding: 0;
+  list-style: none;
+  max-width: 64ch;
+}
+
+.dk-missing li {
+  border-top: 1px solid var(--color-line);
+  padding: 14px 0;
+}
+
+.dk-missing .m-req {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 640;
+  color: var(--color-ink);
+}
+
+.dk-missing .m-detail {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-ink-muted);
+}
+
+.dk-missing .m-flip {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-ink-faint);
+}
+
+.dk-honest {
+  margin-top: 26px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 14px;
+  padding: 16px 20px;
+  background: var(--color-ground);
+  max-width: 640px;
+}
+
+.dk-honest i {
+  font-style: normal;
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--color-danger);
+  font-weight: 700;
+  text-transform: uppercase;
+  padding-top: 3px;
+}
+
+.dk-honest p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-ink-muted);
+  line-height: 1.5;
+}
+
+.dk-honest p b {
+  color: var(--color-ink);
+}
+
+/* card 6: the gate (the kept moment) */
+.dk-letters {
+  margin-top: 34px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.dk-lcard {
+  position: relative;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 16px;
+  padding: 26px 28px 22px;
+  background: var(--color-surface);
+  transition: border-color 0.4s;
+}
+
+.dk-lcard.released {
+  border-color: var(--color-accent);
+}
+
+.dk-lto {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  display: flex;
+  justify-content: space-between;
+  /* Clear the wet stamp: it hangs 82px into the card's top-right corner, so
+     the header line reserves that lane instead of running under the ink. */
+  padding-right: 88px;
+}
+
+.dk-lcard h3 {
+  margin: 12px 0 0;
+  font-size: 16px;
+  font-weight: 660;
+  letter-spacing: -0.01em;
+  max-width: 24ch;
+}
+
+.dk-lbody {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-ink-muted);
+  white-space: pre-line;
+}
+
+/* Claims/provenance on a draft -- the shipped grounding trace (value + plain
+   provenance + the exact machine sourcePath behind a disclosure), restyled. */
+.dk-claims {
+  margin: 12px 0 0;
+  padding: 10px 0 0;
+  list-style: none;
+  border-top: 1px solid var(--color-line);
+  font-size: 11.5px;
+  color: var(--color-ink-faint);
+}
+
+.dk-claims li {
+  padding: 3px 0;
+  line-height: 1.5;
+}
+
+.dk-claims .c-val {
+  font-weight: 640;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.dk-claims summary {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+  font-size: 10.5px;
+  color: var(--color-ink-faint);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dk-claims .c-path {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  word-break: break-all;
+  color: var(--color-ink-faint);
+}
+
+/* the wet stamp -- kept and refined (sample .wstamp) */
+.dk-wstamp {
+  position: absolute;
+  top: -24px;
+  right: -14px;
+  width: 96px;
+  height: 96px;
+  transform: rotate(8deg);
+  pointer-events: none;
+}
+
+.dk-wstamp .ring {
+  fill: none;
+  stroke: var(--color-danger);
+  stroke-width: 2.5;
+}
+
+.dk-wstamp text {
+  fill: var(--color-danger);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  letter-spacing: 0.3em;
+  font-weight: 700;
+}
+
+.dk-wstamp .mid {
+  fill: var(--color-danger);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+}
+
+.dk-lcard.released .dk-wstamp .ring {
+  stroke: var(--color-accent);
+}
+
+.dk-lcard.released .dk-wstamp text {
+  fill: var(--color-accent);
+}
+
+.dk-lcard.released .dk-wstamp {
+  animation: dk-thunk 0.42s var(--dk-ease);
+  transform: rotate(-5deg);
+}
+
+@keyframes dk-thunk {
+  0% {
+    transform: rotate(-5deg) scale(1.8);
+    opacity: 0;
+  }
+  60% {
+    transform: rotate(-5deg) scale(0.94);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-5deg) scale(1);
+  }
+}
+
+/* The decision rail under the letters -- ONE packet-level approve/return pair
+   (the shipped gatekeeper-gated simulation; per-letter buttons would re-invent
+   the invariant, so the sample's buttons act once for the whole packet). */
+.dk-decide {
+  margin-top: 26px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 16px;
+  padding: 22px 26px;
+}
+
+.dk-gate {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+.dk-gate .g-pass {
+  color: var(--color-accent-strong);
+  font-weight: 700;
+}
+
+.dk-gate .g-fail {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.dk-gatefail {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+  color: var(--color-danger);
+  line-height: 1.5;
+}
+
+.dk-act {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.dk-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 11px 18px;
+  border-radius: 10px;
+  border: 1.5px solid var(--color-ink);
+  background: none;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: all 0.18s var(--dk-ease);
+}
+
+.dk-btn:hover:not(:disabled) {
+  background: var(--color-ink);
+  color: var(--color-surface);
+}
+
+.dk-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.dk-btn.primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
+.dk-btn.primary:hover:not(:disabled) {
+  background: var(--color-accent-strong);
+  border-color: var(--color-accent-strong);
+}
+
+.dk-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dk-blocked {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-danger);
+}
+
+.dk-logged {
+  margin: 14px 0 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--color-accent-strong);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.dk-finenote {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--color-ink-faint);
+  max-width: 62ch;
+}
+
+.dk-promise {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-accent-strong);
+}
+
+.dk-tasks {
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dk-taskrow {
+  /* Five columns: box | task | owner | due | status -- due AND status both
+     render (the old table carried both operational fields). */
+  display: grid;
+  grid-template-columns: 22px 1fr 170px 100px 90px;
+  gap: 20px;
+  align-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  padding: 13px 20px;
+  font-size: 14px;
+  transition:
+    border-color 0.25s,
+    transform 0.25s var(--dk-ease);
+}
+
+.dk-taskrow:hover {
+  border-color: var(--color-line-strong);
+  transform: translateX(3px);
+}
+
+.dk-taskrow .box {
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--color-ink);
+  border-radius: 4px;
+}
+
+.dk-taskrow .own {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+}
+
+.dk-taskrow .due {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--color-danger);
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.dk-taskrow .due.neutral {
+  color: var(--color-ink-muted);
+}
+
+.dk-taskrow .st {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-muted);
+  text-align: right;
+  text-transform: uppercase;
+}
+
+/* ---------- coda ---------- */
+.dk-coda {
+  min-height: 64vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 80px 9vw 110px;
+}
+
+.dk-coda h2 {
+  margin: 0;
+  font-size: 58px;
+  font-weight: 790;
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  max-width: 20ch;
+  text-wrap: balance;
+  font-variation-settings: "wght" 790;
+}
+
+.dk-trust {
+  margin-top: 44px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.dk-trust span {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 999px;
+  padding: 9px 16px;
+}
+
+.dk-trust span b {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.dk-fine {
+  margin-top: 36px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+}
+
+/* The BLUF verdict card + the anchor to the ONE approve door. The hero stat
+   row IS the bottom-line-up-front: the verdict, the load-bearing figures, and
+   the path to the decision -- the anchor scrolls to card 6's decision rail
+   (#approve-h), never a second approval control. */
+.dk-stat .v.act {
+  color: var(--color-accent-strong);
+}
+
+.dk-cta {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-accent-strong);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-accent);
+}
+
+.dk-cta:hover {
+  color: var(--color-accent);
+}
+
+/* The card-3 sourcing sub-note + other small ported context lines. */
+.dk-subnote {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-ink-faint);
+  max-width: 60ch;
+}
+
+/* Card 4: the cover-vs-restore survival read (P1 TTR/TTS, ported). Two bars
+   on one day-scale make the overshoot literal; static widths, no loop. */
+.dk-survival {
+  margin-top: 18px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  padding: 16px 18px 14px;
+}
+
+.dk-survival .sv-kick {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.dk-survival .sv-row {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 120px 1fr 64px;
+  gap: 14px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--color-ink-muted);
+}
+
+.dk-survival .sv-track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-line);
+  overflow: hidden;
+}
+
+.dk-survival .sv-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-ink);
+}
+
+.dk-survival .sv-fill.gap {
+  background: var(--color-danger);
+}
+
+.dk-survival .sv-val {
+  text-align: right;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: 640;
+  color: var(--color-ink);
+}
+
+.dk-survival .sv-note {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-ink-muted);
+  max-width: 60ch;
+}
+
+.dk-survival .sv-note .gapfig {
+  color: var(--color-danger);
+  font-weight: 640;
+}
+
+/* The margin-at-risk line under a day-scale $ callout (finance decides on
+   contribution, not gross revenue -- ported P1 field). */
+.dk-sval .margin {
+  display: block;
+  margin-top: 1px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+}
+
+/* Card 5: the scored recovery options -- "What we could do" (ported). Rows
+   with hairline dividers, not another card grid: these are recommendations,
+   so they sit under the role cards as the structural moves on the table. */
+.dk-recovery {
+  margin-top: 34px;
+  border-top: 1px solid var(--color-line-strong);
+  padding-top: 22px;
+}
+
+.dk-recovery .rc-kick {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.dk-recrow {
+  border-top: 1px solid var(--color-line);
+  padding: 14px 0;
+}
+
+.dk-recrow:first-of-type {
+  border-top: none;
+}
+
+.dk-recrow .r-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dk-recrow .r-tag {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 5px 9px;
+  border-radius: 6px;
+  color: var(--color-ink-muted);
+  background: var(--color-sink);
+}
+
+.dk-recrow.lead .r-tag {
+  color: var(--color-accent-strong);
+  background: var(--color-accent-soft);
+}
+
+.dk-recrow .r-title {
+  font-size: 14.5px;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.dk-recrow .r-lead {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--color-accent-strong);
+}
+
+.dk-recrow .r-sum {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-ink-muted);
+  max-width: 64ch;
+}
+
+.dk-recrow .r-metrics {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  font-size: 11.5px;
+  color: var(--color-ink-faint);
+}
+
+.dk-recrow .r-metrics b {
+  color: var(--color-ink);
+  font-weight: 640;
+}
+
+.dk-recrow .r-appr {
+  color: var(--color-accent-strong);
+  font-weight: 600;
+}
+
+/* Card 2: the cross-family Skeptic trust line (ported states; renders ONLY
+   when a genuine cross-family challenge ran -- graceful absence otherwise). */
+.dk-skeptic {
+  margin-top: 18px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 14px;
+  padding: 14px 18px;
+  background: var(--color-ground);
+  max-width: 640px;
+}
+
+.dk-skeptic.cleared {
+  border-color: color-mix(in srgb, var(--color-accent) 25%, white);
+  background: var(--color-accent-soft);
+}
+
+.dk-skeptic i {
+  font-style: normal;
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding-top: 3px;
+  color: var(--color-ink-muted);
+}
+
+.dk-skeptic.cleared i {
+  color: var(--color-accent-strong);
+}
+
+.dk-skeptic p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-ink-muted);
+}
+
+.dk-skeptic.cleared p {
+  color: var(--color-accent-strong);
+}
+
+/* The deliberation trail -- "How this was reasoned" (ported). A CLOSED
+   disclosure between the deck and the coda: the receipts, off the calm
+   default glass, one keyboard-operable click away. */
+.dk-trailwrap {
+  /* Two stacked receipts disclosures (deliberation trail + provenance log). */
+  padding: 0 7vw 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.dk-trail {
+  width: 100%;
+  max-width: 1180px;
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+
+.dk-trail summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 24px;
+  padding: 18px 26px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.dk-trail summary::-webkit-details-marker {
+  display: none;
+}
+
+.dk-trail .t-kick {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.dk-trail .t-kick::before {
+  content: "";
+  width: 34px;
+  height: 2.5px;
+  background: var(--color-accent);
+  border-radius: 2px;
+}
+
+.dk-trail .t-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+}
+
+.dk-trail[open] .t-count .t-arrow {
+  transform: rotate(90deg);
+}
+
+.dk-trail .t-arrow {
+  display: inline-block;
+  margin-left: 8px;
+  transition: transform 0.25s var(--dk-ease);
+}
+
+.dk-trail .t-body {
+  border-top: 1px solid var(--color-line);
+  padding: 20px 26px 22px;
+}
+
+.dk-trail .t-intro {
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--color-ink-muted);
+  max-width: 64ch;
+}
+
+.dk-trail ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dk-trail li {
+  border-top: 1px solid var(--color-line);
+  padding: 11px 0;
+}
+
+.dk-trail li:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.dk-trail .t-step {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dk-trail .t-n {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-ink-faint);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.dk-trail .t-name {
+  font-size: 13.5px;
+  font-weight: 640;
+  color: var(--color-ink);
+}
+
+.dk-trail .t-mode {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+  border: 1px solid var(--color-line);
+  background: var(--color-sink);
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+
+.dk-trail .t-pass {
+  color: var(--color-accent-strong);
+  display: inline-flex;
+  align-items: center;
+}
+
+.dk-trail .t-fail {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--color-danger);
+}
+
+.dk-trail .t-sum {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-ink-muted);
+  max-width: 72ch;
+}
+
+/* Provenance-log entry meta: actor + the UTC instant, quiet mono. */
+.dk-trail .t-meta {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-faint);
+  text-transform: uppercase;
+}
+
+/* Deck reduced-motion parity (mirrors the sample's own reduced block; the
+   app-wide 0.01ms overrides above already zero the transitions -- these are
+   the deck-specific states that must LAND, not just accelerate). */
+@media (prefers-reduced-motion: reduce) {
+  .dk-rv {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .dk-scrollcue .ln {
+    animation: none !important;
+  }
+
+  .dk-sup .s-fill {
+    width: var(--w) !important;
+    transition: none !important;
+  }
+
+  .dk-lcard.released .dk-wstamp {
+    animation: none !important;
+  }
+
+  .dk-slot:not(:last-child) .dk-card {
     animation: none !important;
   }
 }
