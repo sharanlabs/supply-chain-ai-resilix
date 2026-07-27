@@ -1,6 +1,23 @@
 # ADR-0002 — Cross-family LLM judge: implemented (Groq, free) + calibrated
 
-- **Status:** Accepted (2026-06-22). **UPDATED same day — the cross-family judge is now IMPLEMENTED and calibrated; the best-practice item is `FOLLOWED`** (it was first accepted as a same-family residual; the original deferral reasoning is kept below as the record).
+- **Status:** Accepted (2026-06-22). **UPDATED same day — the cross-family judge is now IMPLEMENTED and calibrated; the best-practice item is `FOLLOWED`** (it was first accepted as a same-family residual; the original deferral reasoning is kept below as the record). **AMENDED 2026-07-27 — the chosen model was decommissioned by the provider; see the amendment immediately below, which supersedes the model id and calibration figures in the 2026-06-22 update.**
+
+## Amendment (2026-07-27) — forced model change + a DISCLOSED deviation from this ADR's independence claim
+
+**What happened.** Groq **decommissioned `meta-llama/llama-4-scout-17b-16e-instruct`** (absent from the key's ListModels). Because the judge and the Phase-4 Skeptic are deliberately single-sourced on one constant (`GROQ_DEFAULT_MODEL`, `lib/agents/cross-family.ts`), every live call on BOTH gates threw. The Skeptic fails closed, so the product silently degraded to `NO_ACTION` on every live run until this was found. Full record: `docs/claude/ASSESSMENT-2026-07-27.md`, lessons L-1/L-2, evidence `gates/live-repair-2026-07-27/`.
+
+**New default: `openai/gpt-oss-120b`.** Candidates were re-probed LIVE through the real generate + schema path. Only **two of four** models on the key support Groq `json_schema` structured output at all — `llama-3.3-70b-versatile` and `qwen/qwen3.6-27b` both hard-fail with *"does not support response format `json_schema`"*. So the field is narrowed by the **schema constraint, not by quality**, and `gpt-oss-20b` is the only alternative.
+
+**Re-calibrated 2026-07-27** (same 18-item held-out split, `RUN_LIVE_AI_TESTS=true JUDGE_PROVIDER=groq`): **TPR 100% (9/9) / TNR 88.9% (8/9) / kappa 0.889 / errors 0/18** — an exact reproduction of the gpt-oss-120b numbers this ADR recorded on 2026-06-22, five weeks earlier. All above the enforced bars (0.83 / 0.83 / 0.60).
+
+**Honest consequence — this ADR's own preference is reversed by force.** The 2026-06-22 update chose llama-4-scout *because* it beat gpt-oss-120b (100%/1.000 vs 88.9%/0.889). The judge now runs the model this ADR rejected. That is a real, measured quality regression on the secondary check; it is **forced by the provider, not chosen**, and there is no better structured-output-capable option on this key. The judge remains secondary + fail-closed + off-by-default, and the deterministic graders plus atomic human approval remain the actual gates — so the blast radius is bounded by design.
+
+**DEVIATION from the "maximum independence" claim below.** The 2026-06-22 text argues the Meta model is *"distinct from BOTH the Gemini system-under-test AND the GPT/Codex build-time gate (maximum independence against self-preference)"*. `gpt-oss` is an **OpenAI-family** model, so the critic/judge now **shares a family with the GPT/Codex build-time gate**. Recorded rather than quietly reinterpreted:
+- The **load-bearing** property still holds — the judge is not the same family as the system under test (Gemini), which is what self-preference bias (Panickssery, NeurIPS 2024) actually concerns.
+- The build-time gate judges **source code at build time**, not these runtime findings, so the overlap is a different artifact at a different time.
+- Three-family separation is **not purchasable on this key today**. Revisit if Groq restores a structured-output-capable Llama/Qwen model, or if a paid tier/another provider is approved.
+
+**Coupling cost, now explicit.** Single-sourcing the model id prevents judge/Skeptic *drift*, but it means one repoint moves two gates that hold **independent calibration evidence**. Both were re-measured here. `JUDGE_MODEL` pins the judge independently if they ever need to diverge. Operational check: `npm run preflight:groq` fails loudly if a configured model is missing or unpriced — the alarm that did not exist when this outage happened.
 - **Decision owner:** sharan_98
 - **Scope:** RESILIX ActionOps. Companion to `docs/Success_Criteria.md` (the no-unsupported-claims judge) and the G-5 calibration (`evals/judge-calibration.test.ts`).
 

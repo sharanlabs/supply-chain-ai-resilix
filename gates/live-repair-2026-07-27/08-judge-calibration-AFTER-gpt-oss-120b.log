@@ -1,0 +1,35 @@
+
+ RUN  v4.1.5 /Users/sharan_98/Desktop/supply-chain-ai-resilix
+
+ ✓ evals/judge-calibration.test.ts > G-5 judge: calibration statistics (no spend) > cohensKappa: perfect = 1, chance-level = 0, partial correct, degenerate safe 1ms
+ ✓ evals/judge-calibration.test.ts > G-5 judge: calibration statistics (no spend) > held-out split is disjoint, covers the set, and both partitions stay usable 0ms
+ ✓ evals/judge-calibration.test.ts > G-5 judge: fail-closed mechanics (no spend) > a thrown judge call fails CLOSED (supported:false, errored) 0ms
+ ✓ evals/judge-calibration.test.ts > G-5 judge: fail-closed mechanics (no spend) > an unparseable verdict fails CLOSED (supported:false, errored) 1ms
+ ✓ evals/judge-calibration.test.ts > G-5 judge: fail-closed mechanics (no spend) > a clean verdict passes through (both directions), not via the error path 1ms
+ ✓ evals/judge-calibration.test.ts > G-5 judge: fail-closed mechanics (no spend) > fails CLOSED key-OFF (live AI disabled, no injected generate) without billing 0ms
+ ✓ evals/judge-calibration.test.ts > G-5 judge: fail-closed mechanics (no spend) > the labelled set is balanced (>=12 each) so TPR/TNR are both measurable 0ms
+ ✓ evals/judge-calibration.test.ts > classifyJudgeVerdict: an errored verdict is never a true positive (EV-09, no spend) > an errored fail-closed verdict on an UNSUPPORTED item is 'error', NOT 'tp' 0ms
+ ✓ evals/judge-calibration.test.ts > classifyJudgeVerdict: an errored verdict is never a true positive (EV-09, no spend) > a GENUINE flag (not errored) on an unsupported item is 'tp' 0ms
+ ✓ evals/judge-calibration.test.ts > classifyJudgeVerdict: an errored verdict is never a true positive (EV-09, no spend) > an errored verdict on a SUPPORTED item is 'error', NOT 'fp' 0ms
+ ✓ evals/judge-calibration.test.ts > classifyJudgeVerdict: an errored verdict is never a true positive (EV-09, no spend) > genuine cells are unaffected: pass-on-supported=tn, miss-on-unsupported=fn, flag-on-supported=fp 0ms
+stdout | evals/judge-calibration.test.ts > G-5 judge: live calibration (BILLS, gated) > clears the TPR/TNR bar over the labelled set, counting judge-error as fail-closed
+
+===== G-5 JUDGE CALIBRATION (openai/gpt-oss-120b, held-out test split) =====
+TPR (catches unsupported): 100.0%  (9/9)
+TNR (passes grounded):     88.9%  (8/9)
+kappa (chance-corrected):  0.889
+errors (excluded from rates): 0/18
+spend (est): $0.1080
+misses:
+  FP S8: judge FLAGGED grounded prose (claims that no mitigation has been approved yet – status not present in source data)
+=========================================
+
+
+ ✓ evals/judge-calibration.test.ts > G-5 judge: live calibration (BILLS, gated) > clears the TPR/TNR bar over the labelled set, counting judge-error as fail-closed 292745ms
+
+ Test Files  1 passed (1)
+      Tests  12 passed (12)
+   Start at  15:46:15
+   Duration  293.13s (transform 94ms, setup 0ms, import 216ms, tests 292.75s, environment 0ms)
+
+JUDGE_CALIB_EXIT=0

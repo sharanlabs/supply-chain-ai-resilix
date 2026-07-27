@@ -1,0 +1,54 @@
+=== NEGATIVE CONTROL for evals/cross-family-preflight.test.ts ===
+cwd: /Users/sharan_98/Desktop/supply-chain-ai-resilix
+
+--- STEP 1: mutate the SCRIPT's duplicated default to a wrong id ---
+43:const GROQ_DEFAULT_MODEL = "openai/gpt-oss-WRONG";
+     51|     // on one side alone fails loudly instead of producing a false-gre…
+     52|     expect(extractScriptDefault(readPreflightSource())).toBe(GROQ_DEFA…
+       |                                                         ^
+     53|   });
+     54|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  15:51:35
+   Duration  862ms (transform 203ms, setup 0ms, import 407ms, tests 24ms, environment 0ms)
+
+EXIT_MUTATED=
+
+--- STEP 2: revert ---
+43:const GROQ_DEFAULT_MODEL = "openai/gpt-oss-120b";
+ RUN  v4.1.5 /Users/sharan_98/Desktop/supply-chain-ai-resilix
+
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  15:51:36
+   Duration  662ms (transform 260ms, setup 0ms, import 465ms, tests 18ms, environment 0ms)
+
+EXIT_REVERTED=
+
+--- STEP 3: preflight:groq with exit code (no log covered this) ---
+ - meta-llama/llama-prompt-guard-2-86m
+ - openai/gpt-oss-120b
+ - openai/gpt-oss-20b
+ - openai/gpt-oss-safeguard-20b
+ - qwen/qwen3.6-27b
+ - whisper-large-v3
+ - whisper-large-v3-turbo
+
+Skeptic  model "openai/gpt-oss-120b": AVAILABLE + PRICED
+judge    model "openai/gpt-oss-120b": AVAILABLE + PRICED
+
+OK: cross-family preflight clean.
+EXIT_PREFLIGHT=
+
+=== EXIT CODES captured directly (R-4: never read the tee/pipe status) ===
+cwd: /Users/sharan_98/Desktop/supply-chain-ai-resilix
+EXIT_MUTATED=1   (expect non-zero = RED)
+EXIT_REVERTED=0  (expect 0 = GREEN)
+EXIT_PREFLIGHT_GROQ=0  (expect 0)
+EXIT_PREFLIGHT_MODELS=0  (expect 0)

@@ -136,9 +136,34 @@ is readable off a deliberate `413`, which is rejected pre-inference and so costs
 **Final calibration on the new model: TPR 100% (7/7) / TNR 100% (10/10)** — matching the historic
 llama-4-scout figures.
 
+### The judge — CLOSED by measurement (round 2, after the acceptance-gate BLOCK)
+
+The first pass disclosed only the *token-budget* consequence for `lib/evals/judge.ts`. The
+acceptance-gate correctly called that incomplete: the shared constant moved the **judge's model**
+too, and ADR-0002 had explicitly chosen llama-4-scout **over** gpt-oss-120b on the judge's own
+split (100%/1.000 vs 88.9%/0.889) — so the judge silently inherited the previously-*rejected*
+candidate.
+
+Rather than write a caveat, it was **measured**. Doing so exposed a second live defect the gate had
+not seen: the judge harness fires all 18 held-out items **back-to-back with no spacing**, and
+`judge.ts` used the same unmeasured 4,000 budget (779 + 4,000 = 4,779 of an 8,000 window ≈ one call
+per minute). **L-2 applied to the judge as well.** Fixed: `JUDGE_MAX_OUTPUT_TOKENS = 1_200`
+(measured in=779, out=165–252) plus 15s TPM-derived spacing.
+
+**Re-calibrated live, exit 0:** TPR 100% (9/9) · TNR 88.9% (8/9) · kappa 0.889 · errors 0/18 —
+above the enforced 0.83/0.83/0.60 bars, and an exact reproduction of the ADR's five-week-old figure.
+**Said plainly: measurably weaker than the retired model.** Forced by the provider, not chosen —
+only gpt-oss supports Groq `json_schema` on this key. Now recorded in ADR-0002 (as an amendment to
+the record it deviates from), `Success_Criteria.md`, `architecture.md`, the code, and lessons L-3.
+
 ### Open follow-ons — recorded, deliberately NOT silently changed
-- `lib/evals/judge.ts` still uses the shared 4,000 default and has **not** been re-measured against
-  the 8,000 ceiling. It is secondary and fail-closed, so this is a hardening item, not a live defect.
+- **`npm run preflight:groq` is manual-only.** It is not in `verify` and not in CI. Since "run by
+  hand" was contributing cause #4 of L-1, the fix **half-closes its own root cause**. Wiring it into
+  `verify` would break the project's own P3.2 rule (no network smoke in the deterministic gate
+  chain), and CI needs a `GROQ_API_KEY` secret — an **owner action**. Stated rather than left silent.
+- **Judge/Skeptic model coupling** stays single-sourced (drift is the worse failure), but the cost is
+  now explicit in `judge.ts`: one repoint invalidates two calibrations. Splitting them is an
+  **owner-level architecture call**.
 - `maxRetries: 0` is deliberate (a Codex [High] finding: no un-ledgered retry may bill past the cap).
   But a 429 is rejected pre-inference and costs nothing, so it currently degrades where it could
   safely retry. **A `Retry-After`-aware single retry is the recommended hardening before the public

@@ -1,0 +1,62 @@
+
+ RUN  v4.1.5 /Users/sharan_98/Desktop/supply-chain-ai-resilix
+
+stdout | ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/full-loop.smoke.ts > LIVE full-loop smoke (2026-07-27) > runs the flagship Hormuz scenario live, loop + real Skeptic, end to end
+
+================ PRECONDITIONS ================
+liveAiEnabled()     : true
+agentLoopEnabled()  : true
+skepticGateEnabled(): true
+groqAvailable()     : true   <-- false = Skeptic silently OFF
+gemini model        : gemini-3.5-flash
+
+stdout | ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/full-loop.smoke.ts > LIVE full-loop smoke (2026-07-27) > runs the flagship Hormuz scenario live, loop + real Skeptic, end to end
+
+================ LIVE RESULT ================
+effectiveMode  : FAILED_TO_FALLBACK
+recommendation : NO_ACTION
+confidence     : undefined
+threat         : CHOKEPOINT_CLOSURE / CRITICAL
+summary        : Maritime transit through the Strait of Hormuz is disrupted following a security incident. Tankers are holding or rerouting as carriers temporarily halt bookings on the Gulf route while war-risk insurance rates spike.
+exposures      : 9
+playbooks      : 0
+drafts         : 0
+gatekeeper     : BLOCKED (approvedForHumanReview=false)
+cost USD       : 0.014374500000000002
+wall clock     : 13.1s
+
+---------------- AGENT RUNS ----------------
+RUN-SENTINEL       Sentinel       mode=LIVE_AI              model=gemini-3.5-flash
+    summary: Classified threat CHOKEPOINT_CLOSURE at CRITICAL severity.
+RUN-VERIFIER       Verifier       mode=DETERMINISTIC_RULES  model=deterministic-rules
+    summary: 3 source(s); corroboration met; geo unconfirmed.
+RUN-ATLAS          Atlas          mode=DETERMINISTIC_RULES  model=deterministic-rules
+    summary: 9 supplier(s) matched and scored on tier + lead time.
+RUN-SIMULATOR      Simulator      mode=DETERMINISTIC_RULES  model=deterministic-rules
+    summary: Projected 3 revenue horizon(s) and 1 runout(s).
+RUN-SKEPTIC        Skeptic        mode=FAILED_TO_FALLBACK   model=meta-llama/llama-4-scout-17b-16e-instruct errorClass=LIVE_CALL_THREW
+    summary: Skeptic live AI call failed. Holding the finding (fail-closed).
+RUN-STRATEGIST     Strategist     mode=DETERMINISTIC_RULES  model=deterministic-rules
+    summary: Withheld: NO_ACTION -- no playbook drafted until the disruption is corroborated.
+RUN-DISPATCHER     Dispatcher     mode=DETERMINISTIC_RULES  model=deterministic-rules
+    summary: Withheld: NO_ACTION -- no outbound supplier message drafted until the disruption is corroborated.
+RUN-INVESTIGATOR   Investigator   mode=LIVE_AI              model=gemini-3.5-flash
+    summary: Investigation loop ran 5 step(s) [checkCorroboration -> assessExposure -> simulateRunway -> getRecoveryOptions -> challengeFinding]; finding completed.
+
+---------------- FULL PACKET KEYS ----------------
+packetVersion, id, threatCard, publicSignals, exposureResults, simulation, dataTier, dataGaps, recommendation, missingEvidence, skepticGateOutcome, playbooks, recoveryOptions, supplierMessages, actionItems, gatekeeper, agentRuns, totalCostUsd, pricingVersion, requestedMode, effectiveMode, approvalStatus, auditTrail, createdAt, updatedAt
+contains "skeptic": true
+contains "Skeptic": true
+contains "toolCall": false
+contains "tool_call": false
+contains "investigator": false
+contains "Investigator": true
+
+ ✓ ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/full-loop.smoke.ts > LIVE full-loop smoke (2026-07-27) > runs the flagship Hormuz scenario live, loop + real Skeptic, end to end 13095ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  14:47:39
+   Duration  13.69s (transform 255ms, setup 0ms, import 459ms, tests 13.10s, environment 0ms)
+
+SMOKE_EXIT=0

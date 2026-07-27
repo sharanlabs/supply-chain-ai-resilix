@@ -1,0 +1,25 @@
+
+ RUN  v4.1.5 /Users/sharan_98/Desktop/supply-chain-ai-resilix
+
+stdout | ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/groq-candidates.smoke.ts > Groq replacement candidates (structured output, real path) > probes each candidate for generateObject support + pricing coverage
+OK    openai/gpt-oss-120b              priced=true     893ms accepted=false in=227 out=217
+        reason: Insufficient independent verification beyond the claimed sources to confirm the Strait of Hormuz is closed.
+
+stdout | ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/groq-candidates.smoke.ts > Groq replacement candidates (structured output, real path) > probes each candidate for generateObject support + pricing coverage
+OK    openai/gpt-oss-20b               priced=true     514ms accepted=true in=227 out=233
+        reason: The claim is corroborated by three authoritative maritime sources with high confidence, making it reliable enough to accept.
+
+stdout | ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/groq-candidates.smoke.ts > Groq replacement candidates (structured output, real path) > probes each candidate for generateObject support + pricing coverage
+FAIL  llama-3.3-70b-versatile          priced=false AI_APICallError: This model does not support response format `json_schema`. See supported models at https://console.groq.com/docs/structured-outputs#supported-models
+
+stdout | ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/groq-candidates.smoke.ts > Groq replacement candidates (structured output, real path) > probes each candidate for generateObject support + pricing coverage
+FAIL  qwen/qwen3.6-27b                 priced=false AI_APICallError: This model does not support response format `json_schema`. See supported models at https://console.groq.com/docs/structured-outputs#supported-models
+
+ ✓ ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/groq-candidates.smoke.ts > Groq replacement candidates (structured output, real path) > probes each candidate for generateObject support + pricing coverage 1571ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  14:49:51
+   Duration  1.84s (transform 41ms, setup 0ms, import 145ms, tests 1.57s, environment 0ms)
+
+EXIT=0

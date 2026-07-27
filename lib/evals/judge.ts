@@ -42,6 +42,26 @@ import {
 // model id -- which is exactly why the 2026-07-27 decommission was a ONE-line fix for both.
 const GROQ_DEFAULT_JUDGE_MODEL = GROQ_DEFAULT_MODEL;
 
+// The judge's output-token budget. MEASURED 2026-07-27 on gpt-oss-120b through this exact call
+// path: input 779, output 165-252 tokens (reasoning included). Groq reserves
+// `input + max_completion_tokens` against an 8,000 TPM free-tier window, so the inherited 4,000
+// default reserved 779 + 4,000 = 4,779 -- roughly ONE call per minute, while
+// evals/judge-calibration.test.ts fires 18 back-to-back. 1,200 keeps ~5x headroom over the
+// measured 252 and drops the reservation to ~1,979 (~4 calls/minute). See
+// SKEPTIC_MAX_OUTPUT_TOKENS in lib/agents/actionops/skeptic.ts for the same measurement on the
+// Skeptic, and the L-2 lesson for why a BIGGER budget here is strictly worse, not safer.
+const JUDGE_MAX_OUTPUT_TOKENS = 1_200;
+
+// ⚠ CALIBRATION COUPLING (2026-07-27). GROQ_DEFAULT_JUDGE_MODEL is deliberately single-sourced
+// from GROQ_DEFAULT_MODEL so the judge and the Phase-4 Skeptic cannot silently DRIFT apart on the
+// provider id. The cost of that coupling, made explicit here because it bit us: repointing the
+// shared constant moves BOTH gates at once, and each has its OWN calibration evidence, so one
+// repoint invalidates two calibrations. ADR-0002 originally chose llama-4-scout over gpt-oss-120b
+// on the judge's held-out split (100%/1.000 vs 88.9%/0.889); when llama-4-scout was decommissioned
+// (L-1) the judge inherited the previously-rejected candidate. That is why the repoint is only
+// complete once BOTH calibrations are re-measured and the ADR is updated. Set JUDGE_MODEL to pin
+// the judge independently if the two ever need to diverge.
+
 // Which provider backs the judge. "groq" (cross-family, recommended) when JUDGE_PROVIDER=groq;
 // otherwise "gemini" (same-family fallback for environments with no Groq key).
 export function resolvedJudgeProvider(): "groq" | "gemini" {
@@ -125,7 +145,7 @@ export async function judgeNoUnsupportedClaims(args: {
   if (!generate && resolvedJudgeProvider() === "groq") {
     const key = groqApiKey();
     if (key) {
-      generate = makeGroqGenerate(key);
+      generate = makeGroqGenerate(key, JUDGE_MAX_OUTPUT_TOKENS);
     }
   }
   const budget: BudgetContext = args.budget ?? {

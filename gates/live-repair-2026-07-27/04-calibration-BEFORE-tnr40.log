@@ -1,0 +1,80 @@
+
+ RUN  v4.1.5 /Users/sharan_98/Desktop/supply-chain-ai-resilix
+
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic calibration: set + fail-closed counting (no spend) > the labelled set is balanced (>=6 each) so TPR/TNR are both measurable 1ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic calibration: set + fail-closed counting (no spend) > a Skeptic ERROR counts as a FLAG (reject), never a silent accept 8ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S1: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S2: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S3: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S4: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S5: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S6: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S7: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S8: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S9: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S10: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U1: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U2: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U3: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U4: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U5: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U6: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U7: a forced critic REJECT yields the correct gate outcome for its strength 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S1: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S2: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S3: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S4: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S5: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S6: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S7: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S8: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S9: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > S10: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U1: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U2: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U3: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U4: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U5: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U6: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > U7: a forced critic ACCEPT leaves the deterministic decision untouched (ACCEPTED) 0ms
+ ✓ evals/actionops-skeptic-calibration.test.ts > Skeptic GATE outcome on the labelled finding shapes (the (C) regression teeth, deterministic) > THE FLAGSHIP (S10): a forced REJECT on the exact false-vetoed Hormuz shape is ANNOTATED -> ACT 0ms
+stdout | evals/actionops-skeptic-calibration.test.ts > Skeptic calibration: live cross-family pass (BILLS Groq free tier, gated) > clears the TPR/TNR bar over the labelled findings, counting critic-error as fail-closed
+
+===== PHASE-4 SKEPTIC CALIBRATION (openai/gpt-oss-120b) =====
+TPR (rejects unsound):  100.0%  (7/7)
+TNR (accepts sound):    40.0%  (4/10)
+spend (est): $0.1020
+misses:
+  FP S3: Skeptic REJECTED a sound finding (error)
+  FP S5: Skeptic REJECTED a sound finding (error)
+  FP S6: Skeptic REJECTED a sound finding (error)
+  FP S7: Skeptic REJECTED a sound finding (error)
+  FP S8: Skeptic REJECTED a sound finding (error)
+  FP S10: Skeptic REJECTED a sound finding (error)
+=========================================
+
+
+ × evals/actionops-skeptic-calibration.test.ts > Skeptic calibration: live cross-family pass (BILLS Groq free tier, gated) > clears the TPR/TNR bar over the labelled findings, counting critic-error as fail-closed 76548ms
+   → TNR 40.0% below bar: expected 0.4 to be greater than or equal to 0.8
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  evals/actionops-skeptic-calibration.test.ts > Skeptic calibration: live cross-family pass (BILLS Groq free tier, gated) > clears the TPR/TNR bar over the labelled findings, counting critic-error as fail-closed
+AssertionError: TNR 40.0% below bar: expected 0.4 to be greater than or equal to 0.8
+ ❯ evals/actionops-skeptic-calibration.test.ts:311:63
+    309|       // prompt before relying on it. (tpr is logged above for visibil…
+    310|       expect(fn, `unsound finding(s) wrongly ACCEPTED -- false-accept …
+    311|       expect(tnr, `TNR ${(tnr * 100).toFixed(1)}% below bar`).toBeGrea…
+       |                                                               ^
+    312|     },
+    313|     600_000
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 37 passed (38)
+   Start at  14:59:42
+   Duration  76.87s (transform 94ms, setup 0ms, import 192ms, tests 76.56s, environment 0ms)
+
+CALIB_EXIT=1

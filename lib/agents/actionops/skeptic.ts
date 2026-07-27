@@ -96,6 +96,15 @@ export function resolvedSkepticModel(): string {
 //
 // If the Skeptic prompt grows materially, re-measure -- this constant is tied to the prompt size,
 // not a universal value. `npm run preflight:groq` checks availability, NOT throughput.
+//
+// SCOPE OF THE RESERVATION CLAIM (stated precisely rather than universally): the
+// input + max_completion_tokens accounting is EXACT on the 429/413 responses that report the
+// large figure -- 1,421 + 4,000 = 5,421 and 1,421 + 16,000 = 17,421 both match to the token
+// (gates/live-repair-2026-07-27/06-groq-429-413-root-cause.log). Other 429s in the same run
+// report a SMALLER `Requested` (~1,752-1,760) whose derivation we have not established, so the
+// rule is evidenced, not proven universal across every rejection path. What does NOT rest on the
+// mechanism: the fix DIRECTION is independently confirmed behaviourally -- the same calibration
+// went TNR 40% -> 100% as this budget came down and the harness spacing went up.
 export const SKEPTIC_MAX_OUTPUT_TOKENS = 1_200;
 
 // skepticEnabled: whether the LIVE cross-family Skeptic may make a real call -- a GROQ_API_KEY is

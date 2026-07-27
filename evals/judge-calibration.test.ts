@@ -17,6 +17,11 @@ import { DEFAULT_BUDGET_CAP_USD } from "@/lib/agents/budget";
 //        RUN_LIVE_AI_TESTS=true JUDGE_PROVIDER=groq node --env-file=.env \
 //          node_modules/vitest/vitest.mjs run evals/judge-calibration.test.ts
 //      Measured 2026-06-22 (llama-4-scout): TPR 100% / TNR 100% / kappa 1.000 on the held-out split.
+//      SUPERSEDED 2026-07-27 — llama-4-scout was DECOMMISSIONED by Groq (L-1). Re-measured on the
+//      new default openai/gpt-oss-120b, same held-out split: TPR 100% (9/9) / TNR 88.9% (8/9) /
+//      kappa 0.889 / errors 0/18 -- above the enforced 0.83/0.83/0.60 bars, but measurably weaker
+//      than the retired model, which ADR-0002 had originally preferred over exactly this candidate.
+//      The regression is FORCED by the provider, not chosen. See docs/adr/0002 § Amendment.
 
 const LIVE = process.env.RUN_LIVE_AI_TESTS === "true";
 
@@ -400,6 +405,16 @@ describe.skipIf(!LIVE)("G-5 judge: live calibration (BILLS, gated)", () => {
           }
         });
         spentUsd += estimateLiveCallCostUsd(model);
+        // Space the calls under the Groq free-tier TPM window (ADDED 2026-07-27, L-2). This loop
+        // previously fired the whole held-out split BACK-TO-BACK, which was survivable only while
+        // llama-4-scout enjoyed a ~30K TPM allowance. The gpt-oss models cap at 8,000 TPM and Groq
+        // reserves `input + max_completion_tokens` per call (~779 + 1,200 = ~1,979 here), so the
+        // window sustains ~4 calls/minute => ~15s apart. Without this, throttled calls land in the
+        // `errors` bucket and trip the EV-09 error-rate assertion -- the harness would be measuring
+        // its own rate limit and reporting it as judge unreliability (the exact artifact that made
+        // the Skeptic's calibration read TNR 40%). Re-derive if the model, its TPM tier, the prompt
+        // size, or JUDGE_MAX_OUTPUT_TOKENS changes.
+        await new Promise((r) => setTimeout(r, 15_000));
 
         switch (classifyJudgeVerdict(ex.supported, verdict)) {
           case "tp":
