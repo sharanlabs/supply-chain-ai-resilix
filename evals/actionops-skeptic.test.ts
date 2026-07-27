@@ -10,6 +10,7 @@ import {
   runSkeptic,
   skepticEnabled
 } from "@/lib/agents/actionops/skeptic";
+import { GROQ_DEFAULT_MODEL } from "@/lib/agents/cross-family";
 import type { VerifierChecks } from "@/lib/agents/actionops/verifier";
 import { buildDecisionPacket } from "@/lib/pipeline/build-packet";
 import { getActionOpsScenario } from "@/lib/data/actionops-scenarios";
@@ -129,7 +130,15 @@ describe("Skeptic deterministic affirmative pass (Phase 4, key-OFF)", () => {
     expect(skepticEnabled()).toBe(true);
     delete process.env.GROQ_API_KEY;
 
-    expect(resolvedSkepticModel()).toMatch(/llama-4/i);
+    // 2026-07-27 (L-1): this asserted /llama-4/i -- it pinned a BRAND, and correctly went red when
+    // that model was decommissioned and the default was repointed. Re-expressed as the invariant
+    // that actually matters, so a legitimate future repoint does not need a test edit:
+    //   (a) no LOCAL default -- the resolver must return the single shared cross-family constant, and
+    //   (b) the cross-family property (ADR-0002) -- the critic must never be a Gemini model, which
+    //       would put the critic in the same family as the system under test.
+    // Availability + pricing of that id are pinned separately in evals/cross-family-preflight.test.ts.
+    expect(resolvedSkepticModel()).toBe(GROQ_DEFAULT_MODEL);
+    expect(resolvedSkepticModel()).not.toMatch(/gemini/i);
     process.env.SKEPTIC_MODEL = "custom-cross-family-model";
     expect(resolvedSkepticModel()).toBe("custom-cross-family-model");
     delete process.env.SKEPTIC_MODEL;

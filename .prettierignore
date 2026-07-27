@@ -10,3 +10,5 @@ next-env.d.ts
 *.tsbuildinfo
 package-lock.json
 design/shots/
+# Agent-tooling scratch buffer -- not project source (see eslint.config.mjs).
+.remember/

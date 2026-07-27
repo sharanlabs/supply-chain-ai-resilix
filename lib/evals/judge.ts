@@ -30,15 +30,16 @@ import {
 // CROSS-FAMILY (ADR-0002): the self-preference bias -- a model rating its OWN family's output more
 // leniently -- is the most validated judge bias (evals_kb llm-as-judge.md; Panickssery, NeurIPS
 // 2024). The Dispatcher prose under judgement is Gemini, so JUDGE_PROVIDER=groq routes the judge to
-// a DIFFERENT family (default meta-llama/llama-4-scout -- a Meta model, distinct from BOTH the Gemini
-// system-under-test and the GPT/Codex build-time gate) via Groq's free tier. The judge stays
-// fail-closed + secondary (deterministic graders + human approval are primary). JUDGE_PROVIDER unset
-// (or =gemini) keeps the same-family judge for environments without a Groq key.
+// a DIFFERENT family from the Gemini system-under-test via Groq's free tier (see
+// lib/agents/cross-family.ts for the current model id + the disclosed ADR-0002 deviation recorded
+// 2026-07-27). The judge stays fail-closed + secondary (deterministic graders + human approval are
+// primary). JUDGE_PROVIDER unset (or =gemini) keeps the same-family judge for environments without
+// a Groq key.
 
-// Default Groq judge model: the shared cross-family Meta Llama-4 instruct model (lib/agents/
-// cross-family.ts) -- a different family from Gemini, with Groq json_schema structured-output
-// support. Override with JUDGE_MODEL. Single-sourced so the judge + the Phase-4 Skeptic never
-// drift on the cross-family model id.
+// Default Groq judge model: the shared cross-family model (lib/agents/cross-family.ts) -- a
+// different family from Gemini, with Groq json_schema structured-output support. Override with
+// JUDGE_MODEL. Single-sourced so the judge + the Phase-4 Skeptic never drift on the cross-family
+// model id -- which is exactly why the 2026-07-27 decommission was a ONE-line fix for both.
 const GROQ_DEFAULT_JUDGE_MODEL = GROQ_DEFAULT_MODEL;
 
 // Which provider backs the judge. "groq" (cross-family, recommended) when JUDGE_PROVIDER=groq;

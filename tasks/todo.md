@@ -1,6 +1,28 @@
 # todo — project tasks
 
-## ⚠️ CURRENT (2026-07-22) — rework Phase 1 CLOSED; next = Phase 2 design
+## 🔴 CURRENT (2026-07-27) — the LIVE product was BROKEN; fixed, verify green, GATES OWED
+
+- [x] **Assessment (owner ask 2026-07-27)** — `docs/claude/ASSESSMENT-2026-07-27.md`. Verdict: the
+  agentic engine is real and works, but (A) it was DOWN live and (B) no surface anyone can reach
+  runs it. Every number measured first-hand.
+- [x] **L-1 [CRITICAL] fixed** — cross-family Skeptic model decommissioned by Groq → every live run
+  fail-closed to NO_ACTION. Repointed to `openai/gpt-oss-120b` (chosen by LIVE probe: only 2 of 4
+  candidates support `json_schema` at all). Added `scripts/preflight-groq.mjs` + `npm run preflight`
+  + `evals/cross-family-preflight.test.ts` (script↔code lockstep read from the script's TEXT).
+- [x] **L-2 [HIGH] fixed** — Groq reserves `input + max_completion_tokens` vs an 8,000 TPM ceiling;
+  the 4,000 default reserved ~11× the real need → 429 → HOLD. Sized DOWN to 1,200; re-calibrated the
+  harness spacing (4s was sized for a 30K allowance). Calibration TPR 100% / TNR 100%.
+- [x] **Verify green first-hand** — 916 unit / 34 golden / exit 0. Live smoke: ACT, gatekeeper PASS,
+  2 playbooks, 5 drafts, $0.0221, 38.1s.
+- [ ] **▶ GATES OWED on this diff — `acceptance-gate` then Codex cross-model.** Safety-critical path;
+  do not skip.
+- [ ] **▶ Owner decisions** — ASSESSMENT §8: D1 live SIGNALS in scope? · D2 deploy earlier to prove
+  the cap/limiter on the real host? · D3 Phase-2 deck design review · D4 push (4 commits local).
+- [ ] Hardening recorded, NOT silently done: `judge.ts` still on the unmeasured 4,000 default ·
+  `Retry-After`-aware single retry for the free pre-inference 429 (recommended BEFORE the public
+  playground door) · `gemini-3.6-flash` now on the key vs our 3.5-flash.
+
+## ⚠️ (previous) CURRENT (2026-07-22) — rework Phase 1 CLOSED; next = Phase 2 design
 - [x] **Rework Phase 1 (re-review + fix tail) — DONE 2026-07-22 (`53440d1`, Codex-gated, re-gate SHIP):**
   60 findings disposed; Batches 1–7 + moat trio landed; Gemini default → 3.5-flash (on-key verified);
   902 unit / 34 golden / 59 e2e green. Record: `docs/claude/gates/rework-2026-07-14/`.

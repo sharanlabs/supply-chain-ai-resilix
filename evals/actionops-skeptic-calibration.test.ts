@@ -267,11 +267,21 @@ describe.skipIf(!LIVE)("Skeptic calibration: live cross-family pass (BILLS Groq 
           }
         });
         spentUsd += estimateLiveCallCostUsd(model);
-        // Space the calls under the Groq free-tier TPM window: the few-shot prompt x N findings exceeds
-        // ~30K tokens/min if fired back-to-back, and a throttled call fails CLOSED to a HOLD that reads
-        // as a false REJECT -- the artifact that made an unspaced double-run report a bogus TNR collapse.
-        // This is a gated, rarely-run calibration, so the delay is cheap insurance for a clean measurement.
-        await new Promise((r) => setTimeout(r, 4000));
+        // Space the calls under the Groq free-tier TPM window. A throttled (429) call fails CLOSED
+        // to a HOLD, which this harness then scores as a false REJECT -- so an under-spaced run
+        // reports a bogus TNR collapse and slanders a healthy critic.
+        //
+        // RE-CALIBRATED 2026-07-27 (L-1): 4,000ms was sized for llama-4-scout's ~30K TPM allowance.
+        // The gpt-oss models cap at 8,000 TPM on this key, and Groq reserves
+        // `input + max_completion_tokens` per call (~1,421 + 1,200 = ~2,621 here), so the window
+        // sustains only ~3 calls/minute => ~20s between calls. At 4s the suite measured TNR 40%,
+        // then 80% with 6 and 2 misses respectively -- EVERY miss tagged "(error)", i.e. the
+        // instrument was measuring its own throttling, not the Skeptic's judgement.
+        //
+        // This is a gated, rarely-run calibration, so the wall-clock cost is the right trade for a
+        // measurement that means what it says. Re-derive if the model, its TPM tier, the prompt
+        // size, or SKEPTIC_MAX_OUTPUT_TOKENS changes.
+        await new Promise((r) => setTimeout(r, 20_000));
         const flagged = verdict.accepted === false; // includes fail-closed errors
 
         if (!spec.accepted) {

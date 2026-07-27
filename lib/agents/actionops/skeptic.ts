@@ -39,8 +39,9 @@ import { skepticGateEnabled } from "@/lib/server/env-flags";
 //
 // WHY a SECOND, CROSS-FAMILY model (ADR-0002): the self-preference bias -- a model rating its OWN
 // family's output more leniently -- is the most validated judge/critic bias (Panickssery, NeurIPS
-// 2024). The finding under review is Gemini's, so the Skeptic asks a DIFFERENT family (Groq's Meta
-// Llama-4, via lib/agents/cross-family.ts) to try to knock it down. Its job is to catch what the
+// 2024). The finding under review is Gemini's, so the Skeptic asks a DIFFERENT family (a non-Gemini
+// Groq model -- see lib/agents/cross-family.ts GROQ_DEFAULT_MODEL for the current id and the
+// 2026-07-27 L-1 re-point record) to try to knock it down. Its job is to catch what the
 // deterministic gates cannot: an OVER-TRIGGER (alert fatigue -- a scary headline that does not
 // actually threaten THIS buyer), a MISCLASSIFICATION, or THIN EVIDENCE (a lone uncorroborated
 // low-confidence source) -- and to REFUSE when it cannot stand behind acting.
@@ -77,6 +78,25 @@ import { skepticGateEnabled } from "@/lib/server/env-flags";
 export function resolvedSkepticModel(): string {
   return process.env.SKEPTIC_MODEL?.trim() || GROQ_DEFAULT_MODEL;
 }
+
+// The Skeptic's output-token budget. COUNTER-INTUITIVE AND MEASURED (2026-07-27, L-1 follow-on):
+// Groq's rate limiter charges `input + max_completion_tokens` as RESERVED against the per-minute
+// window -- it does NOT bill actual output. The free-tier TPM ceiling for the gpt-oss models on
+// this key is 8,000 (read off a deliberate 413; identical for 120b and 20b, so switching model
+// size buys no headroom). The inherited 4,000 default therefore reserved 1,421 + 4,000 = 5,421
+// tokens for a call whose REAL output is ~360-370 tokens (reasoning included) -- over 11x what it
+// uses -- so a second call inside the same minute 429'd. Because the critic fails CLOSED, each
+// throttle became a HOLD, which the calibration then scored as a false REJECT: measured
+// TPR 100% / TNR 40%, with all six misses tagged "(error)", not bad judgement.
+//
+// Raising the budget makes it strictly WORSE (16,000 -> HTTP 413 "Request too large", a single
+// call exceeding the whole minute). Right-sizing DOWN is the fix: 1,200 keeps >3x headroom over
+// the measured ~370 while dropping the reservation to ~2,621, so ~3 calls/minute fit the window.
+// The prior 4,000 was safe only because llama-4-scout enjoyed a ~30K TPM allowance.
+//
+// If the Skeptic prompt grows materially, re-measure -- this constant is tied to the prompt size,
+// not a universal value. `npm run preflight:groq` checks availability, NOT throughput.
+export const SKEPTIC_MAX_OUTPUT_TOKENS = 1_200;
 
 // skepticEnabled: whether the LIVE cross-family Skeptic may make a real call -- a GROQ_API_KEY is
 // present AND the gate is not explicitly disabled (ENABLE_SKEPTIC). Independent of the Gemini live
@@ -357,7 +377,7 @@ export async function challengeFindingLive(
   if (!generate) {
     const key = groqApiKey();
     if (key) {
-      generate = makeGroqGenerate(key);
+      generate = makeGroqGenerate(key, SKEPTIC_MAX_OUTPUT_TOKENS);
     }
   }
 

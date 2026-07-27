@@ -1,6 +1,52 @@
-# HANDOFF — resume pointer (updated 2026-07-22: PHASE 1 COMPLETE — fix tail closed, Codex-gated, SHIP, committed)
+# HANDOFF — resume pointer (updated 2026-07-27: LIVE PRODUCT WAS BROKEN — found + fixed; gates owed)
 
-> ## ▶ RESUME HERE (2026-07-22 — Phase-1 re-review CLOSED end-to-end)
+> ## ▶ RESUME HERE (2026-07-27 — the live agentic product was DOWN; repaired, verify green, GATES OWED)
+>
+> **Owner ask:** assess the project; "there should be final end-to-end real time working agentic AI
+> product"; rework/realign as needed. Assessment artifact: **`docs/claude/ASSESSMENT-2026-07-27.md`**.
+>
+> **THE FINDING (L-1, CRITICAL).** A first-hand live full-loop smoke — the REAL path, no injected
+> Skeptic — showed the product producing NOTHING live: `effectiveMode=FAILED_TO_FALLBACK`,
+> `recommendation=NO_ACTION`, gatekeeper BLOCKED, 0 playbooks, 0 drafts. Cause: the cross-family
+> Skeptic model `meta-llama/llama-4-scout-17b-16e-instruct` was **DECOMMISSIONED by Groq** (absent
+> from the key's ListModels). The critic fails CLOSED, so the outage presented as silence, and by
+> construction it could never alarm on itself. It also took down `lib/evals/judge.ts` (same shared
+> constant). NOTHING caught it: the preflight covered Gemini only, the gated live suite injects a
+> stub ACCEPT Skeptic, and zero tests referenced the model id.
+>
+> **THE SECOND FINDING (L-2, HIGH).** Repointing was not enough. Groq reserves
+> `input + max_completion_tokens` against an **8,000 TPM** free-tier window, so the inherited
+> `maxOutputTokens: 4_000` reserved ~5,421 tokens for a call that really emits ~370 → 429s → HOLDs.
+> Raising it made it WORSE (16k → HTTP 413). Fix = size DOWN to 1,200. The calibration harness's 4s
+> spacing carried the same stale 30K-TPM assumption and was measuring its own throttling.
+>
+> **STATE AT WRAP — all measured first-hand today, not quoted:**
+> - `npm run verify` **exit 0** — **916 unit** / 34 golden / lint / contrast / build / secret-scan.
+> - Skeptic calibration on the new model: **TPR 100% (7/7) / TNR 100% (10/10)** — matches the
+>   historic llama-4-scout figures.
+> - Live full-loop smoke: `LIVE_AI` / **ACT** / gatekeeper **PASS** / 2 playbooks / 5 drafts /
+>   $0.0221 / 38.1s. Investigator loop ran 4–5 real tool steps.
+> - Public `/` posture unchanged: $0 / keyless / frozen replay (no engine file touched on that path).
+>
+> **▶ THE EXACT NEXT ACTIONS (in order):**
+> 1. **GATES OWED on this diff** (not yet run, do NOT skip — it touches a safety-critical path):
+>    `acceptance-gate` → **Codex cross-model pass**. Dispose primary-model-final.
+> 2. **Owner decisions** — `ASSESSMENT-2026-07-27.md` §8: D1 does "real time" include live SIGNALS
+>    (`useLiveSignals` defaults false) · D2 move deploy earlier so the cap/limiter are proven on the
+>    real host · D3 Phase-2 deck design review (still open) · D4 push.
+> 3. **Playground** per `PLAN-PLAYGROUND-2026-07-22.md` — NOTE the new throughput constraint: one
+>    Skeptic call reserves ~2,621 of 8,000 TPM → **~3 concurrent live runs/minute** before the critic
+>    degrades. Size the per-IP limits against THAT, not just cost.
+> 4. Recorded, deliberately NOT silently changed: `judge.ts` still on the unmeasured 4,000 default ·
+>    `maxRetries: 0` means a free (pre-inference) 429 degrades where a `Retry-After`-aware single
+>    retry would be safe — recommended hardening BEFORE the public door opens · `gemini-3.6-flash`
+>    now on the key while we run 3.5-flash (works; a decision, not a defect).
+>
+> **Unpushed (owner-gated):** `c14bd3c`, `686251a`, `bad802e`, + this session's commit.
+>
+> ----- prior top block (2026-07-22 Phase-1 close) below -----
+
+> ## ▶ (superseded) RESUME (2026-07-22 — Phase-1 re-review CLOSED end-to-end)
 >
 > **Tree COMMITTED and clean at `53440d1`** (on `e81986b`). Phase 1 of the owner-approved rework plan
 > (`~/.claude/plans/review-the-project-once-wobbly-lake.md`) is DONE: all 60 findings of the 2026-07-16
