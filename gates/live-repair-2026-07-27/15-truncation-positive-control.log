@@ -1,0 +1,29 @@
+
+ RUN  v4.1.5 /Users/sharan_98/Desktop/supply-chain-ai-resilix
+
+stdout | ../../../..<SCRATCHPAD>/livesmoke/truncation.smoke.ts > truncation defence — positive control > a starved output budget yields OUTPUT_TRUNCATED with real usage; 1_200 does not
+
+--- STARVED (maxOutputTokens=16) ---
+accepted   : false
+errored    : true
+errorClass : SCHEMA_GENERATION_FAILED
+reason     : Skeptic live call could not produce a schema-valid verdict (provider 400 'failed to generate JSON'). Most likely the output-token budget is 
+usage      : undefined
+mode       : FAILED_TO_FALLBACK
+
+stdout | ../../../..<SCRATCHPAD>/livesmoke/truncation.smoke.ts > truncation defence — positive control > a starved output budget yields OUTPUT_TRUNCATED with real usage; 1_200 does not
+
+--- PRODUCTION (maxOutputTokens=1200) ---
+accepted   : true
+errored    : false
+errorClass : -
+usage      : undefined
+
+ ✓ ../../../..<SCRATCHPAD>/livesmoke/truncation.smoke.ts > truncation defence — positive control > a starved output budget yields OUTPUT_TRUNCATED with real usage; 1_200 does not 25826ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  21:20:59
+   Duration  26.10s (transform 86ms, setup 0ms, import 177ms, tests 25.83s, environment 0ms)
+
+TRUNC_EXIT=0

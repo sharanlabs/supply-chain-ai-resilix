@@ -1,13 +1,13 @@
 
  RUN  v4.1.5 /Users/sharan_98/Desktop/supply-chain-ai-resilix
 
-stdout | ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/judge-sizing.smoke.ts > judge token sizing on gpt-oss-120b > reports input/output usage for a representative judge call
+stdout | ../../../..<SCRATCHPAD>/livesmoke/judge-sizing.smoke.ts > judge token sizing on gpt-oss-120b > reports input/output usage for a representative judge call
 budget= 1200  supported=true errored=false  in=779 out=252
 
-stdout | ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/judge-sizing.smoke.ts > judge token sizing on gpt-oss-120b > reports input/output usage for a representative judge call
+stdout | ../../../..<SCRATCHPAD>/livesmoke/judge-sizing.smoke.ts > judge token sizing on gpt-oss-120b > reports input/output usage for a representative judge call
 budget= 4000  supported=true errored=false  in=779 out=165
 
- ✓ ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/judge-sizing.smoke.ts > judge token sizing on gpt-oss-120b > reports input/output usage for a representative judge call 54214ms
+ ✓ ../../../..<SCRATCHPAD>/livesmoke/judge-sizing.smoke.ts > judge token sizing on gpt-oss-120b > reports input/output usage for a representative judge call 54214ms
 
  Test Files  1 passed (1)
       Tests  1 passed (1)

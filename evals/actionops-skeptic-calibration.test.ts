@@ -248,13 +248,28 @@ describe.skipIf(!LIVE)("Skeptic calibration: live cross-family pass (BILLS Groq 
     async () => {
       const model = resolvedSkepticModel();
       let spentUsd = 0;
-      // Positive class = UNSOUND (the finding we want REJECTED). "flag" = the Skeptic does NOT
-      // accept. TPR = rejected / actually-unsound; TNR = accepted / actually-sound. A critic error
-      // counts as a flag (fail-closed), so it can only hurt TNR, never inflate TPR.
+      // Positive class = UNSOUND (the finding we want REJECTED). TPR = rejected / actually-unsound;
+      // TNR = accepted / actually-sound.
+      //
+      // ⚠ CORRECTED 2026-07-27 (Codex cross-model [High]). The previous comment here claimed "a
+      // critic error counts as a flag (fail-closed), so it can only hurt TNR, never inflate TPR."
+      // That was MATHEMATICALLY FALSE and it is the exact opposite of the truth. A fail-closed error
+      // sets accepted=false, and the old code classified any accepted===false on an unsound item as
+      // a TRUE POSITIVE -- so a critic that THREW on all seven unsound cases reported **TPR 100%
+      // with zero genuine detections**. The metric that was supposed to prove the critic works could
+      // be satisfied by a critic that does not work at all. The judge harness already had the right
+      // shape (a separate `errors` bucket, EV-09); this one did not.
+      //
+      // Errors are now their OWN bucket, excluded from every rate, and bounded by an explicit
+      // error-rate ceiling so exclusion cannot become a loophole. In addition, every unsound control
+      // must earn a NON-ERRORED rejection -- an error is not a detection, and TPR must be a claim
+      // about judgement, never about failure.
       let tp = 0;
       let fn = 0;
       let tn = 0;
       let fp = 0;
+      let errors = 0;
+      const erroredUnsound: string[] = [];
       const misses: string[] = [];
 
       for (const spec of LABELED) {
@@ -282,7 +297,20 @@ describe.skipIf(!LIVE)("Skeptic calibration: live cross-family pass (BILLS Groq 
         // measurement that means what it says. Re-derive if the model, its TPM tier, the prompt
         // size, or SKEPTIC_MAX_OUTPUT_TOKENS changes.
         await new Promise((r) => setTimeout(r, 20_000));
-        const flagged = verdict.accepted === false; // includes fail-closed errors
+        // An ERRORED verdict is NOT a judgement -- it is the critic failing. Bucket it separately
+        // and keep it out of every rate (EV-09 shape, mirroring the judge harness). The production
+        // behaviour is unchanged and still fail-closed: a broken critic HOLDs the finding. What
+        // changes is that a failure can no longer MASQUERADE as a detection in the metric.
+        if (verdict.errored) {
+          errors++;
+          if (!spec.accepted) erroredUnsound.push(spec.id);
+          misses.push(
+            `ERR ${spec.id} (${spec.accepted ? "sound" : "unsound"}): critic ERRORED -- excluded from TPR/TNR`
+          );
+          continue;
+        }
+
+        const flagged = verdict.accepted === false; // a real, non-errored REJECT
 
         if (!spec.accepted) {
           if (flagged) tp++;
@@ -294,16 +322,21 @@ describe.skipIf(!LIVE)("Skeptic calibration: live cross-family pass (BILLS Groq 
           if (!flagged) tn++;
           else {
             fp++;
-            misses.push(`FP ${spec.id}: Skeptic REJECTED a sound finding (${verdict.errored ? "error" : verdict.reason})`);
+            misses.push(`FP ${spec.id}: Skeptic REJECTED a sound finding (${verdict.reason})`);
           }
         }
       }
 
-      const tpr = tp / (tp + fn);
-      const tnr = tn / (tn + fp);
+      // Rates are computed over NON-ERRORED verdicts only. `|| 0` guards the degenerate case where
+      // every item of a class errored: that must read as 0%, never NaN (a NaN silently passes a
+      // `>=` assertion in JS -- another way a broken critic could slip the bar).
+      const tpr = tp + fn > 0 ? tp / (tp + fn) : 0;
+      const tnr = tn + fp > 0 ? tn / (tn + fp) : 0;
+      const errorRate = errors / LABELED.length;
       console.log(`\n===== PHASE-4 SKEPTIC CALIBRATION (${model}) =====`);
-      console.log(`TPR (rejects unsound):  ${(tpr * 100).toFixed(1)}%  (${tp}/${tp + fn})`);
-      console.log(`TNR (accepts sound):    ${(tnr * 100).toFixed(1)}%  (${tn}/${tn + fp})`);
+      console.log(`TPR (rejects unsound):  ${(tpr * 100).toFixed(1)}%  (${tp}/${tp + fn})   [non-errored only]`);
+      console.log(`TNR (accepts sound):    ${(tnr * 100).toFixed(1)}%  (${tn}/${tn + fp})   [non-errored only]`);
+      console.log(`errors (excluded):      ${errors}/${LABELED.length}`);
       console.log(`spend (est): $${spentUsd.toFixed(4)}`);
       if (misses.length) console.log("misses:\n  " + misses.join("\n  "));
       console.log("=========================================\n");
@@ -319,6 +352,23 @@ describe.skipIf(!LIVE)("Skeptic calibration: live cross-family pass (BILLS Groq 
       // prompt before relying on it. (tpr is logged above for visibility; the hard gate is fn === 0.)
       expect(fn, `unsound finding(s) wrongly ACCEPTED -- false-accept is the dangerous direction: ${misses.filter((m) => m.startsWith("FN")).join("; ")}`).toBe(0);
       expect(tnr, `TNR ${(tnr * 100).toFixed(1)}% below bar`).toBeGreaterThanOrEqual(0.8);
+
+      // ADDED 2026-07-27 (Codex cross-model [High]) -- the teeth that close the "an error looked
+      // like a detection" hole:
+      //  (a) EVERY unsound control must earn a REAL, non-errored rejection. Without this, a critic
+      //      that errored on all seven unsound items would still satisfy `fn === 0` (an error is
+      //      not an ACCEPT), so the zero-tolerance gate above could be cleared by a critic that
+      //      never actually judged anything.
+      //  (b) A bounded error rate, so excluding errors from the rates cannot become a loophole
+      //      (the EV-09 rule the judge harness already enforced).
+      expect(
+        erroredUnsound,
+        `unsound control(s) ERRORED instead of being genuinely rejected -- an error is NOT a detection: ${erroredUnsound.join(", ")}`
+      ).toEqual([]);
+      expect(
+        errorRate,
+        `critic error rate ${errors}/${LABELED.length} too high -- unreliable as a gate input regardless of how the completed calls scored`
+      ).toBeLessThanOrEqual(0.1);
     },
     600_000
   );

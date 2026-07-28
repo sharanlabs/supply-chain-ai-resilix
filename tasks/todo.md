@@ -14,13 +14,43 @@
   harness spacing (4s was sized for a 30K allowance). Calibration TPR 100% / TNR 100%.
 - [x] **Verify green first-hand** — 916 unit / 34 golden / exit 0. Live smoke: ACT, gatekeeper PASS,
   2 playbooks, 5 drafts, $0.0221, 38.1s.
-- [ ] **▶ GATES OWED on this diff — `acceptance-gate` then Codex cross-model.** Safety-critical path;
-  do not skip.
+- [x] **Gates RUN on this diff.** `acceptance-gate` BLOCK ×2 (both discharged: stale records; the
+  judge closed by measurement) → **Codex cross-model REVISE, 12 findings** (6 High/5 Med/1 Low), all
+  disposed primary-model-final. Record: `gates/live-repair-2026-07-27/CODEX-FINDINGS-DISPOSITION.md`.
+  Codex's top finding invalidated a number this session had been repeating (see below).
+- [x] **L-4 [CRITICAL, Codex] FIXED — the Skeptic calibration counted a critic ERROR as a TRUE
+  POSITIVE.** A critic throwing on all 7 unsound controls would have reported TPR 100% with zero real
+  detections, and the `fn===0` gate would also have passed. Errors are now a separate bucket excluded
+  from the rates, NaN-guarded, with every unsound control required to earn a NON-errored rejection and
+  a ≤10% error ceiling. Re-measured: TPR 100% (7/7) / TNR 100% (10/10) / **errors 0/17**. The values
+  were right; the instrument was not trustworthy — different claims.
+- [x] **L-5 [HIGH, Codex] FIXED — truncation defence + headroom.** `reasoningEffort:"low"` + strict
+  `structuredOutputs` cut real output 357-368 → **91-144 tokens** (1,200 is now ~8-13× headroom, not
+  3.3×). Positive control proved my FIRST classifier inert: this provider rejects with `400 "Failed to
+  generate JSON"`, it does NOT return a length-truncated completion → re-keyed to
+  `SCHEMA_GENERATION_FAILED`. `makeGroqGenerate`'s unsafe 4,000 default REMOVED (now required).
+  Committed logs redacted (Groq org id + local paths).
+- [ ] **▶ NEW pre-existing defects Codex found OUTSIDE this diff — the L-1 pattern in the signal
+  layer. Highest-value follow-ups in the repo; NOT fixed here (each needs its own runtime-validation
+  design + negative tests, and bundling would make an already-large safety commit unreviewable):**
+  - **[High] NWS false calm** (`lib/signals/fetchers.ts:107`) — payloads are compile-time casts; an
+    HTTP-200 `{}` or drifted contract reads as "no alerts", `status:"LIVE"`, freshness 0.
+  - **[High] GDELT silent disappearance** (`lib/signals/gdelt.ts:183`) — if every article fails
+    item-level validation the code caches `[]` and still reports `LIVE`; the outage marker only fires
+    on `FAILED`, so the PRIMARY disruption feed can vanish while reporting healthy.
+  - **[Med] Noop transport** (`lib/server/action-transport.ts:103`) — missing/partial config resolves
+    to Noop which returns `delivered:false`, yet the executor terminalizes `EXECUTED` and the route
+    reports success; a broken owner-alert config suppresses the alert while status says it ran.
 - [ ] **▶ Owner decisions** — ASSESSMENT §8: D1 live SIGNALS in scope? · D2 deploy earlier to prove
   the cap/limiter on the real host? · D3 Phase-2 deck design review · D4 push (4 commits local).
-- [ ] Hardening recorded, NOT silently done: `judge.ts` still on the unmeasured 4,000 default ·
-  `Retry-After`-aware single retry for the free pre-inference 429 (recommended BEFORE the public
-  playground door) · `gemini-3.6-flash` now on the key vs our 3.5-flash.
+- [x] **Judge CLOSED in round 2 (do NOT re-open):** `JUDGE_MAX_OUTPUT_TOKENS = 1_200` (measured
+  in=779, out=165-252) + 15s TPM-derived harness spacing; re-calibrated live on `openai/gpt-oss-120b`
+  — **TPR 100% (9/9) / TNR 88.9% (8/9) / kappa 0.889 / errors 0/18, exit 0**, above the enforced
+  0.83/0.83/0.60 bars but measurably weaker than the retired model (provider-forced, not chosen).
+- [ ] Hardening recorded, still open: `Retry-After`-aware single retry for the free pre-inference
+  429 (recommended BEFORE the public playground door) · `preflight:groq` is MANUAL-ONLY so the L-1
+  alarm only rings when run (CI secret = owner action) · `gemini-3.6-flash` on the key vs our
+  3.5-flash · splitting the judge/Skeptic model constant (owner architecture call).
 
 ## ⚠️ (previous) CURRENT (2026-07-22) — rework Phase 1 CLOSED; next = Phase 2 design
 - [x] **Rework Phase 1 (re-review + fix tail) — DONE 2026-07-22 (`53440d1`, Codex-gated, re-gate SHIP):**

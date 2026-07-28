@@ -1,0 +1,72 @@
+=== FULL PREFLIGHT TRANSCRIPTS (2026-07-27) — closes the log-09 evidence gap ===
+cwd: /Users/sharan_98/Desktop/supply-chain-ai-resilix
+
+--- npm run preflight:groq (FULL stdout, head not truncated) ---
+
+> resilix-actionops@0.1.0 preflight:groq
+> node --env-file=.env scripts/preflight-groq.mjs
+
+Available models on this Groq key: 15
+ - allam-2-7b
+ - canopylabs/orpheus-arabic-saudi
+ - canopylabs/orpheus-v1-english
+ - groq/compound
+ - groq/compound-mini
+ - llama-3.1-8b-instant
+ - llama-3.3-70b-versatile
+ - meta-llama/llama-prompt-guard-2-22m
+ - meta-llama/llama-prompt-guard-2-86m
+ - openai/gpt-oss-120b
+ - openai/gpt-oss-20b
+ - openai/gpt-oss-safeguard-20b
+ - qwen/qwen3.6-27b
+ - whisper-large-v3
+ - whisper-large-v3-turbo
+
+Skeptic  model "openai/gpt-oss-120b": AVAILABLE + PRICED
+judge    model "openai/gpt-oss-120b": AVAILABLE + PRICED
+
+OK: cross-family preflight clean.
+EXIT_PREFLIGHT_GROQ=0
+
+--- npm run preflight:models (FULL stdout) ---
+
+> resilix-actionops@0.1.0 preflight:models
+> node --env-file=.env scripts/preflight-models.mjs
+
+Available models on this key: 50
+ - gemini-2.5-flash
+ - gemini-2.5-pro
+ - gemini-2.0-flash
+ - gemini-2.0-flash-001
+ - gemini-2.0-flash-lite-001
+ - gemini-2.0-flash-lite
+ - gemini-2.5-flash-preview-tts
+ - gemini-2.5-pro-preview-tts
+ - gemini-flash-latest
+ - gemini-flash-lite-latest
+ - gemini-pro-latest
+ - gemini-2.5-flash-lite
+ - gemini-2.5-flash-image
+ - gemini-3-pro-preview
+ - gemini-3-flash-preview
+ - gemini-3.1-pro-preview
+ - gemini-3.1-pro-preview-customtools
+ - gemini-3.1-flash-lite-preview
+ - gemini-3.1-flash-lite
+ - gemini-3-pro-image-preview
+ - gemini-3-pro-image
+ - gemini-3.1-flash-image-preview
+ - gemini-3.1-flash-image
+ - gemini-3.1-flash-lite-image
+ - gemini-3.5-flash
+ - gemini-3.5-flash-lite
+ - gemini-omni-flash-preview
+ - gemini-3.6-flash
+ - gemini-3.1-flash-tts-preview
+ - gemini-robotics-er-1.5-preview
+ - gemini-robotics-er-1.6-preview
+ - gemini-2.5-computer-use-preview-10-2025
+
+Configured model "gemini-3.5-flash" available: YES
+EXIT_PREFLIGHT_MODELS=0

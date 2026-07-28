@@ -1,7 +1,7 @@
 
  RUN  v4.1.5 /Users/sharan_98/Desktop/supply-chain-ai-resilix
 
-stdout | ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/full-loop.smoke.ts > LIVE full-loop smoke (2026-07-27) > runs the flagship Hormuz scenario live, loop + real Skeptic, end to end
+stdout | ../../../..<SCRATCHPAD>/livesmoke/full-loop.smoke.ts > LIVE full-loop smoke (2026-07-27) > runs the flagship Hormuz scenario live, loop + real Skeptic, end to end
 
 ================ PRECONDITIONS ================
 liveAiEnabled()     : true
@@ -10,7 +10,7 @@ skepticGateEnabled(): true
 groqAvailable()     : true   <-- false = Skeptic silently OFF
 gemini model        : gemini-3.5-flash
 
-stdout | ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/full-loop.smoke.ts > LIVE full-loop smoke (2026-07-27) > runs the flagship Hormuz scenario live, loop + real Skeptic, end to end
+stdout | ../../../..<SCRATCHPAD>/livesmoke/full-loop.smoke.ts > LIVE full-loop smoke (2026-07-27) > runs the flagship Hormuz scenario live, loop + real Skeptic, end to end
 
 ================ LIVE RESULT ================
 effectiveMode  : LIVE_AI
@@ -52,7 +52,7 @@ contains "tool_call": false
 contains "investigator": false
 contains "Investigator": true
 
- ✓ ../../../../private/tmp/claude-501/-Users-sharan-98-Desktop-supply-chain-ai-resilix/86995b5b-3df5-44ec-b24c-3dce50f8436f/scratchpad/livesmoke/full-loop.smoke.ts > LIVE full-loop smoke (2026-07-27) > runs the flagship Hormuz scenario live, loop + real Skeptic, end to end 38090ms
+ ✓ ../../../..<SCRATCHPAD>/livesmoke/full-loop.smoke.ts > LIVE full-loop smoke (2026-07-27) > runs the flagship Hormuz scenario live, loop + real Skeptic, end to end 38090ms
 
  Test Files  1 passed (1)
       Tests  1 passed (1)

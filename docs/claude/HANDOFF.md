@@ -28,19 +28,48 @@
 >   $0.0221 / 38.1s. Investigator loop ran 4–5 real tool steps.
 > - Public `/` posture unchanged: $0 / keyless / frozen replay (no engine file touched on that path).
 >
+> **▶ BOTH GATES ARE NOW RUN AND DISCHARGED (2026-07-27).** `acceptance-gate` BLOCKed twice (stale
+> documents of record; the judge disclosure) — both discharged, the judge CLOSED BY MEASUREMENT.
+> Then **Codex cross-model: REVISE, 12 findings**, all disposed primary-model-final. Record:
+> `gates/live-repair-2026-07-27/CODEX-FINDINGS-DISPOSITION.md`.
+>
+> **Codex's top finding invalidated a number this session had been repeating everywhere:** the
+> Skeptic calibration counted a critic **ERROR** as a **TRUE POSITIVE**, so "TPR 100%" could have
+> been produced by a critic that never worked. Fixed (separate error bucket, NaN guard, every unsound
+> control must earn a non-errored rejection, ≤10% error ceiling) and **re-measured: TPR 100% (7/7) /
+> TNR 100% (10/10) / errors 0/17.** The values were right; the instrument was not trustworthy —
+> different claims. Also fixed: truncation defence (`reasoningEffort:"low"` + strict structured
+> outputs cut output 357-368 → 91-144, so 1,200 is ~8-13× headroom), and a positive control proved
+> the FIRST truncation classifier inert — this provider rejects with `400 "Failed to generate JSON"`,
+> it does not return a length-truncated completion. Lessons L-4, L-5.
+>
 > **▶ THE EXACT NEXT ACTIONS (in order):**
-> 1. **GATES OWED on this diff** (not yet run, do NOT skip — it touches a safety-critical path):
->    `acceptance-gate` → **Codex cross-model pass**. Dispose primary-model-final.
+> 1. **NEW pre-existing defects Codex found OUTSIDE this diff — the L-1 pattern in the SIGNAL layer,
+>    which feeds every packet. Highest-value follow-ups in the repo:** NWS false calm
+>    (`lib/signals/fetchers.ts:107` — HTTP-200 `{}` reads as "no alerts / LIVE"); GDELT silent
+>    disappearance (`lib/signals/gdelt.ts:183` — all-articles-invalid caches `[]` and still reports
+>    `LIVE`, so the primary feed can vanish while reporting healthy); Noop transport terminalizing
+>    `EXECUTED` on `delivered:false` (`lib/server/action-transport.ts:103`). Each needs its own
+>    runtime-validation design + negative tests.
 > 2. **Owner decisions** — `ASSESSMENT-2026-07-27.md` §8: D1 does "real time" include live SIGNALS
 >    (`useLiveSignals` defaults false) · D2 move deploy earlier so the cap/limiter are proven on the
 >    real host · D3 Phase-2 deck design review (still open) · D4 push.
 > 3. **Playground** per `PLAN-PLAYGROUND-2026-07-22.md` — NOTE the new throughput constraint: one
 >    Skeptic call reserves ~2,621 of 8,000 TPM → **~3 concurrent live runs/minute** before the critic
 >    degrades. Size the per-IP limits against THAT, not just cost.
-> 4. Recorded, deliberately NOT silently changed: `judge.ts` still on the unmeasured 4,000 default ·
->    `maxRetries: 0` means a free (pre-inference) 429 degrades where a `Retry-After`-aware single
->    retry would be safe — recommended hardening BEFORE the public door opens · `gemini-3.6-flash`
->    now on the key while we run 3.5-flash (works; a decision, not a defect).
+> 4. Recorded, still open: `maxRetries: 0` means a free (pre-inference) 429 degrades where a
+>    `Retry-After`-aware single retry would be safe — recommended hardening BEFORE the public door
+>    opens · `npm run preflight:groq` is MANUAL-ONLY (not in `verify` per P3.2, and CI needs a
+>    `GROQ_API_KEY` secret — owner action), so the L-1 alarm only rings when someone runs it ·
+>    `gemini-3.6-flash` now on the key while we run 3.5-flash (works; a decision, not a defect) ·
+>    splitting the judge/Skeptic model constant is an owner architecture call.
+>
+> **CLOSED in round 2 (do NOT re-open):** `judge.ts` is no longer on the unmeasured 4,000 default —
+> it now uses `JUDGE_MAX_OUTPUT_TOKENS = 1_200` (measured in=779, out=165-252), the judge harness
+> got 15s TPM-derived spacing, and the judge was RE-CALIBRATED live on `openai/gpt-oss-120b`:
+> **TPR 100% (9/9) / TNR 88.9% (8/9) / kappa 0.889 / errors 0/18, exit 0** — above the enforced
+> 0.83/0.83/0.60 bars but measurably weaker than the retired model (forced by the provider, not
+> chosen). Records: `gates/live-repair-2026-07-27/` logs 08/10 + `ROUTE-BACK-DISCHARGE.md`.
 >
 > **Unpushed (owner-gated):** `c14bd3c`, `686251a`, `bad802e`, + this session's commit.
 >

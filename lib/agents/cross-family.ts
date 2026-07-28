@@ -1,5 +1,5 @@
 import { createGroq } from "@ai-sdk/groq";
-import { generateObject } from "ai";
+import { generateObject, APICallError, NoObjectGeneratedError } from "ai";
 import { z } from "zod";
 import type { AgentRunUsage } from "@/lib/agents/actionops/agent-run";
 
@@ -63,29 +63,98 @@ export function groqAvailable(): boolean {
 // regardless of how much the model actually emits. Free-tier TPM on the gpt-oss models is 8,000,
 // so a GENEROUS budget throttles the caller into 429s -- and for a fail-CLOSED consumer every 429
 // silently becomes a HOLD. Size this to the real output need plus modest headroom; do not treat a
-// bigger number as "safer". See SKEPTIC_MAX_OUTPUT_TOKENS in actionops/skeptic.ts for the worked
-// measurement. The 4,000 default below is the historical value kept for the judge, which has not
-// been re-measured against the new ceiling -- pass an explicit, measured budget for new callers.
-export function makeGroqGenerate(apiKey: string, maxOutputTokens: number = 4_000) {
+// bigger number as "safer". See SKEPTIC_MAX_OUTPUT_TOKENS (actionops/skeptic.ts) and
+// JUDGE_MAX_OUTPUT_TOKENS (evals/judge.ts) for the two worked measurements.
+//
+// `maxOutputTokens` is REQUIRED, deliberately (Codex cross-model [Med], 2026-07-27). It previously
+// defaulted to 4,000 -- the value MEASURED to self-throttle this provider into 429s -- so a new or
+// forgotten caller would silently inherit the exact failure this module was just repaired for, and
+// on a fail-closed consumer that failure is invisible. Both production callers already pass an
+// explicit measured budget; removing the default makes "pick a number you have measured" a
+// compile-time obligation rather than a comment somebody has to read.
+export function makeGroqGenerate(apiKey: string, maxOutputTokens: number) {
   const groq = createGroq({ apiKey });
   return async (a: { model: string; schema: z.ZodTypeAny; prompt: string }) => {
-    const result = await generateObject({
-      model: groq(a.model),
-      schema: a.schema,
-      prompt: a.prompt,
-      maxOutputTokens,
-      // Disable the SDK transport retry loop (Codex P3 High) so no un-ledgered, un-budget-guarded
-      // retry can bill past the cap -- the cross-family Skeptic's budget hard-stop stays hard.
-      maxRetries: 0
-    });
-    return {
-      object: result.object,
-      usage: {
-        inputTokens: result.usage?.inputTokens,
-        outputTokens: result.usage?.outputTokens,
-        totalTokens: result.usage?.totalTokens,
-        finishReason: result.finishReason ?? null
-      } satisfies AgentRunUsage
-    };
+    try {
+      const result = await generateObject({
+        model: groq(a.model),
+        schema: a.schema,
+        prompt: a.prompt,
+        maxOutputTokens,
+        // Disable the SDK transport retry loop (Codex P3 High) so no un-ledgered, un-budget-guarded
+        // retry can bill past the cap -- the cross-family Skeptic's budget hard-stop stays hard.
+        maxRetries: 0,
+        providerOptions: {
+          groq: {
+            // TRUNCATION DEFENCE (Codex cross-model [High], 2026-07-27). gpt-oss is a REASONING
+            // model and its reasoning tokens are billed against maxOutputTokens. Groq's default
+            // effort is "medium", so a harder or adversarial finding can reason past the cap, the
+            // completion truncates, generateObject fails schema validation and THROWS -- which on
+            // this fail-closed consumer becomes a silent HOLD -> NO_ACTION. That is exactly the
+            // L-1 symptom returning by a different cause. Both consumers here ask for a tiny
+            // verdict object over a short finding, so "low" is matched to the task and buys
+            // headroom in the one budget that actually binds. Verified present in the installed
+            // provider: @ai-sdk/groq groqProviderOptions.reasoningEffort ('none'|'default'|'low'|
+            // 'medium'|'high').
+            reasoningEffort: "low",
+            // Ask for STRICT json_schema rather than best-effort. The candidate probe established
+            // that only the gpt-oss models support json_schema on this key at all; requesting it
+            // explicitly makes a schema violation a provider-side error instead of a parse failure
+            // discovered after we have already paid for the tokens.
+            structuredOutputs: true
+          }
+        }
+      });
+      return {
+        object: result.object,
+        usage: {
+          inputTokens: result.usage?.inputTokens,
+          outputTokens: result.usage?.outputTokens,
+          totalTokens: result.usage?.totalTokens,
+          finishReason: result.finishReason ?? null
+        } satisfies AgentRunUsage
+      };
+    } catch (err) {
+      // LEDGER TRUTH ON A FAILED BILLED CALL (Codex cross-model [Med], 2026-07-27). A completion
+      // that ran and then failed schema validation HAS BEEN BILLED. The previous generic catch
+      // upstream recorded it as a zero-token run, which understates real spend and violates the
+      // "every call is ledgered" contract -- and it collapsed a TRUNCATION into an indistinguishable
+      // "LIVE_CALL_THREW". NoObjectGeneratedError carries the real usage + finishReason, so
+      // re-throw an ENRICHED error that preserves both for the caller's audit record.
+      // (maxRetries:0 stops hidden REPEAT billing; it does not make the first failed call free.)
+      const tagged = err as {
+        groqUsage?: AgentRunUsage;
+        truncated?: boolean;
+        schemaGenerationFailed?: boolean;
+      };
+
+      // PATH A -- the SDK's documented shape: a completion came back but did not satisfy the
+      // schema. It carries the real usage + finishReason; "length" is the smoking gun for
+      // truncation. Kept because it is the contract-level path (and the one that fires when
+      // strict structured outputs are unavailable).
+      if (NoObjectGeneratedError.isInstance(err)) {
+        tagged.groqUsage = {
+          inputTokens: err.usage?.inputTokens,
+          outputTokens: err.usage?.outputTokens,
+          totalTokens: err.usage?.totalTokens,
+          finishReason: err.finishReason ?? null
+        } satisfies AgentRunUsage;
+        tagged.truncated = err.finishReason === "length";
+      } else if (APICallError.isInstance(err) && err.statusCode === 400) {
+        // PATH B -- what Groq ACTUALLY does under strict json_schema, measured 2026-07-27 with a
+        // deliberately starved budget (16 output tokens): it rejects with
+        //   400 "Failed to generate JSON. Please adjust your prompt. See 'failed_generation'..."
+        // rather than returning a truncated completion. So the finishReason==="length" branch above
+        // NEVER FIRES on this provider in this mode -- discovered only because the truncation fix
+        // was positive-controlled instead of assumed. Named distinctly so the operator is pointed at
+        // the output budget first; we deliberately do NOT call it "truncated", because a 400 here
+        // cannot be distinguished from a genuine prompt/schema problem without the failed_generation
+        // body. Honest name over a confident one.
+        if (/failed to generate json|failed_generation/i.test(err.message ?? "")) {
+          tagged.schemaGenerationFailed = true;
+        }
+      }
+      throw err;
+    }
   };
 }

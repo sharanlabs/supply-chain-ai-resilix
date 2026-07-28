@@ -97,6 +97,22 @@ export function resolvedSkepticModel(): string {
 // If the Skeptic prompt grows materially, re-measure -- this constant is tied to the prompt size,
 // not a universal value. `npm run preflight:groq` checks availability, NOT throughput.
 //
+// HEADROOM RE-MEASURED 2026-07-27 after the Codex cross-model gate ([High] "1,200 is not a
+// defensible worst-case bound at 3.3x over two samples"). The response was not to argue the
+// margin but to REDUCE the consumption: `reasoningEffort: "low"` + strict `structuredOutputs`
+// (cross-family.ts) cut real output from 357-368 tokens to **91-144**, so 1,200 is now roughly
+// 8-13x the measured need rather than 3.3x, while the reservation stays ~2,621 of the 8,000 TPM
+// window. Positive-controlled: a deliberately starved 16-token budget FAILS as expected, while
+// 120 and 400 both complete (finishReason "stop") -- so the operating point is far from the edge.
+// Evidence: gates/live-repair-2026-07-27/14-truncation-positive-control.log + 15-trunc-diag.log.
+//
+// What that control ALSO overturned: under strict json_schema this provider does NOT return a
+// length-truncated completion. It rejects with `400 "Failed to generate JSON"`, so the
+// finishReason==="length" branch never fires here and the failure is classified
+// SCHEMA_GENERATION_FAILED instead. The first version of this fix keyed on the wrong error and
+// would have been silently inert -- it was only caught because the fix was positive-controlled
+// rather than reasoned about.
+//
 // SCOPE OF THE RESERVATION CLAIM (stated precisely rather than universally): the
 // input + max_completion_tokens accounting is EXACT on the 429/413 responses that report the
 // large figure -- 1,421 + 4,000 = 5,421 and 1,421 + 16,000 = 17,421 both match to the token
@@ -483,12 +499,39 @@ export async function challengeFindingLive(
   } catch (err) {
     // A budget hard-stop breach throws from liveGenerateObject BEFORE any bill; surface it as its
     // own errorClass so the ledger names the breach, not a generic failure. Either way -> HOLD.
-    const errorClass = err instanceof BudgetExceededError ? "BUDGET_EXCEEDED" : "LIVE_CALL_THREW";
+    //
+    // OUTPUT_TRUNCATED is split out (Codex cross-model [High/Med], 2026-07-27). A completion that
+    // ran and then blew the output budget is BILLED, and lumping it into LIVE_CALL_THREW hid both
+    // the real spend and the specific failure mode. Because a truncation looks identical to an
+    // outage from the outside -- HOLD -> NO_ACTION -- this is the class that could re-enact L-1
+    // silently. Naming it makes a recurrence greppable in the audit trail instead of anonymous.
+    // makeGroqGenerate attaches `truncated` + `groqUsage` from NoObjectGeneratedError.
+    const enriched = err as {
+      truncated?: boolean;
+      schemaGenerationFailed?: boolean;
+      groqUsage?: AgentRunUsage;
+    };
+    const truncated = enriched?.truncated === true;
+    const schemaFailed = enriched?.schemaGenerationFailed === true;
+    const errorClass = err instanceof BudgetExceededError
+      ? "BUDGET_EXCEEDED"
+      : truncated
+        ? "OUTPUT_TRUNCATED"
+        : schemaFailed
+          ? "SCHEMA_GENERATION_FAILED"
+          : "LIVE_CALL_THREW";
     const reason =
       err instanceof BudgetExceededError
         ? "Skeptic live call blocked by the budget hard-stop."
-        : "Skeptic live AI call failed.";
-    return hold(reason, errorClass);
+        : truncated
+          ? "Skeptic live call TRUNCATED at the output-token cap (finishReason=length) -- the verdict never completed, so the finding is held. Re-measure SKEPTIC_MAX_OUTPUT_TOKENS."
+          : schemaFailed
+            ? "Skeptic live call could not produce a schema-valid verdict (provider 400 'failed to generate JSON'). Most likely the output-token budget is too small for this finding -- check SKEPTIC_MAX_OUTPUT_TOKENS before suspecting the prompt."
+            : "Skeptic live AI call failed.";
+    // Preserve the REAL billed usage when the provider reported it. A failed-but-billed call
+    // ledgered as zero tokens understates spend against the $5 cap; only the genuinely
+    // pre-inference failures (budget breach, transport) legitimately carry no usage.
+    return hold(reason, errorClass, enriched?.groqUsage);
   }
 }
 

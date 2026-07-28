@@ -1,0 +1,29 @@
+
+ RUN  v4.1.5 /Users/sharan_98/Desktop/supply-chain-ai-resilix
+
+stdout | ../../../..<SCRATCHPAD>/livesmoke/trunc-diag.smoke.ts > starved-call error taxonomy > prints the real error class + fields at several starved budgets
+budget=16
+   name              : AI_APICallError
+   constructor       : APICallError
+   isNoObjectGen     : false
+   statusCode        : 400
+   finishReason      : -
+   .truncated (ours) : -
+   .groqUsage (ours) : null
+   cause?.name       : -
+   message           : Failed to generate JSON. Please adjust your prompt. See 'failed_generation' for more details.
+
+stdout | ../../../..<SCRATCHPAD>/livesmoke/trunc-diag.smoke.ts > starved-call error taxonomy > prints the real error class + fields at several starved budgets
+budget=120  OK out=91 finish=stop
+
+stdout | ../../../..<SCRATCHPAD>/livesmoke/trunc-diag.smoke.ts > starved-call error taxonomy > prints the real error class + fields at several starved budgets
+budget=400  OK out=144 finish=stop
+
+ ✓ ../../../..<SCRATCHPAD>/livesmoke/trunc-diag.smoke.ts > starved-call error taxonomy > prints the real error class + fields at several starved budgets 67654ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  21:18:04
+   Duration  68.75s (transform 223ms, setup 0ms, import 874ms, tests 67.66s, environment 0ms)
+
+EXIT=0
