@@ -97,14 +97,23 @@ export function resolvedSkepticModel(): string {
 // If the Skeptic prompt grows materially, re-measure -- this constant is tied to the prompt size,
 // not a universal value. `npm run preflight:groq` checks availability, NOT throughput.
 //
-// HEADROOM RE-MEASURED 2026-07-27 after the Codex cross-model gate ([High] "1,200 is not a
-// defensible worst-case bound at 3.3x over two samples"). The response was not to argue the
-// margin but to REDUCE the consumption: `reasoningEffort: "low"` + strict `structuredOutputs`
-// (cross-family.ts) cut real output from 357-368 tokens to **91-144**, so 1,200 is now roughly
-// 8-13x the measured need rather than 3.3x, while the reservation stays ~2,621 of the 8,000 TPM
-// window. Positive-controlled: a deliberately starved 16-token budget FAILS as expected, while
-// 120 and 400 both complete (finishReason "stop") -- so the operating point is far from the edge.
-// Evidence: gates/live-repair-2026-07-27/14-truncation-positive-control.log + 15-trunc-diag.log.
+// HEADROOM RE-MEASURED 2026-07-27/28 after the Codex cross-model gate ([High] "1,200 is not a
+// defensible worst-case bound at 3.3x over two samples"). The response was not to argue the margin
+// but to REDUCE the consumption: `reasoningEffort: "low"` + strict `structuredOutputs`
+// (cross-family.ts) cut real output from 357-368 tokens to under 100.
+//
+// MEASURED AT THIS EXACT BUDGET (not extrapolated -- an earlier note inferred the headroom from
+// runs at budgets of 120 and 400, which the acceptance-gate correctly rejected as an extrapolation
+// since output is budget-sensitive): 3 samples at maxOutputTokens=1,200 gave out=89 / 85 / 94, all
+// finishReason "stop" -- worst observed **94 tokens, i.e. ~12.8x headroom**. Notably output is NOT
+// monotonic in the budget (144 at a 400 budget vs 94 here), which is exactly why the operating
+// point had to be measured rather than reasoned about. The TPM reservation stays ~2,621 of 8,000.
+//
+// Positive-controlled at the edge too: a deliberately starved 16-token budget FAILS as expected,
+// while 120 and 400 complete. Evidence:
+//   gates/live-repair-2026-07-27/15-truncation-positive-control.log   (starved -> classified)
+//   gates/live-repair-2026-07-27/16-starved-call-error-taxonomy.log   (the real error shape)
+//   gates/live-repair-2026-07-27/19-production-budget-usage.log       (the 89/85/94 measurement)
 //
 // What that control ALSO overturned: under strict json_schema this provider does NOT return a
 // length-truncated completion. It rejects with `400 "Failed to generate JSON"`, so the

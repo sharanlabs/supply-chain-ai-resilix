@@ -25,10 +25,12 @@
   a ≤10% error ceiling. Re-measured: TPR 100% (7/7) / TNR 100% (10/10) / **errors 0/17**. The values
   were right; the instrument was not trustworthy — different claims.
 - [x] **L-5 [HIGH, Codex] FIXED — truncation defence + headroom.** `reasoningEffort:"low"` + strict
-  `structuredOutputs` cut real output 357-368 → **91-144 tokens** (1,200 is now ~8-13× headroom, not
-  3.3×). Positive control proved my FIRST classifier inert: this provider rejects with `400 "Failed to
-  generate JSON"`, it does NOT return a length-truncated completion → re-keyed to
-  `SCHEMA_GENERATION_FAILED`. `makeGroqGenerate`'s unsafe 4,000 default REMOVED (now required).
+  `structuredOutputs` cut real output 357-368 → under 100. **Measured AT the production budget
+  (not extrapolated — the gate rejected the first, inferred number): 89/85/94 at maxOutputTokens
+  1,200, all `finishReason:"stop"` → worst-case ~12.8× headroom.** Positive control proved my FIRST
+  classifier inert: this provider rejects with `400 "Failed to generate JSON"`, it does NOT return a
+  length-truncated completion → re-keyed to `SCHEMA_GENERATION_FAILED`. `makeGroqGenerate`'s unsafe
+  4,000 default REMOVED (now required).
   Committed logs redacted (Groq org id + local paths).
 - [ ] **▶ NEW pre-existing defects Codex found OUTSIDE this diff — the L-1 pattern in the signal
   layer. Highest-value follow-ups in the repo; NOT fixed here (each needs its own runtime-validation

@@ -1,0 +1,25 @@
+
+ RUN  v4.1.5 /Users/sharan_98/Desktop/supply-chain-ai-resilix
+
+stdout | ../../../..<SCRATCHPAD>/livesmoke/prod-budget-usage.smoke.ts > output usage AT the production budget > measures outputTokens at maxOutputTokens=1200, 3 samples
+sample 0: budget=1200 in=1373 out=89 finish=stop accepted=true
+
+stdout | ../../../..<SCRATCHPAD>/livesmoke/prod-budget-usage.smoke.ts > output usage AT the production budget > measures outputTokens at maxOutputTokens=1200, 3 samples
+sample 1: budget=1200 in=1373 out=85 finish=stop accepted=true
+
+stdout | ../../../..<SCRATCHPAD>/livesmoke/prod-budget-usage.smoke.ts > output usage AT the production budget > measures outputTokens at maxOutputTokens=1200, 3 samples
+sample 2: budget=1200 in=1373 out=94 finish=stop accepted=true
+
+stdout | ../../../..<SCRATCHPAD>/livesmoke/prod-budget-usage.smoke.ts > output usage AT the production budget > measures outputTokens at maxOutputTokens=1200, 3 samples
+
+MEASURED AT PRODUCTION BUDGET: outputs=[89,85,94] max=94
+headroom vs budget 1200: 12.8x (worst observed)
+
+ ✓ ../../../..<SCRATCHPAD>/livesmoke/prod-budget-usage.smoke.ts > output usage AT the production budget > measures outputTokens at maxOutputTokens=1200, 3 samples 67938ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  10:51:56
+   Duration  68.24s (transform 92ms, setup 0ms, import 199ms, tests 67.94s, environment 0ms)
+
+EXIT=0

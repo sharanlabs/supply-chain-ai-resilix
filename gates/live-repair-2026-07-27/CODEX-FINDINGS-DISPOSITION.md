@@ -64,8 +64,14 @@ errors (excluded):      0/17
 Codex was right that 3.3× over two samples is not a worst-case bound. Instead of arguing the margin,
 the consumption was cut: `reasoningEffort: "low"` + strict `structuredOutputs: true`
 (both verified present in the installed `@ai-sdk/groq` provider options, not assumed) dropped real
-output from **357–368 → 91–144 tokens**. 1,200 is now ~**8–13×** the measured need, with the TPM
-reservation unchanged at ~2,621 of 8,000.
+output from **357–368 → under 100 tokens**, with the TPM reservation unchanged at ~2,621 of 8,000.
+
+**Corrected after the next gate round:** the first version of this claim ("~8–13×") was an
+EXTRAPOLATION from runs at budgets of 120 and 400, and the acceptance-gate rightly rejected it since
+output is budget-sensitive. Measured AT the production budget instead (`19-production-budget-usage.log`):
+**89 / 85 / 94 tokens at maxOutputTokens=1,200, all `finishReason:"stop"` → worst-case ~12.8× headroom.**
+Output is NOT monotonic in the budget (144 at a 400-budget vs 94 at 1,200), so the extrapolation could
+have gone the wrong way.
 
 **Positive-controlled** (`15-truncation-positive-control.log`, `16-starved-call-error-taxonomy.log`):
 a starved 16-token budget fails as expected; 120 and 400 both complete with `finishReason: "stop"`.

@@ -39,7 +39,8 @@
 > control must earn a non-errored rejection, ≤10% error ceiling) and **re-measured: TPR 100% (7/7) /
 > TNR 100% (10/10) / errors 0/17.** The values were right; the instrument was not trustworthy —
 > different claims. Also fixed: truncation defence (`reasoningEffort:"low"` + strict structured
-> outputs cut output 357-368 → 91-144, so 1,200 is ~8-13× headroom), and a positive control proved
+> outputs cut output 357-368 → under 100; **measured AT the 1,200 budget: 89/85/94, worst-case
+> ~12.8× headroom**, all `finishReason:"stop"`), and a positive control proved
 > the FIRST truncation classifier inert — this provider rejects with `400 "Failed to generate JSON"`,
 > it does not return a length-truncated completion. Lessons L-4, L-5.
 >

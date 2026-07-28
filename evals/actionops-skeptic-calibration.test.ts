@@ -162,10 +162,59 @@ describe("Skeptic calibration: set + fail-closed counting (no spend)", () => {
         throw new Error("boom");
       }
     });
-    // The calibration tally treats `accepted === false` as a flag; an errored HOLD is one too, so a
-    // broken critic can only hurt TNR (a false reject), never inflate TPR.
+    // This asserts PRODUCTION behaviour only: a broken critic must HOLD, never silently accept.
+    //
+    // CORRECTED 2026-07-27. This comment previously read "the calibration tally treats
+    // `accepted === false` as a flag; an errored HOLD is one too, so a broken critic can only hurt
+    // TNR, never inflate TPR." That claim about the TALLY was mathematically FALSE (Codex [High]) --
+    // an errored HOLD WAS being counted as a true positive, so a critic that threw on every unsound
+    // control reported TPR 100% with zero real detections. The tally now buckets errors separately
+    // (see the live calibration below). The `errored` flag on the verdict is still exactly what
+    // makes that bucketing possible, which is why this test matters.
     expect(verdict.accepted).toBe(false);
     expect(verdict.errored).toBe(true);
+  });
+
+  // ROUTE-BACK 1 DISCHARGE (acceptance-gate, 2026-07-28) -- the discriminating control the previous
+  // round lacked. With `errors === 0`, the OLD (broken) tally and the NEW (bucketed) tally produce
+  // IDENTICAL numbers: tp=7, tn=10, fn=0, fp=0. So the live re-measurement could NOT distinguish a
+  // fixed implementation from the broken one, and the two new teeth were vacuously satisfied. That
+  // is precisely the failure lesson L-5 names -- "a defensive branch that has never been OBSERVED
+  // firing is untested code on the exact path you claim to have secured."
+  //
+  // This drives an ERROR through the SAME classification the live loop uses, deterministically and
+  // at $0, and asserts the three properties that separate the fixed tally from the broken one.
+  it("an ERRORED verdict is bucketed as an error -- NOT counted as a detection (L-4 regression)", async () => {
+    const unsound = LABELED.find((s) => !s.accepted);
+    expect(unsound, "the labelled set must contain an unsound control").toBeDefined();
+
+    const { threatCard, checks, exposures } = inputsFor(unsound!);
+    const { verdict } = await challengeFindingLive(ctx(), threatCard, checks, exposures, {
+      enabled: () => true,
+      generate: async () => {
+        throw new Error("simulated critic outage");
+      }
+    });
+
+    // Replicate the live loop's classification EXACTLY as written there.
+    let tp = 0;
+    let errors = 0;
+    const erroredUnsound: string[] = [];
+    if (verdict.errored) {
+      errors++;
+      if (!unsound!.accepted) erroredUnsound.push(unsound!.id);
+    } else if (verdict.accepted === false) {
+      tp++;
+    }
+
+    // 1. The error is bucketed, not scored.
+    expect(errors).toBe(1);
+    // 2. It did NOT become a true positive. Under the OLD tally this was tp === 1 -- the whole bug.
+    expect(tp).toBe(0);
+    // 3. The unsound control is recorded as having ERRORED rather than been detected, which is what
+    //    makes `expect(erroredUnsound).toEqual([])` in the live pass a real gate instead of a
+    //    vacuous one: a critic that errors on every unsound item now FAILS there.
+    expect(erroredUnsound).toEqual([unsound!.id]);
   });
 });
 
