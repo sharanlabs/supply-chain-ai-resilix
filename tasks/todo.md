@@ -14,9 +14,10 @@
   harness spacing (4s was sized for a 30K allowance). Calibration TPR 100% / TNR 100%.
 - [x] **Verify green first-hand** — 916 unit / 34 golden / exit 0. Live smoke: ACT, gatekeeper PASS,
   2 playbooks, 5 drafts, $0.0221, 38.1s.
-- [x] **Gates RUN on this diff.** `acceptance-gate` BLOCK ×4 (all discharged: stale records; the
-  judge closed by measurement; proof discipline + an extrapolated headroom number; a regression test
-  that re-implemented the classifier instead of calling it) → **Codex cross-model REVISE, 12 findings** (6 High/5 Med/1 Low), all
+- [x] **Gates RUN on this diff — final verdict SHIP.** `acceptance-gate`: **3 BLOCK verdicts across
+  5 claim-corrections** (stale records; the judge closed by measurement; proof discipline + an
+  extrapolated headroom number; dead citations + an untriaged grep hit; a regression test that
+  re-implemented the classifier instead of calling it). All discharged → **Codex cross-model REVISE, 12 findings** (6 High/5 Med/1 Low), all
   disposed primary-model-final. Record: `gates/live-repair-2026-07-27/CODEX-FINDINGS-DISPOSITION.md`.
   Codex's top finding invalidated a number this session had been repeating (see below).
 - [x] **L-4 [CRITICAL, Codex] FIXED — the Skeptic calibration counted a critic ERROR as a TRUE

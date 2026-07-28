@@ -413,7 +413,9 @@ describe.skipIf(!LIVE)("Skeptic calibration: live cross-family pass (BILLS Groq 
         //
         // RE-CALIBRATED 2026-07-27 (L-1): 4,000ms was sized for llama-4-scout's ~30K TPM allowance.
         // The gpt-oss models cap at 8,000 TPM on this key, and Groq reserves
-        // `input + max_completion_tokens` per call (~1,421 + 1,200 = ~2,621 here), so the window
+        // `input + max_completion_tokens` per call (~1,421 + 1,200 = ~2,621 here -- SUPERSEDED
+        // 2026-07-28: measured in=1,373 -> ~2,573; the 20s spacing below stays because the larger
+        // figure is the CONSERVATIVE direction, and both give ~3 calls/min), so the window
         // sustains only ~3 calls/minute => ~20s between calls. At 4s the suite measured TNR 40%,
         // then 80% with 6 and 2 misses respectively -- EVERY miss tagged "(error)", i.e. the
         // instrument was measuring its own throttling, not the Skeptic's judgement.

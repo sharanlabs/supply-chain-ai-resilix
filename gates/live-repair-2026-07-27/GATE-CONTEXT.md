@@ -79,6 +79,8 @@ a reachable product: no surface a visitor can touch runs the live loop, and noth
   429 is rejected pre-inference and costs nothing, so it currently degrades where a `Retry-After`
   aware single retry would be safe. Recommended BEFORE the public playground door opens.
 - Throughput: one Skeptic call reserves ~2,621 of 8,000 TPM → **~3 concurrent live runs/minute**.
+  *(SUPERSEDED 2026-07-28: measured in=1,373 → ~2,573. Conclusion unchanged at ~3/min. See
+  `ROUND5-DISCHARGE.md`.)*
 - `gemini-3.6-flash` is now on the key while the app runs `gemini-3.5-flash` (works; a decision).
 - `npm run test:e2e` NOT run: no UI/API/routing change in this diff and the e2e surfaces are
   keyless (they never reach the Skeptic's live path). Stated rather than left silent.

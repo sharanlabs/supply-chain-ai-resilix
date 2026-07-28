@@ -31,10 +31,13 @@
 > - Public `/` posture unchanged: $0 / keyless / frozen replay (no engine file touched on that path).
 >
 > **▶ BOTH GATES RUN; FOUR ACCEPTANCE-GATE ROUNDS DISCHARGED (2026-07-27/28).** `acceptance-gate`
-> BLOCKed **four times** — (1) stale documents of record, (2) the judge disclosure, (3) proof
-> discipline on the L-4 fix + an extrapolated headroom number, (4) the new regression test
-> RE-IMPLEMENTED the classifier instead of calling it (f(x)===f(x)). All discharged; the judge was
-> CLOSED BY MEASUREMENT and the classifier is now shared + mutation-controlled.
+> returned **3 BLOCK verdicts across 5 claim-corrections** (stating the convention, because an
+> earlier draft said "four" and reconciled with neither count): BLOCK-1 on `6104159` carried two
+> route-backs (stale documents of record; the judge disclosure); BLOCK-2 on the chain carried four
+> (proof discipline on the L-4 fix; an extrapolated headroom number; dead evidence citations; an
+> untriaged grep hit); BLOCK-3 on `65ebc9a` carried one (the new regression test RE-IMPLEMENTED the
+> classifier instead of calling it — f(x)===f(x)). All discharged; the judge was CLOSED BY
+> MEASUREMENT, the classifier is now shared + mutation-controlled, and the final gate returned SHIP.
 > Then **Codex cross-model: REVISE, 12 findings**, all disposed primary-model-final. Record:
 > `gates/live-repair-2026-07-27/CODEX-FINDINGS-DISPOSITION.md`, `ROUND4-DISCHARGE.md`,
 > `ROUND5-DISCHARGE.md` (+ evidence logs 19-21).
