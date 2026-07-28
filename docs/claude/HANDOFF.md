@@ -1,6 +1,14 @@
-# HANDOFF — resume pointer (updated 2026-07-27: LIVE PRODUCT WAS BROKEN — found + fixed; gates owed)
+# HANDOFF — resume pointer (updated 2026-07-28: live engine was BROKEN — found, fixed, gate-SHIPped)
 
-> ## ▶ RESUME HERE (2026-07-27 — the live agentic product was DOWN; repaired, verify green, GATES OWED)
+> ## ▶ RESUME HERE (2026-07-28 — engine repaired + ALL GATES CLOSED (SHIP). Product still NOT reachable/deployed.)
+>
+> **READ THIS FIRST, so "fixed" is not misread:** this chain repaired the ENGINE so the live agentic
+> loop runs end-to-end. It did NOT make RESILIX reachable — no surface a visitor can touch runs the
+> live loop, and nothing is deployed. That gap is the Playground + Phase 4, still ahead.
+>
+> **Gate status: acceptance-gate SHIP (final), Codex cross-model REVISE fully disposed.** 3 BLOCK
+> verdicts across 5 claim-corrections, all discharged. Tree clean; `npm run verify` exit 0 —
+> **918 unit / 34 golden**. 11 commits unpushed (owner-gated).
 >
 > **Owner ask:** assess the project; "there should be final end-to-end real time working agentic AI
 > product"; rework/realign as needed. Assessment artifact: **`docs/claude/ASSESSMENT-2026-07-27.md`**.
