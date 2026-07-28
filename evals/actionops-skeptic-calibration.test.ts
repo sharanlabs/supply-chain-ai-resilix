@@ -196,25 +196,40 @@ describe("Skeptic calibration: set + fail-closed counting (no spend)", () => {
       }
     });
 
-    // Replicate the live loop's classification EXACTLY as written there.
-    let tp = 0;
-    let errors = 0;
-    const erroredUnsound: string[] = [];
-    if (verdict.errored) {
-      errors++;
-      if (!unsound!.accepted) erroredUnsound.push(unsound!.id);
-    } else if (verdict.accepted === false) {
-      tp++;
-    }
+    // Drive the REAL shared classifier -- the SAME function the gated live pass calls. Not a copy:
+    // an earlier version of this test re-implemented the branch inline and therefore compared a copy
+    // against itself (f(x)===f(x)), so mutating the live loop left it green. Calling the shared
+    // function is what gives this test teeth over the live path.
+    const tally = emptyTally();
+    classifyCalibrationVerdict(unsound!, verdict, tally);
 
     // 1. The error is bucketed, not scored.
-    expect(errors).toBe(1);
+    expect(tally.errors).toBe(1);
     // 2. It did NOT become a true positive. Under the OLD tally this was tp === 1 -- the whole bug.
-    expect(tp).toBe(0);
-    // 3. The unsound control is recorded as having ERRORED rather than been detected, which is what
-    //    makes `expect(erroredUnsound).toEqual([])` in the live pass a real gate instead of a
-    //    vacuous one: a critic that errors on every unsound item now FAILS there.
-    expect(erroredUnsound).toEqual([unsound!.id]);
+    expect(tally.tp).toBe(0);
+    // 3. The unsound control is recorded as having ERRORED rather than detected, which is what makes
+    //    `expect(erroredUnsound).toEqual([])` in the live pass a real gate instead of a vacuous one:
+    //    a critic that errors on every unsound item now FAILS there.
+    expect(tally.erroredUnsound).toEqual([unsound!.id]);
+    // 4. And it is NOT silently dropped: the miss list names it, so an errored control can never
+    //    vanish from the report the way an unbucketed error used to vanish into `tp`.
+    expect(tally.misses.join(" ")).toContain(`ERR ${unsound!.id}`);
+  });
+
+  // The complement: a NON-errored genuine reject on the same unsound spec MUST still score as a
+  // true positive. Without this, "bucket the errors" could be satisfied by a classifier that scores
+  // nothing at all -- the mirror of the bug being fixed.
+  it("a genuine (non-errored) REJECT on an unsound control still scores as a detection", () => {
+    const unsound = LABELED.find((s) => !s.accepted);
+    const tally = emptyTally();
+    classifyCalibrationVerdict(
+      unsound!,
+      { accepted: false, errored: false, reason: "genuinely rejected" },
+      tally
+    );
+    expect(tally.tp).toBe(1);
+    expect(tally.errors).toBe(0);
+    expect(tally.erroredUnsound).toEqual([]);
   });
 });
 
@@ -291,6 +306,70 @@ describe("Skeptic GATE outcome on the labelled finding shapes (the (C) regressio
   });
 });
 
+// THE SHARED CALIBRATION TALLY -- ONE implementation, called by BOTH the gated live pass and the
+// deterministic regression test below.
+//
+// WHY IT EXISTS (acceptance-gate route-back, 2026-07-28): the first attempt to prove the L-4 fix
+// added a deterministic test that RE-IMPLEMENTED this branch inline. That test compared a copy
+// against itself -- the repo's own f(x)===f(x) failure -- so mutating the LIVE loop left it green,
+// and its "negative control" only ever proved that the copy discriminated. The live loop also sits
+// behind `describe.skipIf(!LIVE)`, so `npm run verify` never executes it; without extraction there
+// was NO deterministic guard on the classification at all.
+//
+// Now there is exactly one classifier. Mutating it to the pre-fix form (drop the `errored` branch
+// and let `flagged = verdict.accepted === false` swallow errors) turns the deterministic test RED.
+// That is the property the previous round claimed but could not deliver.
+export type CalibrationTally = {
+  tp: number;
+  fn: number;
+  tn: number;
+  fp: number;
+  errors: number;
+  erroredUnsound: string[];
+  misses: string[];
+};
+
+export function emptyTally(): CalibrationTally {
+  return { tp: 0, fn: 0, tn: 0, fp: 0, errors: 0, erroredUnsound: [], misses: [] };
+}
+
+// Classify ONE labelled finding's verdict into the tally, in place.
+//
+// An ERRORED verdict is NOT a judgement -- it is the critic failing. It is bucketed separately and
+// kept out of every rate (EV-09 shape, mirroring the judge harness). Production behaviour is
+// unchanged and still fail-closed: a broken critic HOLDs the finding. What changes is that a
+// failure can no longer MASQUERADE as a detection in the metric.
+export function classifyCalibrationVerdict(
+  spec: { id: string; accepted: boolean },
+  verdict: Pick<SkepticVerdict, "accepted" | "errored" | "reason">,
+  tally: CalibrationTally
+): void {
+  if (verdict.errored) {
+    tally.errors++;
+    if (!spec.accepted) tally.erroredUnsound.push(spec.id);
+    tally.misses.push(
+      `ERR ${spec.id} (${spec.accepted ? "sound" : "unsound"}): critic ERRORED -- excluded from TPR/TNR`
+    );
+    return;
+  }
+
+  const flagged = verdict.accepted === false; // a real, non-errored REJECT
+
+  if (!spec.accepted) {
+    if (flagged) tally.tp++;
+    else {
+      tally.fn++;
+      tally.misses.push(`FN ${spec.id}: Skeptic ACCEPTED an unsound finding`);
+    }
+  } else {
+    if (!flagged) tally.tn++;
+    else {
+      tally.fp++;
+      tally.misses.push(`FP ${spec.id}: Skeptic REJECTED a sound finding (${verdict.reason})`);
+    }
+  }
+}
+
 describe.skipIf(!LIVE)("Skeptic calibration: live cross-family pass (BILLS Groq free tier, gated)", () => {
   it(
     "clears the TPR/TNR bar over the labelled findings, counting critic-error as fail-closed",
@@ -313,13 +392,10 @@ describe.skipIf(!LIVE)("Skeptic calibration: live cross-family pass (BILLS Groq 
       // error-rate ceiling so exclusion cannot become a loophole. In addition, every unsound control
       // must earn a NON-ERRORED rejection -- an error is not a detection, and TPR must be a claim
       // about judgement, never about failure.
-      let tp = 0;
-      let fn = 0;
-      let tn = 0;
-      let fp = 0;
-      let errors = 0;
-      const erroredUnsound: string[] = [];
-      const misses: string[] = [];
+      // ONE shared tally + ONE shared classifier (see classifyCalibrationVerdict above). The
+      // deterministic regression test calls the SAME function, so mutating it fails that test --
+      // which is what makes this live pass's numbers trustworthy rather than merely reported.
+      const tally = emptyTally();
 
       for (const spec of LABELED) {
         const { threatCard, checks, exposures } = inputsFor(spec);
@@ -346,35 +422,10 @@ describe.skipIf(!LIVE)("Skeptic calibration: live cross-family pass (BILLS Groq 
         // measurement that means what it says. Re-derive if the model, its TPM tier, the prompt
         // size, or SKEPTIC_MAX_OUTPUT_TOKENS changes.
         await new Promise((r) => setTimeout(r, 20_000));
-        // An ERRORED verdict is NOT a judgement -- it is the critic failing. Bucket it separately
-        // and keep it out of every rate (EV-09 shape, mirroring the judge harness). The production
-        // behaviour is unchanged and still fail-closed: a broken critic HOLDs the finding. What
-        // changes is that a failure can no longer MASQUERADE as a detection in the metric.
-        if (verdict.errored) {
-          errors++;
-          if (!spec.accepted) erroredUnsound.push(spec.id);
-          misses.push(
-            `ERR ${spec.id} (${spec.accepted ? "sound" : "unsound"}): critic ERRORED -- excluded from TPR/TNR`
-          );
-          continue;
-        }
-
-        const flagged = verdict.accepted === false; // a real, non-errored REJECT
-
-        if (!spec.accepted) {
-          if (flagged) tp++;
-          else {
-            fn++;
-            misses.push(`FN ${spec.id}: Skeptic ACCEPTED an unsound finding`);
-          }
-        } else {
-          if (!flagged) tn++;
-          else {
-            fp++;
-            misses.push(`FP ${spec.id}: Skeptic REJECTED a sound finding (${verdict.reason})`);
-          }
-        }
+        classifyCalibrationVerdict(spec, verdict, tally);
       }
+
+      const { tp, fn, tn, fp, errors, erroredUnsound, misses } = tally;
 
       // Rates are computed over NON-ERRORED verdicts only. `|| 0` guards the degenerate case where
       // every item of a class errored: that must read as 0%, never NaN (a NaN silently passes a

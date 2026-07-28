@@ -125,7 +125,8 @@ Two counter-intuitive points:
 
 - **Raising the budget made it strictly worse.** At 16,000 the API returns `413 Request too large` —
   a single call exceeding the entire minute's allowance. The fix was sizing *down* to 1,200
-  (>3× the measured need; reservation ~2,621; ~3 calls/min).
+  (reservation ~2,573 measured; ~3 calls/min). Headroom later improved to ~12.8× — see the
+  round-4 discharge; this line records the figure as it stood at the first fix.
 - **The eval instrument carried the same stale assumption.** The harness's 4s inter-call spacing was
   calibrated for llama-4-scout's ~30K TPM. Against an 8K ceiling it was measuring its own
   throttling. TNR moved 40% → 80% → **100%** as the budget was right-sized and spacing went to 20s.
@@ -170,7 +171,9 @@ the record it deviates from), `Success_Criteria.md`, `architecture.md`, the code
   playground door opens** — under concurrent visitors an 8K TPM ceiling will throttle regularly.
 
 ### Throughput reality for the Playground (new constraint, surfaced early)
-One Skeptic call per packet run reserves ~2,621 tokens of an 8,000/min budget → **~3 concurrent
+One Skeptic call per packet run reserves ~2,573 tokens of an 8,000/min budget (measured 2026-07-28:
+input 1,373 + budget 1,200; an earlier note said ~2,621 from an in=1,421 sample — the **conclusion is
+unchanged**, 8000/2621=3.05 vs 8000/2573=3.11) → **~3 concurrent
 live runs per minute** before the cross-family critic starts degrading to HOLD. The planned per-IP
 limits and daily cap must be sized against *this*, not just against cost. Options: the retry above,
 a paid Groq tier, or an explicit queue.

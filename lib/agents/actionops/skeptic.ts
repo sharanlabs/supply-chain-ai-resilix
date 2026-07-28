@@ -92,6 +92,8 @@ export function resolvedSkepticModel(): string {
 // Raising the budget makes it strictly WORSE (16,000 -> HTTP 413 "Request too large", a single
 // call exceeding the whole minute). Right-sizing DOWN is the fix: 1,200 keeps >3x headroom over
 // the measured ~370 while dropping the reservation to ~2,621, so ~3 calls/minute fit the window.
+// (Figures in THIS paragraph are the 2026-07-27 state, before reasoningEffort:"low" landed. The
+// current measured values are in the RE-MEASURED block below -- read that one for the live numbers.)
 // The prior 4,000 was safe only because llama-4-scout enjoyed a ~30K TPM allowance.
 //
 // If the Skeptic prompt grows materially, re-measure -- this constant is tied to the prompt size,
@@ -107,7 +109,9 @@ export function resolvedSkepticModel(): string {
 // since output is budget-sensitive): 3 samples at maxOutputTokens=1,200 gave out=89 / 85 / 94, all
 // finishReason "stop" -- worst observed **94 tokens, i.e. ~12.8x headroom**. Notably output is NOT
 // monotonic in the budget (144 at a 400 budget vs 94 here), which is exactly why the operating
-// point had to be measured rather than reasoned about. The TPM reservation stays ~2,621 of 8,000.
+// point had to be measured rather than reasoned about. TPM reservation ~2,573 of 8,000 (measured
+// in=1,373 + budget 1,200; an earlier note said ~2,621 off an in=1,421 sample -- conservative, but
+// it propagates into the playground's per-IP sizing, so use the measured figure).
 //
 // Positive-controlled at the edge too: a deliberately starved 16-token budget FAILS as expected,
 // while 120 and 400 complete. Evidence:

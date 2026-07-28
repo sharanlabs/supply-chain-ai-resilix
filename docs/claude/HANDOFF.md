@@ -21,17 +21,23 @@
 > spacing carried the same stale 30K-TPM assumption and was measuring its own throttling.
 >
 > **STATE AT WRAP — all measured first-hand today, not quoted:**
-> - `npm run verify` **exit 0** — **916 unit** / 34 golden / lint / contrast / build / secret-scan.
+> - `npm run verify` **exit 0** — **918 unit** / 34 golden / lint / contrast / build / secret-scan.
+>   (916 at the first close; +2 from the deterministic L-4 regression guards added under gate review.)
 > - Skeptic calibration on the new model: **TPR 100% (7/7) / TNR 100% (10/10)** — matches the
 >   historic llama-4-scout figures.
-> - Live full-loop smoke: `LIVE_AI` / **ACT** / gatekeeper **PASS** / 2 playbooks / 5 drafts /
->   $0.0221 / 38.1s. Investigator loop ran 4–5 real tool steps.
+> - Live full-loop smoke, re-run AFTER the round-3 production changes: `LIVE_AI` / **ACT** /
+>   gatekeeper **PASS** / 2 playbooks / 5 drafts / $0.0226 / 38.4s (log 18). Investigator loop ran
+>   4–5 real tool steps.
 > - Public `/` posture unchanged: $0 / keyless / frozen replay (no engine file touched on that path).
 >
-> **▶ BOTH GATES ARE NOW RUN AND DISCHARGED (2026-07-27).** `acceptance-gate` BLOCKed twice (stale
-> documents of record; the judge disclosure) — both discharged, the judge CLOSED BY MEASUREMENT.
+> **▶ BOTH GATES RUN; FOUR ACCEPTANCE-GATE ROUNDS DISCHARGED (2026-07-27/28).** `acceptance-gate`
+> BLOCKed **four times** — (1) stale documents of record, (2) the judge disclosure, (3) proof
+> discipline on the L-4 fix + an extrapolated headroom number, (4) the new regression test
+> RE-IMPLEMENTED the classifier instead of calling it (f(x)===f(x)). All discharged; the judge was
+> CLOSED BY MEASUREMENT and the classifier is now shared + mutation-controlled.
 > Then **Codex cross-model: REVISE, 12 findings**, all disposed primary-model-final. Record:
-> `gates/live-repair-2026-07-27/CODEX-FINDINGS-DISPOSITION.md`.
+> `gates/live-repair-2026-07-27/CODEX-FINDINGS-DISPOSITION.md`, `ROUND4-DISCHARGE.md`,
+> `ROUND5-DISCHARGE.md` (+ evidence logs 19-21).
 >
 > **Codex's top finding invalidated a number this session had been repeating everywhere:** the
 > Skeptic calibration counted a critic **ERROR** as a **TRUE POSITIVE**, so "TPR 100%" could have
@@ -56,7 +62,8 @@
 >    (`useLiveSignals` defaults false) · D2 move deploy earlier so the cap/limiter are proven on the
 >    real host · D3 Phase-2 deck design review (still open) · D4 push.
 > 3. **Playground** per `PLAN-PLAYGROUND-2026-07-22.md` — NOTE the new throughput constraint: one
->    Skeptic call reserves ~2,621 of 8,000 TPM → **~3 concurrent live runs/minute** before the critic
+>    Skeptic call reserves ~2,573 of 8,000 TPM (measured in=1,373 + budget 1,200) → **~3 concurrent
+>    live runs/minute** before the critic
 >    degrades. Size the per-IP limits against THAT, not just cost.
 > 4. Recorded, still open: `maxRetries: 0` means a free (pre-inference) 429 degrades where a
 >    `Retry-After`-aware single retry would be safe — recommended hardening BEFORE the public door
@@ -72,7 +79,8 @@
 > 0.83/0.83/0.60 bars but measurably weaker than the retired model (forced by the provider, not
 > chosen). Records: `gates/live-repair-2026-07-27/` logs 08/10 + `ROUTE-BACK-DISCHARGE.md`.
 >
-> **Unpushed (owner-gated):** `c14bd3c`, `686251a`, `bad802e`, + this session's commit.
+> **Unpushed (owner-gated):** `c14bd3c`, `686251a`, `bad802e`, + **seven** commits from this session
+> (`6104159` → `ce2d0ca` → `777674c` → `310d669` → `ffe56d0` → `65ebc9a` → the round-5 discharge).
 >
 > ----- prior top block (2026-07-22 Phase-1 close) below -----
 

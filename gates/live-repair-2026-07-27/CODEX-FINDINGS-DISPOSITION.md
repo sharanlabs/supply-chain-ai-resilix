@@ -64,7 +64,9 @@ errors (excluded):      0/17
 Codex was right that 3.3× over two samples is not a worst-case bound. Instead of arguing the margin,
 the consumption was cut: `reasoningEffort: "low"` + strict `structuredOutputs: true`
 (both verified present in the installed `@ai-sdk/groq` provider options, not assumed) dropped real
-output from **357–368 → under 100 tokens**, with the TPM reservation unchanged at ~2,621 of 8,000.
+output from **357–368 → under 100 tokens**. TPM reservation ~2,573 of 8,000 (measured in=1,373 +
+budget 1,200; an earlier note said ~2,621 off an in=1,421 sample — conclusion unchanged at ~3
+calls/min).
 
 **Corrected after the next gate round:** the first version of this claim ("~8–13×") was an
 EXTRAPOLATION from runs at budgets of 120 and 400, and the acceptance-gate rightly rejected it since
